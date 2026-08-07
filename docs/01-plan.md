@@ -68,7 +68,7 @@ R/
 tests/testthat/      180 tests
 inst/extdata/        narwc-example.csv, the synthetic fixture
 data-raw/            make-fixture.R, the reproducible generator for it
-vignettes/           segmenting-narwc-data.Rmd
+vignettes/           segmenting-narwc-data.Rmd, from-segments-to-density.Rmd
 docs/                this documentation set
 man/                 roxygen-generated
 ```

@@ -1,0 +1,268 @@
+---
+title: "From segments to a density surface"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{From segments to a density surface}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+```{r setup}
+library(distsamp)
+```
+
+`distsamp` stops at segments. This vignette picks up where
+`vignette("segmenting-narwc-data")` ends and shows how to hand its output to
+`Distance` and `dsm`, because the handoff is where the units and the
+segment-to-detection keying are easy to get wrong.
+
+The `Distance` and `dsm` chunks below are **not evaluated** — neither package is
+a dependency of `distsamp`, so this vignette builds without them. The code is
+real and runnable once you install them.
+
+## What you start with
+
+```{r}
+path <- system.file("extdata", "narwc-example.csv", package = "distsamp")
+dat <- read_narwc(path)
+segs <- segment_survey(dat, seg_length = 5, seed = 1, species = "RIWH")
+segs
+```
+
+Two tables matter here.
+
+**`segments`** — the sampling units. One row each, with effort and a location:
+
+```{r}
+head(segs$segments[, c("seg_id", "seg_eff", "mid_lat", "mid_lon", "wt_beaufort")])
+```
+
+**`detections`** — one row per sighting, with perpendicular distance:
+
+```{r}
+segs$detections[, c("seg_id", "SPECCODE", "size", "distance", "side")]
+```
+
+`seg_id` is the key between them. Every detection belongs to exactly one
+segment, and every segment carries the effort that detection was made on.
+
+## The units trap
+
+This is the single most common way to get a density estimate wrong by three
+orders of magnitude, so it is worth being explicit.
+
+```{r}
+c(effort = "km", distance = segs$settings$distance_units)
+```
+
+`seg_eff` is in **kilometres**, because that is what effort accumulation
+produces. `distance` defaults to **metres**, because `ALT` is in metres
+(handbook 8.A.1) and perpendicular distances for aerial cetacean surveys are
+conventionally reported that way.
+
+You have two options. Either work in kilometres throughout:
+
+```{r}
+segs_km <- segment_survey(dat, seg_length = 5, seed = 1, species = "RIWH",
+                          distance_units = "km")
+segs_km$detections$distance
+```
+
+or keep metres and tell `Distance` about it via `convert_units`. For effort in
+km, distance in m, and area in km², that conversion factor is:
+
+```{r}
+# (m -> km) * 2 sides * (km effort)
+convert_units <- 0.001
+```
+
+Whichever you pick, state it in your methods.
+
+## Fitting a detection function
+
+`Distance::ds()` wants a data frame with a `distance` column, optionally with
+`size` and detection covariates. `segs$detections` is already that shape.
+
+```{r, eval = FALSE}
+library(Distance)
+
+df_data <- segs$detections[!is.na(segs$detections$distance), ]
+
+# Attach segment-level detection covariates by seg_id
+df_data <- merge(
+  df_data,
+  segs$segments[, c("seg_id", "wt_beaufort")],
+  by = "seg_id"
+)
+
+df <- ds(
+  df_data,
+  key = "hn",
+  truncation = "10%",
+  formula = ~ wt_beaufort
+)
+
+summary(df)
+plot(df)
+gof_ds(df)
+```
+
+Three things worth pausing on.
+
+**Use `wt_beaufort`, not `mean_beaufort`.** The weighted version weights each
+record by the distance it covers, so a sea state held over 3 km counts for more
+than one recorded over 200 m. That is the quantity detection actually depends on.
+
+**Circling detections have no distance and drop out here.** That is correct —
+a position logged off the track is not a perpendicular distance. They still
+count towards the segment's abundance, so do not remove them from
+`segs$sightings`.
+
+```{r}
+subset(segs$detections, is.na(distance))
+```
+
+**Truncation discards the tail.** Detections beyond the truncation distance are
+excluded from the detection function *and* must be excluded from the counts, or
+abundance and effective search area will disagree.
+
+## Building the `dsm` inputs
+
+`dsm` wants two data frames with specific column names. The mapping from
+`distsamp` output is mechanical:
+
+```{r, eval = FALSE}
+library(dsm)
+
+segment.data <- data.frame(
+  Sample.Label = segs$segments$seg_id,
+  Effort       = segs$segments$seg_eff,   # km
+  X            = segs$segments$mid_lon,   # project these first, see below
+  Y            = segs$segments$mid_lat,
+  beaufort     = segs$segments$wt_beaufort
+)
+
+observation.data <- data.frame(
+  object       = seq_len(nrow(df_data)),
+  Sample.Label = df_data$seg_id,
+  size         = df_data$size,
+  distance     = df_data$distance
+)
+```
+
+`object` is just a detection identifier; `dsm` uses it to link a detection to
+its row in the fitted detection function, so it must match the row order of the
+data you passed to `ds()`.
+
+### Project the coordinates first
+
+`mid_lon`/`mid_lat` are decimal degrees. Fitting a smooth of longitude and
+latitude in degrees distorts distances badly at the latitudes NARWC surveys
+cover — a degree of longitude is about 81 km at 43°N against 111 km for a degree
+of latitude. Project to something equal-area before modelling:
+
+```{r, eval = requireNamespace("sf", quietly = TRUE)}
+pts <- segments_as_sf(segs, "midpoints")
+
+# Albers equal-area, Gulf of Maine
+gom_aea <- paste(
+  "+proj=aea +lat_1=40 +lat_2=46 +lat_0=43 +lon_0=-69",
+  "+x_0=0 +y_0=0 +datum=WGS84 +units=km +no_defs"
+)
+projected <- sf::st_transform(pts, gom_aea)
+
+xy <- sf::st_coordinates(projected)
+head(xy)
+```
+
+Then use those `X`/`Y` in `segment.data`.
+
+## Fitting the model
+
+```{r, eval = FALSE}
+mod <- dsm(
+  count ~ s(X, Y, bs = "ts") + s(depth, bs = "ts"),
+  ddf.obj = df,
+  segment.data = segment.data,
+  observation.data = observation.data,
+  family = tw(),          # Tweedie handles the zero inflation
+  method = "REML"
+)
+
+summary(mod)
+plot(mod)
+gam.check(mod)
+```
+
+A Tweedie or negative binomial family is usually right: most segments hold zero
+animals, and the non-zero ones are overdispersed. Miller et al. (2013) discuss
+the choice.
+
+## Covariates are your job
+
+`distsamp` gives you a location per segment and nothing else. Environmental
+covariates — depth, sea surface temperature, fronts — have to be sampled at each
+segment midpoint yourself. `segments_as_sf(segs, "midpoints")` is the intended
+handoff:
+
+```{r, eval = FALSE}
+pts <- segments_as_sf(segs, "midpoints")
+
+# e.g. with terra
+depth <- terra::extract(bathymetry_raster, terra::vect(pts))
+segment.data$depth <- depth[, 2]
+```
+
+Two cautions.
+
+Sample at the **midpoint**, which is what Becker et al. (2019) do — covariates
+"derived based on the segment's geographical mid-point", with SST and depth
+standard deviations taken over a 3 × 3-pixel box around it. `segment_midpoints()`
+places that point half the segment's *effort* along the track rather than at the
+centroid of its records, so it is on the trackline by construction.
+
+And match covariates in **time** as well as space. A segment flown in April
+needs April's SST, not the annual mean. `segs$segments$DATE` carries the survey
+date for exactly this.
+
+## Reporting
+
+Record the `seed`. Without it the segmentation is not reproducible, and neither
+is anything downstream of it.
+
+```{r}
+str(segs$settings)
+```
+
+Suggested methods wording is in `docs/06-references.md` in the package
+repository.
+
+## References
+
+Becker, E.A., Forney, K.A., Ferguson, M.C., Foley, D.G., Smith, R.C., Barlow, J.
+and Redfern, J.V. (2010) Comparing California Current cetacean-habitat models
+developed using in situ and remotely sensed sea surface temperature data.
+*Marine Ecology Progress Series* 413:163-183.
+<https://doi.org/10.3354/meps08696>
+
+Becker, E.A., Forney, K.A., Redfern, J.V., Barlow, J., Jacox, M.G., Roberts, J.J.
+and Palacios, D.M. (2019) Predicting cetacean abundance and distribution in a
+changing climate. *Diversity and Distributions* 25:626-643.
+<https://doi.org/10.1111/ddi.12867>
+
+Hedley, S.L. and Buckland, S.T. (2004) Spatial models for line transect sampling.
+*Journal of Agricultural, Biological, and Environmental Statistics* 9:181-199.
+<https://doi.org/10.1198/1085711043578>
+
+Miller, D.L., Burt, M.L., Rexstad, E.A. and Thomas, L. (2013) Spatial models for
+distance sampling data: recent developments and future directions. *Methods in
+Ecology and Evolution* 4:1001-1010.
+<https://doi.org/10.1111/2041-210X.12105>
+
+Miller, D.L., Rexstad, E., Thomas, L., Marshall, L. and Laake, J.L. (2019)
+Distance sampling in R. *Journal of Statistical Software* 89(1):1-28.
+<https://doi.org/10.18637/jss.v089.i01>

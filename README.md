@@ -44,10 +44,11 @@ segments_wide(segs)              # one count column per species, for dsm
 segs$detections                  # one row per sighting, with perpendicular distance
 ```
 
-The full walkthrough is in the vignette:
+Two vignettes:
 
 ```r
-vignette("segmenting-narwc-data", package = "distsamp")
+vignette("segmenting-narwc-data", package = "distsamp")   # the full walkthrough
+vignette("from-segments-to-density", package = "distsamp") # handing off to Distance and dsm
 ```
 
 ## What it does

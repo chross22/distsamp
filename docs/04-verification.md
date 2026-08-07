@@ -124,10 +124,15 @@ checker script.
 The network-dependent half runs monthly in CI (`tools/check-citations.R`) — see
 [06-references.md](06-references.md#7-keeping-citations-current).
 
-## Vignette
+## Vignettes
 
-`vignettes/segmenting-narwc-data.Rmd` knits end-to-end from the bundled fixture
-during `R CMD build`, so every example in it is executed on every build.
+Both knit end-to-end from the bundled fixture during `R CMD build`, so every
+evaluated example is executed on every build.
+
+* `segmenting-narwc-data.Rmd` — the full walkthrough.
+* `from-segments-to-density.Rmd` — handing the output to `Distance` and `dsm`.
+  The chunks calling those two packages are `eval = FALSE`, since neither is a
+  dependency; everything else runs.
 
 ## Fixture numbers
 

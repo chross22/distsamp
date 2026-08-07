@@ -41,6 +41,15 @@ carried through.
 Note that `seg_eff` is in kilometres while distances default to metres; see
 `?perp_distance` before passing both to `Distance::ds()`.
 
+## Vignettes
+
+* `segmenting-narwc-data` — the full walkthrough.
+* `from-segments-to-density` — new. Picks up where the first ends: fitting a
+  detection function with `Distance`, mapping the output onto the
+  `segment.data`/`observation.data` shape `dsm` expects, projecting midpoints
+  before smoothing, and sampling covariates. Covers the units trap explicitly,
+  since effort is in km while distances default to metres.
+
 ## Keeping citations current
 
 * `tools/citations.csv` — a registry of every source the package cites.
