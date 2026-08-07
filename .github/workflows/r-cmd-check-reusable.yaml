@@ -44,9 +44,23 @@ on:
         type: string
         default: ''
       extra-packages:
-        description: 'Extra R packages for setup-r-dependencies.'
+        description: >-
+          Extra R packages for setup-r-dependencies. pak syntax, so a package
+          that is not on CRAN goes here too, e.g.
+          'any::rcmdcheck, github::BigelowLab/copernicus'.
         type: string
         default: 'any::rcmdcheck'
+      extra-repositories:
+        description: >-
+          Additional repositories for setup-r, e.g.
+          'https://ropensci.r-universe.dev' for rnaturalearthhires, which is not
+          on CRAN.
+        type: string
+        default: ''
+      build-args:
+        description: 'Arguments passed to R CMD build.'
+        type: string
+        default: 'c("--no-manual")'
       check-args:
         description: 'Arguments passed to rcmdcheck.'
         type: string
@@ -87,6 +101,7 @@ jobs:
           r-version: ${{ matrix.config.r }}
           http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
+          extra-repositories: ${{ inputs.extra-repositories }}
 
       - name: Install system dependencies
         if: runner.os == 'Linux' && inputs.apt-packages != ''
@@ -102,5 +117,6 @@ jobs:
       - uses: r-lib/actions/check-r-package@v2
         with:
           upload-snapshots: ${{ inputs.upload-snapshots }}
+          build_args: ${{ inputs.build-args }}
           args: ${{ inputs.check-args }}
           error-on: ${{ inputs.error-on }}
