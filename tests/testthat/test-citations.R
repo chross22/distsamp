@@ -37,6 +37,33 @@ test_that("every DOI cited in the package is in the citation registry", {
   )
 })
 
+test_that("the package says how to cite itself", {
+  skip_if(is.na(registry_path()), "package root not available")
+  root <- dirname(dirname(registry_path()))
+
+  # inst/CITATION drives citation("distsamp"); without it R invents a poor one.
+  cit <- file.path(root, "inst", "CITATION")
+  expect_true(file.exists(cit))
+
+  ver <- read.dcf(file.path(root, "DESCRIPTION"), fields = "Version")[1, 1]
+  parsed <- utils::readCitationFile(
+    cit, meta = list(Package = "distsamp", Version = ver)
+  )
+  expect_gte(length(parsed), 1)
+
+  # The version must come from meta$Version, never be hard-coded, or it goes
+  # stale the moment DESCRIPTION is bumped.
+  txt <- paste(readLines(cit, warn = FALSE), collapse = " ")
+  hard <- unique(unlist(regmatches(
+    txt, gregexpr("[0-9]+[.][0-9]+[.][0-9]+", txt)
+  )))
+  expect_setequal(setdiff(hard, ver), character(0))
+
+  # And the README has to tell people.
+  rd <- paste(readLines(file.path(root, "README.md"), warn = FALSE), collapse = "\n")
+  expect_match(rd, "(?i)#+\\s*citing", perl = TRUE)
+})
+
 test_that("the registry is well formed", {
   skip_if(is.na(registry_path()), "citation registry not available")
   reg <- utils::read.csv(registry_path(), stringsAsFactors = FALSE,
@@ -74,8 +101,8 @@ test_that("the handbook version cited is consistent across the package", {
   # One version, cited the same way everywhere.
   expect_length(vers, 1)
 
-  # And the checker script agrees with it.
-  script <- readLines(file.path(root, "tools", "check-citations.R"), warn = FALSE)
-  cited <- as.integer(gsub("\\D", "", grep("^cited_version <-", script, value = TRUE)))
+  # And the project hooks agree with it.
+  hooks <- readLines(file.path(root, "tools", "citation-hooks.R"), warn = FALSE)
+  cited <- as.integer(gsub("\\D", "", grep("^cited_version <-", hooks, value = TRUE)))
   expect_equal(cited, vers)
 })

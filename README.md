@@ -150,15 +150,32 @@ section.
 `original/` holds the research scripts this package was built from. They are kept
 for reference and excluded from the build.
 
-## Citing this
+## Citing distsamp
 
-Cite the method and the software separately, and record the `seed` — without it
-the segmentation is not reproducible.
+```r
+citation("distsamp")
+```
+
+That returns three entries — the package, the segmentation method it implements,
+and the data format — because a methods section usually needs all three:
 
 ```
-Ross, C. (2026) distsamp: Segment Aerial Line-Transect Survey Data for Distance
-Sampling. R package version 0.1.0. https://github.com/chross22/distsamp
+Ross, C. distsamp: Segment Aerial Line-Transect Survey Data for Distance
+Sampling. R package. https://github.com/chross22/distsamp
+
+Becker, E.A., Forney, K.A., Ferguson, M.C., Foley, D.G., Smith, R.C., Barlow, J.
+and Redfern, J.V. (2010) Comparing California Current cetacean-habitat models
+developed using in situ and remotely sensed sea surface temperature data. Marine
+Ecology Progress Series 413:163-183. doi:10.3354/meps08696
+
+Kenney, R.D. (2023) The North Atlantic Right Whale Consortium Database: A Guide
+for Users and Contributors, Version 8. NARWC Reference Document 2023-01.
 ```
+
+The package version comes from `DESCRIPTION` at install time, so it is always the
+version you actually have.
+
+Record the `seed` you used — without it the segmentation is not reproducible.
 
 Suggested methods-section wording is in
 [docs/06-references.md](docs/06-references.md#6-how-to-cite-the-package), along

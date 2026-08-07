@@ -1,0 +1,44 @@
+## Version is taken from the installed DESCRIPTION via `meta`, so it can never
+## drift from the package it ships with.
+
+bibentry(
+  bibtype  = "Manual",
+  title    = "{distsamp}: Segment Aerial Line-Transect Survey Data for Distance Sampling",
+  author   = person("Camille", "Ross", email = "camille.ross@maine.edu"),
+  year     = "2026",
+  note     = paste("R package version", meta$Version),
+  url      = "https://github.com/chross22/distsamp",
+  header   = "To cite the distsamp package:"
+)
+
+bibentry(
+  bibtype  = "Article",
+  title    = "Comparing California Current cetacean-habitat models developed using in situ and remotely sensed sea surface temperature data",
+  author   = c(
+    person("Elizabeth A.", "Becker"),
+    person("Karin A.", "Forney"),
+    person("Megan C.", "Ferguson"),
+    person("David G.", "Foley"),
+    person("Raymond C.", "Smith"),
+    person("Jay", "Barlow"),
+    person("Jessica V.", "Redfern")
+  ),
+  journal  = "Marine Ecology Progress Series",
+  year     = "2010",
+  volume   = "413",
+  pages    = "163--183",
+  doi      = "10.3354/meps08696",
+  header   = "To cite the segmentation method the package implements:"
+)
+
+bibentry(
+  bibtype      = "TechReport",
+  title        = "The North Atlantic Right Whale Consortium Database: A Guide for Users and Contributors, Version 8",
+  author       = person("Robert D.", "Kenney"),
+  institution  = "University of Rhode Island, Graduate School of Oceanography",
+  number       = "NARWC Reference Document 2023-01",
+  address      = "Narragansett, Rhode Island",
+  year         = "2023",
+  url          = "https://www.narwc.org/sightings-database.html",
+  header       = "To cite the data format:"
+)
