@@ -31,6 +31,16 @@
 #'     in a western North Atlantic dataset mean the sign convention was lost.}
 #'   \item{`sighting_without_number`}{`SPECCODE` present but `NUMBER` missing.
 #'     Handbook 8.A.24 requires `NUMBER` for all sightings.}
+#'   \item{`angle_out_of_range`}{`ANGLEL` or `ANGLER` outside `(0, 90]`. Handbook
+#'     8.A.2 defines these as declination angles below the horizon, so a value at
+#'     or below zero is at or above the horizon and one above 90 is behind the
+#'     aircraft. Neither yields a perpendicular distance.}
+#'   \item{`angle_both_sides`}{Both `ANGLEL` and `ANGLER` recorded on one
+#'     record. A sighting is on one side of the track, so the side is ambiguous
+#'     and no distance can be computed.}
+#'   \item{`angle_without_altitude`}{A declination angle with no `ALT`. Handbook
+#'     8.A.2: the distance calculation must factor in altitude, so an angle
+#'     without one is unusable.}
 #' }
 #'
 #' @param dat A data frame of NARWC survey data, ideally from [read_narwc()].
@@ -206,6 +216,40 @@ validate_narwc <- function(dat) {
       "sighting_without_number", "warning", "NUMBER",
       which(!is.na(dat$SPECCODE) & is.na(dat$NUMBER)),
       "SPECCODE present but NUMBER missing (handbook 8.A.24)."
+    )
+  }
+
+  # --- declination angles ---------------------------------------------------
+  angle_cols <- intersect(c("ANGLEL", "ANGLER"), names(dat))
+  for (nm in angle_cols) {
+    a <- suppressWarnings(as.numeric(dat[[nm]]))
+    add(
+      "angle_out_of_range", "warning", nm,
+      which(!is.na(a) & (a <= 0 | a > 90)),
+      paste0(
+        "`", nm, "` outside (0, 90] degrees. Handbook 8.A.2 defines these as ",
+        "declination angles below the horizon."
+      )
+    )
+  }
+
+  if (length(angle_cols) == 2L) {
+    add(
+      "angle_both_sides", "warning", "ANGLEL/ANGLER",
+      which(!is.na(dat$ANGLEL) & !is.na(dat$ANGLER)),
+      paste0(
+        "Both ANGLEL and ANGLER recorded on the same record; a sighting is on ",
+        "one side of the track, so no perpendicular distance can be computed."
+      )
+    )
+  }
+
+  if (length(angle_cols) && "ALT" %in% names(dat)) {
+    has_angle <- Reduce(`|`, lapply(angle_cols, function(nm) !is.na(dat[[nm]])))
+    add(
+      "angle_without_altitude", "warning", "ALT",
+      which(has_angle & (is.na(dat$ALT) | dat$ALT <= 0)),
+      "Declination angle recorded without a usable ALT (handbook 8.A.2)."
     )
   }
 

@@ -8,7 +8,7 @@ write_segments(
   x,
   dir,
   prefix = "segments",
-  tables = c("segments", "sightings", "tracks", "points")
+  tables = c("segments", "sightings", "detections", "tracks", "points")
 )
 }
 \arguments{

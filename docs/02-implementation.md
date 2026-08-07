@@ -284,6 +284,46 @@ segment's geographical mid-point", with SST and depth standard deviations taken
 over a 3 x 3-pixel box around it — so the accuracy of this coordinate propagates
 directly into the covariates a density surface model is fitted on.
 
+## Step 11b — `perp_distance()` and `sighting_distances()`
+
+**File:** `R/distances.R`
+**Replaces:** nothing. `original/compute_distance.R` computed distance from
+exact sighting positions (`IS_LAT`/`IS_LONG`) via `geosphere::distHaversine`;
+declination angles did not exist in the handbook version it was written against.
+
+Handbook 8.A.2 defines `ANGLEL` and `ANGLER` as "the declination angles, in
+degrees, below the horizon of a sighting (to the left or right, respectively)
+**when it is perpendicular to the track-line**". Because the angle is taken with
+the sighting abeam, the aircraft, the sea-surface point below it, and the animal
+form a right triangle in the plane perpendicular to the track:
+
+```
+x = ALT / tan(angle)
+```
+
+90 degrees is straight down and gives zero; approaching the horizon the distance
+grows without bound. `ALT` is in metres (8.A.1) so distances are metres by
+default — **note that `seg_eff` is in kilometres**, which matters when handing
+both to `Distance::ds()`.
+
+Three judgement calls:
+
+- **`on_effort_only = TRUE` by default.** Handbook 8.A.31 restricts right-angle
+  distance measurement to on-effort sightings during census lines, and notes
+  that some teams record them during transits and circling "to maintain both
+  consistency and proficiency". Those must not enter a detection function, so
+  distances are left `NA` outside `LEGTYPE == 2`, `LEGSTAGE == 2`, on effort.
+- **Both angles populated is an error, not a coin flip.** A sighting is on one
+  side of the track. Such records get `side = "both"` and no distance, and
+  `validate_narwc()` reports them.
+- **Angles outside `(0, 90]` give `NA`.** At or above the horizon, or behind the
+  aircraft; neither describes a perpendicular distance.
+
+Why the handbook made the switch is worth recording: survey altitudes had to
+rise once offshore wind turbines were in place, and `STRIP`'s fixed distance
+intervals shift with altitude, whereas "the calculations of distances from
+angles would always need to factor in altitude" (8.A.2).
+
 ## Step 12 — `segment_sightings()`
 
 **File:** `R/sightings.R`
@@ -302,6 +342,15 @@ Default exclusions, each with a handbook basis:
   of using only definite and probable identifications.
 
 All three are arguments.
+
+It also returns `detections`: one row per qualifying sighting rather than per
+segment, with `distance`, `side`, `size`, and `seg_id`. That is the table a
+detection function consumes, and `seg_id` keys it back to the segments for a
+density surface model.
+
+A circling sighting appears in `detections` with a missing `distance`, and
+correctly so — it still counts towards the segment's abundance, but a position
+logged off the track is not a perpendicular distance and must not be fitted.
 
 Two Beaufort summaries are produced: `mean_beaufort`, the plain mean over
 records, and `wt_beaufort`, weighted by the distance each record covers. Prefer

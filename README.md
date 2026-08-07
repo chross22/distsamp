@@ -41,6 +41,7 @@ segs
 #>   species:   FIWH, RIWH, SEWH
 
 segments_wide(segs)              # one count column per species, for dsm
+segs$detections                  # one row per sighting, with perpendicular distance
 ```
 
 The full walkthrough is in the vignette:
@@ -60,6 +61,10 @@ split_tracks  ->  track_effort  ->  plan_segments  ->  cut_segments
      |
 attach_circling_sightings  ->  segment_midpoints  ->  segment_sightings
 ```
+
+Where the survey recorded `ANGLEL`/`ANGLER` declination angles, perpendicular
+distances are computed too, and `segs$detections` comes out in the shape a
+detection function wants.
 
 `segment_survey()` runs all of it. Every stage is also exported, so you can
 intervene between them.
@@ -95,6 +100,11 @@ A few consequences worth knowing:
   other than an on-duty observer, which handbook 4.2 says "cannot be included in
   a density estimate". Excluded by default, along with `LEGSTAGE == 7`
   (photographic) and `IDREL` 1 and 9.
+- **Declination angles give perpendicular distance.** `ANGLEL`/`ANGLER` are
+  angles below the horizon, taken when the sighting is abeam (8.A.2), so
+  distance is `ALT / tan(angle)`. They replaced `STRIP` in 2022 because survey
+  altitudes had to rise for offshore wind, and `STRIP`'s fixed intervals shift
+  with altitude while an angle does not.
 - **Circling sightings do count, conditionally.** A group sighted from the track
   and then circled has its position recorded off effort. Those are attached back
   to the segment they came from, following the CETAP rule that only further

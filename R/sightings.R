@@ -33,12 +33,25 @@
 #' @param idrel_keep `IDREL` values whose sightings are counted. Default
 #'   `c(2, 3)`.
 #'
-#' @return A list with two tibbles:
+#' @section Detections:
+#' The `detections` table has one row per qualifying sighting rather than per
+#' segment, carrying the perpendicular distance from [sighting_distances()] when
+#' `ANGLEL`/`ANGLER` are available. That is the shape a detection function wants:
+#' pass it to `Distance::ds()`, keyed back to the segments by `seg_id`.
+#'
+#' Sightings recorded while circling appear here with a missing `distance`, and
+#' correctly so — a position logged off the track is not a perpendicular distance
+#' and must not enter a detection function, even though the detection itself
+#' still counts towards the segment's abundance.
+#'
+#' @return A list with three tibbles:
 #'   \describe{
 #'     \item{`sightings`}{One row per segment per species, with `n_sightings`
 #'       (number of sighting records) and `n_animals` (sum of `NUMBER`).}
 #'     \item{`conditions`}{One row per segment, with `mean_beaufort`,
 #'       `wt_beaufort`, and `n_records`.}
+#'     \item{`detections`}{One row per qualifying sighting, with `distance`,
+#'       `side`, and `size`.}
 #'   }
 #'
 #' @references
@@ -64,6 +77,12 @@ segment_sightings <- function(chopped,
     seg_id = character(0), SPECCODE = character(0),
     n_sightings = integer(0), n_animals = numeric(0)
   )
+  empty_det <- tibble::tibble(
+    seg_id = character(0), DATE = as.Date(character(0)),
+    SPECCODE = character(0), size = numeric(0), distance = numeric(0),
+    side = character(0), EVENTNO = numeric(0), SIGHTNO = numeric(0),
+    circling = integer(0)
+  )
 
   # --- conditions ----------------------------------------------------------
   if ("BEAUFORT" %in% names(chopped)) {
@@ -87,7 +106,8 @@ segment_sightings <- function(chopped,
 
   # --- sightings -----------------------------------------------------------
   if (!"SPECCODE" %in% names(chopped)) {
-    return(list(sightings = empty_sight, conditions = conditions))
+    return(list(sightings = empty_sight, conditions = conditions,
+                detections = empty_det))
   }
 
   sight <- dplyr::filter(chopped, !is.na(.data$SPECCODE), .data$SPECCODE != "")
@@ -109,7 +129,8 @@ segment_sightings <- function(chopped,
   }
 
   if (is_empty_df(sight)) {
-    return(list(sightings = empty_sight, conditions = conditions))
+    return(list(sightings = empty_sight, conditions = conditions,
+                detections = empty_det))
   }
 
   n_col <- if ("NUMBER" %in% names(sight)) sight$NUMBER else rep(NA_real_, nrow(sight))
@@ -122,7 +143,27 @@ segment_sightings <- function(chopped,
     .groups = "drop"
   )
 
-  list(sightings = sightings, conditions = conditions)
+  list(sightings = sightings, conditions = conditions,
+       detections = build_detections(sight))
+}
+
+# One row per qualifying sighting, in the shape a detection function wants.
+build_detections <- function(sight) {
+  pick <- function(nm, default) {
+    if (nm %in% names(sight)) sight[[nm]] else rep(default, nrow(sight))
+  }
+  out <- tibble::tibble(
+    seg_id = sight$seg_id,
+    DATE = pick("DATE", as.Date(NA)),
+    SPECCODE = sight$SPECCODE,
+    size = sight$.n_animals,
+    distance = as.numeric(pick("distance", NA_real_)),
+    side = as.character(pick("side", NA_character_)),
+    EVENTNO = as.numeric(pick("EVENTNO", NA_real_)),
+    SIGHTNO = as.numeric(pick("SIGHTNO", NA_real_)),
+    circling = as.integer(pick("CIRCLE", NA_integer_))
+  )
+  dplyr::arrange(out, .data$DATE, .data$seg_id, .data$EVENTNO)
 }
 
 # weighted.mean() returns NaN when every weight is zero, which happens on a

@@ -52,17 +52,24 @@ state or leg number backwards in time across arbitrary gaps. Whether it is
 appropriate depends on how the upstream file records those variables, and is
 worth settling before that profile is written.
 
-## 3. Detection functions and the `STRIP` variable
+## 3. Detection functions
 
-The natural v2. It needs:
+Perpendicular distances are now computed from the `ANGLEL`/`ANGLER` declination
+angles (handbook 8.A.2) and surfaced in `segs$detections`, so fitting a
+detection function is a matter of handing that table to `Distance::ds()`. What
+is still missing:
 
-- **`STRIP` to right-angle distance.** The intervals come from calibrated
+- **`STRIP` to right-angle distance,** for surveys predating the 2022 switch to
+  angles. The intervals come from calibrated
   markings on the observation bubble and wing struts (Kenney and Scott 1981);
   handbook 8.A.31 defines *two* interval code books — one for CETAP and the WEA surveys, another for NLPSC/MassCEC from
   October 2011 — and which applies depends on the platform (AT-11 versus
   Skymaster) and the year. Odd codes are the port side, even the starboard. A
   correct conversion needs `PLATFORM` and the survey date, and should return an
   interval rather than a point, so that `Distance` can fit to binned data.
+- **Truncation and binning.** `Distance::ds()` wants a truncation distance, and
+  `STRIP`-derived distances are intervals rather than points, so binned fitting
+  is needed for older data.
 - **Exact sighting positions.** Where `S_LAT`/`S_LONG` exist (8.A.33, 8.A.34),
   perpendicular distance can be computed directly against the trackline, as
   `original/compute_distance.R` did with `geosphere::distHaversine`. That is the

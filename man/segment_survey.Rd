@@ -14,6 +14,7 @@ segment_survey(
   min_segment_km = 1,
   dist_method = c("haversine", "becker", "kenney", "eab", "rdk"),
   circling = c("same_species", "all", "none"),
+  distance_units = c("m", "km"),
   effort_args = list(),
   sighting_args = list()
 )
@@ -42,6 +43,10 @@ Becker and Kenney are the same formula and give identical results.}
 census track: \code{"same_species"} (default), \code{"all"}, or \code{"none"}. See
 \code{\link[=attach_circling_sightings]{attach_circling_sightings()}}.}
 
+\item{distance_units}{Units for perpendicular sighting distances computed
+from \code{ANGLEL}/\code{ANGLER}: \code{"m"} (default) or \code{"km"}. Note that \code{seg_eff} is
+always in km — see \code{\link[=perp_distance]{perp_distance()}}.}
+
 \item{effort_args}{Named list of arguments for \code{\link[=flag_effort]{flag_effort()}}, used only
 when \code{dat} has no \code{OnOff.Effort} column.}
 
@@ -55,6 +60,9 @@ An object of class \code{distsamp_segments}: a list with
 \code{mid_lat}, \code{mid_lon}, \code{mean_beaufort}, \code{wt_beaufort}, \code{n_records},
 \code{events}, \code{case}, \code{start_time}.}
 \item{\code{sightings}}{One row per segment per species.}
+\item{\code{detections}}{One row per qualifying sighting, with perpendicular
+\code{distance} and \code{side} when \code{ANGLEL}/\code{ANGLER} were recorded. The input
+for a detection function.}
 \item{\code{tracks}}{One row per continuous track.}
 \item{\code{points}}{The point-level data with segment assignments, for
 diagnostics and mapping.}

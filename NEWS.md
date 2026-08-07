@@ -16,6 +16,31 @@ onward; all cross-references were remapped. New in Version 8:
   optional columns; not yet converted to perpendicular distance.
 * `WX` is now available from `narwc_codes("WX")`.
 
+## Perpendicular distances from declination angles
+
+`ANGLEL` and `ANGLER` (handbook 8.A.2) are now interpreted rather than merely
+carried through.
+
+* `perp_distance()` converts a declination angle and altitude into a
+  perpendicular distance, `ALT / tan(angle)`. The angle is taken with the
+  sighting abeam, so it gives the right-angle distance directly.
+* `sighting_distances()` applies it across a survey data frame, resolving which
+  side of the track the sighting was on. Restricted to on-effort census records
+  by default, since 8.A.31 notes angles are sometimes recorded during transits
+  and circling for practice.
+* `segment_survey()` gains a `detections` table: one row per qualifying
+  sighting with `distance`, `side`, `size`, and `seg_id` — the shape
+  `Distance::ds()` wants, keyed back to the segments for a density surface
+  model. `distance_units` controls metres (default) or km.
+* Circling detections appear with a missing `distance`. They count towards
+  abundance, but a position logged off the track is not a perpendicular
+  distance.
+* `validate_narwc()` gains `angle_out_of_range`, `angle_both_sides`, and
+  `angle_without_altitude`.
+
+Note that `seg_eff` is in kilometres while distances default to metres; see
+`?perp_distance` before passing both to `Distance::ds()`.
+
 ## Keeping citations current
 
 * `tools/citations.csv` — a registry of every source the package cites.

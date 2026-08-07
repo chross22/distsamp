@@ -204,6 +204,52 @@ sapply(c("none", "same_species", "all"), function(m) {
 })
 ```
 
+## Perpendicular distances
+
+Surveys that record the `ANGLEL`/`ANGLER` declination angles get perpendicular
+distances computed automatically, and a `detections` table in the shape a
+detection function wants.
+
+```{r}
+head(segs$detections)
+```
+
+The geometry is handbook 8.A.2: the angle is measured below the horizon at the
+moment the sighting is abeam, so the distance is `ALT / tan(angle)`.
+
+```{r}
+# 45 degrees below the horizon at 229 m puts the animal 229 m off the track
+perp_distance(45, altitude = 229)
+perp_distance(c(75, 60, 45, 30, 15), altitude = 229)
+```
+
+These replaced `STRIP` in 2022: survey altitudes had to rise once offshore wind
+turbines were in place, and `STRIP`'s fixed distance intervals shift with
+altitude while an angle does not.
+
+Two things to watch:
+
+**Units.** `ALT` is in metres, so distances are metres by default, but `seg_eff`
+is in kilometres. Passing both to `Distance::ds()` without reconciling them
+scales density by 1000. Use `distance_units = "km"`, or supply `convert_units`.
+
+```{r}
+segment_survey(dat, seg_length = 5, seed = 1,
+               distance_units = "km")$detections$distance[1:3]
+```
+
+**Circling detections have no distance.** They still count towards a segment's
+abundance, but a position logged off the track is not a perpendicular distance
+and must not be fitted:
+
+```{r}
+subset(segs$detections, circling == 1)
+```
+
+Distances are restricted to on-effort census records by default, because
+handbook 8.A.31 notes that some teams record angles during transits and circling
+for practice — those must not enter a detection function.
+
 ## Spatial output
 
 ```{r, eval = requireNamespace("sf", quietly = TRUE)}

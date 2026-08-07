@@ -54,6 +54,16 @@ outside [-180, 180].}
 in a western North Atlantic dataset mean the sign convention was lost.}
 \item{\code{sighting_without_number}}{\code{SPECCODE} present but \code{NUMBER} missing.
 Handbook 8.A.24 requires \code{NUMBER} for all sightings.}
+\item{\code{angle_out_of_range}}{\code{ANGLEL} or \code{ANGLER} outside \verb{(0, 90]}. Handbook
+8.A.2 defines these as declination angles below the horizon, so a value at
+or below zero is at or above the horizon and one above 90 is behind the
+aircraft. Neither yields a perpendicular distance.}
+\item{\code{angle_both_sides}}{Both \code{ANGLEL} and \code{ANGLER} recorded on one
+record. A sighting is on one side of the track, so the side is ambiguous
+and no distance can be computed.}
+\item{\code{angle_without_altitude}}{A declination angle with no \code{ALT}. Handbook
+8.A.2: the distance calculation must factor in altitude, so an angle
+without one is unusable.}
 }
 }
 

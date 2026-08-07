@@ -24,12 +24,14 @@ Default \code{c(6, 7)}.}
 \code{c(2, 3)}.}
 }
 \value{
-A list with two tibbles:
+A list with three tibbles:
 \describe{
 \item{\code{sightings}}{One row per segment per species, with \code{n_sightings}
 (number of sighting records) and \code{n_animals} (sum of \code{NUMBER}).}
 \item{\code{conditions}}{One row per segment, with \code{mean_beaufort},
 \code{wt_beaufort}, and \code{n_records}.}
+\item{\code{detections}}{One row per qualifying sighting, with \code{distance},
+\code{side}, and \code{size}.}
 }
 }
 \description{
@@ -61,6 +63,19 @@ Two are produced. \code{mean_beaufort} is the plain mean over the segment's
 records; \code{wt_beaufort} weights each record by the distance it contributes, so
 a sea state recorded over 3 km counts for more than one recorded over 200 m.
 Prefer the weighted value as a detection covariate.
+}
+
+\section{Detections}{
+
+The \code{detections} table has one row per qualifying sighting rather than per
+segment, carrying the perpendicular distance from \code{\link[=sighting_distances]{sighting_distances()}} when
+\code{ANGLEL}/\code{ANGLER} are available. That is the shape a detection function wants:
+pass it to \code{Distance::ds()}, keyed back to the segments by \code{seg_id}.
+
+Sightings recorded while circling appear here with a missing \code{distance}, and
+correctly so — a position logged off the track is not a perpendicular distance
+and must not enter a detection function, even though the detection itself
+still counts towards the segment's abundance.
 }
 
 \references{

@@ -40,6 +40,9 @@
 #' @param dist_method Great-circle distance method: `"haversine"` (default),
 #'   `"becker"`, or `"kenney"`. See [gc_distance()] and [dist_methods()].
 #'   Becker and Kenney are the same formula and give identical results.
+#' @param distance_units Units for perpendicular sighting distances computed
+#'   from `ANGLEL`/`ANGLER`: `"m"` (default) or `"km"`. Note that `seg_eff` is
+#'   always in km — see [perp_distance()].
 #' @param circling How to handle sightings recorded while circling off the
 #'   census track: `"same_species"` (default), `"all"`, or `"none"`. See
 #'   [attach_circling_sightings()].
@@ -54,6 +57,9 @@
 #'       `mid_lat`, `mid_lon`, `mean_beaufort`, `wt_beaufort`, `n_records`,
 #'       `events`, `case`, `start_time`.}
 #'     \item{`sightings`}{One row per segment per species.}
+#'     \item{`detections`}{One row per qualifying sighting, with perpendicular
+#'       `distance` and `side` when `ANGLEL`/`ANGLER` were recorded. The input
+#'       for a detection function.}
 #'     \item{`tracks`}{One row per continuous track.}
 #'     \item{`points`}{The point-level data with segment assignments, for
 #'       diagnostics and mapping.}
@@ -100,10 +106,12 @@ segment_survey <- function(dat,
                            dist_method = c("haversine", "becker", "kenney",
                                            "eab", "rdk"),
                            circling = c("same_species", "all", "none"),
+                           distance_units = c("m", "km"),
                            effort_args = list(),
                            sighting_args = list()) {
   dist_method <- dist_method_canonical(match.arg(dist_method))
   circling <- match.arg(circling)
+  distance_units <- match.arg(distance_units)
   stopifnot(is.data.frame(dat))
   stopifnot(is.numeric(seg_length), length(seg_length) == 1L, seg_length > 0)
 
@@ -111,7 +119,7 @@ segment_survey <- function(dat,
     seg_length = seg_length, species = species, seed = seed,
     seg_tol_frac = seg_tol_frac, min_track_km = min_track_km,
     min_segment_km = min_segment_km, dist_method = dist_method,
-    circling = circling
+    circling = circling, distance_units = distance_units
   )
 
   # 1. line occupations
@@ -129,6 +137,13 @@ segment_survey <- function(dat,
 
   # 3. along-track distance
   dat <- point_to_point_effort(dat, method = dist_method)
+
+  # Perpendicular distances from the ANGLEL/ANGLER declination angles, when the
+  # survey recorded them. Computed here so they travel with the point data
+  # through cutting and end up on each detection.
+  if (!"distance" %in% names(dat)) {
+    dat <- sighting_distances(dat, units = distance_units)
+  }
 
   # 4-5. continuous tracks and their totals
   dat <- split_tracks(dat)
@@ -160,6 +175,7 @@ segment_survey <- function(dat,
     list(
       segments = segments,
       sightings = summaries$sightings,
+      detections = summaries$detections,
       tracks = tracks,
       points = chopped,
       call = match.call(),
@@ -229,6 +245,13 @@ print.distsamp_segments <- function(x, ...) {
   if (nrow(x$sightings)) {
     spp <- sort(unique(x$sightings$SPECCODE))
     cat("  species:   ", paste(spp, collapse = ", "), "\n", sep = "")
+  }
+  nd <- if (is.null(x$detections)) 0L else nrow(x$detections)
+  if (nd) {
+    withd <- sum(!is.na(x$detections$distance))
+    cat("  detections: ", nd, " (", withd, " with a perpendicular distance",
+        if (withd) paste0(", ", x$settings$distance_units) else "", ")\n",
+        sep = "")
   }
   invisible(x)
 }

@@ -35,7 +35,7 @@ rec <- function(fileid, eventno, date, time, lat, lon,
                 legtype = 2, legstage = 2, legno = NA,
                 beaufort = 2, visiblty = 5, alt = 229,
                 speccode = NA, idrel = NA, number = NA, sightno = NA,
-                strip = NA) {
+                strip = NA, anglel = NA, angler = NA) {
   d <- as.Date(date)
   add(
     FILEID = fileid,
@@ -61,6 +61,8 @@ rec <- function(fileid, eventno, date, time, lat, lon,
     NUMCALF = NA,
     SIGHTNO = sightno,
     STRIP = strip,
+    ANGLEL = anglel,
+    ANGLER = angler,
     STRATUM = "0",
     PLATFORM = 210
   )
@@ -101,7 +103,8 @@ fly_line <- function(fileid, date, eventno, time, legno, lat0, lon, n,
             beaufort = beaufort,
             speccode = sight$speccode[s], idrel = sight$idrel[s],
             number = sight$number[s], sightno = sight$sightno[s],
-            strip = sight$strip[s])
+            strip = sight$strip[s],
+            anglel = sight$anglel[s], angler = sight$angler[s])
       }
       # Groups seen together share one event number (handbook events 5, 11).
       eventno <- eventno + 1
@@ -110,10 +113,14 @@ fly_line <- function(fileid, date, eventno, time, legno, lat0, lon, n,
   list(eventno = eventno, time = bump_time(time, n * seconds_per_step))
 }
 
+# Declination angles below the horizon (handbook 8.A.2). At the 229 m survey
+# altitude these correspond to perpendicular distances of roughly:
+#   75 deg -> 61 m,  60 -> 132,  45 -> 229,  30 -> 397,  20 -> 629,  15 -> 855
 sighting <- function(speccode, number, idrel = 3, legstage = 2, sightno = 1,
-                     strip = 7) {
+                     strip = 7, anglel = NA, angler = NA) {
   list(speccode = speccode, number = number, idrel = idrel,
-       legstage = legstage, sightno = sightno, strip = strip)
+       legstage = legstage, sightno = sightno, strip = strip,
+       anglel = anglel, angler = angler)
 }
 
 ## ---------------------------------------------------------------------------
@@ -134,14 +141,16 @@ st <- fly_line(
   fid, d1, eventno = 4, time = 120400, legno = 1,
   lat0 = 43.00, lon = -69.00, n = 21,
   sightings = list(
-    "5"  = sighting("RIWH", 1, sightno = 2),
+    "5"  = sighting("RIWH", 1, sightno = 2, angler = 45),
     "10" = list(speccode = c("RIWH", "RIWH", "FIWH"),
                 number   = c(2, 1, 3),
                 idrel    = c(3, 3, 2),
                 legstage = c(2, 2, 2),
                 sightno  = c(3, 4, 5),
-                strip    = c(5, 5, 9)),
-    "16" = sighting("FIWH", 1, legstage = 6, sightno = 6)
+                strip    = c(5, 5, 9),
+                anglel   = c(60, NA, NA),
+                angler   = c(NA, 30, 20)),
+    "16" = sighting("FIWH", 1, legstage = 6, sightno = 6, angler = 40)
   )
 )
 
@@ -161,7 +170,8 @@ st <- fly_line(fid, d1, eventno = ev, time = 123000, legno = 2,
                  "6" = list(speccode = c("RIWH", "RIWH"),
                             number = c(3, 1), idrel = c(3, 3),
                             legstage = c(2, 2), sightno = c(8, 9),
-                            strip = c(3, 3))
+                            strip = c(3, 3),
+                            anglel = c(75, NA), angler = c(NA, 15))
                ))
 ev <- st$eventno
 
@@ -209,8 +219,8 @@ st <- fly_line(
   fid, d2, eventno = 1, time = 133000, legno = 3,
   lat0 = 43.00, lon = -68.80, n = 31,
   sightings = list(
-    "8"  = sighting("RIWH", 4, sightno = 1, strip = 5),
-    "20" = sighting("SEWH", 2, idrel = 2, sightno = 2, strip = 11),
+    "8"  = sighting("RIWH", 4, sightno = 1, strip = 5, anglel = 55),
+    "20" = sighting("SEWH", 2, idrel = 2, sightno = 2, strip = 11, angler = 25),
     "26" = sighting("LOTU", 1, legstage = 7, sightno = 3, strip = NA)
   )
 )
@@ -259,3 +269,5 @@ cat("wrote", nrow(out), "records to inst/extdata/narwc-example.csv\n")
 cat("dates:", paste(unique(paste(out$YEAR, out$MONTH, out$DAY, sep = "-")),
                     collapse = ", "), "\n")
 cat("species:", paste(sort(unique(stats::na.omit(out$SPECCODE))), collapse = ", "), "\n")
+cat("declination angles recorded:",
+    sum(!is.na(out$ANGLEL) | !is.na(out$ANGLER)), "\n")

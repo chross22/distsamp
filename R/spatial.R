@@ -163,7 +163,7 @@ check_sf <- function(call = rlang::caller_env()) {
 #'
 #' @export
 write_segments <- function(x, dir, prefix = "segments",
-                           tables = c("segments", "sightings", "tracks", "points")) {
+                           tables = c("segments", "sightings", "detections", "tracks", "points")) {
   stopifnot(inherits(x, "distsamp_segments"))
   tables <- match.arg(tables, several.ok = TRUE)
 
