@@ -1,0 +1,23 @@
+# Drop this in as .github/workflows/R-CMD-check.yaml. Set apt-packages to
+# whatever system libraries the package needs on Ubuntu:
+#
+#   sf / terra   libgdal-dev libgeos-dev libproj-dev libudunits2-dev
+#   rjags        jags
+#
+# Leave it empty for a package with no compiled dependencies.
+
+name: R-CMD-check
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+permissions: read-all
+
+jobs:
+  check:
+    uses: chross22/distsamp/.github/workflows/r-cmd-check-reusable.yaml@main
+    with:
+      apt-packages: ''

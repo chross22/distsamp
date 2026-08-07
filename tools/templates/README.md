@@ -1,3 +1,19 @@
+# Shared workflows
+
+Two reusable workflows live in this repository and are called by the other
+package repos, so the logic sits in one place and a fix lands everywhere on the
+next run.
+
+| workflow | what it does |
+|---|---|
+| `r-cmd-check-reusable.yaml` | `R CMD check --as-cran` across Ubuntu (devel/release/oldrel-1), macOS and Windows |
+| `citation-check-reusable.yaml` | registry coverage, CrossRef metadata, URL liveness, package self-citation, plus any repo-specific hooks |
+
+`R-CMD-check.yaml` and `check-citations.yaml` here are the callers; copy them
+from `tools/templates/` into another repo and adjust the inputs.
+
+---
+
 # Adding the citation check to another repository
 
 Three steps.
