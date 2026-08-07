@@ -61,5 +61,5 @@ check_narwc_version <- function(registry, ctx) {
 
 #' Hooks for this project, in the order they should run.
 citation_hooks <- function() {
-  list("5. NARWC handbook version" = check_narwc_version)
+  list("6. NARWC handbook version" = check_narwc_version)
 }

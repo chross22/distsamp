@@ -294,6 +294,98 @@ check_self_citation <- function(registry, ctx) {
   cc_result(failures, notes)
 }
 
+# --- check 5: the reference list and the prose agree ------------------------
+
+# Adapted from derivoce's check_citations.R, which is where this idea and most
+# of these regexes come from. Generalised to handle both reference styles in
+# use across these repositories: "- Surname, A. (2009) ..." bullets, and
+# "Surname, A. (2009) ..." paragraphs.
+
+# Surnames used in running text: "Belkin and O'Reilly (2009)", "Ross et al. 2023"
+cc_cited_names <- function(text) {
+  hits <- unlist(regmatches(text, gregexpr(
+    "\\b[A-Z][a-zA-Z'\u2019]+(?:\\s+et al\\.|\\s+and\\s+[A-Z][a-zA-Z'\u2019]+)\\s*\\(?[0-9]{4}",
+    text)))
+  unique(sub("\\s+(et al\\.|and\\s+[A-Z][a-zA-Z'\u2019]+)\\s*\\(?[0-9]{4}$", "", hits))
+}
+
+# Leading surname of each entry in a reference list, in either style.
+cc_list_entries <- function(refs) {
+  bullets <- unlist(regmatches(refs, gregexpr(
+    "(?m)^[-*] ([A-Z][A-Za-z'\u2019]+)", refs, perl = TRUE)))
+  bullets <- sub("^[-*] ", "", bullets)
+  paras <- unlist(regmatches(refs, gregexpr(
+    "(?m)^([A-Z][A-Za-z'\u2019]+),\\s+[A-Z]", refs, perl = TRUE)))
+  paras <- sub(",\\s+[A-Z]$", "", paras)
+  unique(c(bullets, paras))
+}
+
+#' Does every name cited in prose appear in the reference list, and vice versa?
+#'
+#' Two silent failures. A reference added to the list and never cited leaves a
+#' reader wondering what it was for. A name cited in prose and missing from the
+#' list leaves them unable to follow it up. Neither shows up in R CMD check.
+check_reference_list <- function(registry, ctx) {
+  root <- ctx$root %||% "."
+  readme_path <- file.path(root, "README.md")
+  if (!file.exists(readme_path)) {
+    return(cc_result(notes = "No README.md; skipping the reference-list check."))
+  }
+
+  readme <- paste(readLines(readme_path, warn = FALSE), collapse = "\n")
+  at <- regexpr("(?m)^#+ *References", readme, perl = TRUE)
+  if (at < 0) {
+    return(cc_result(notes = paste0(
+      "README has no References section; skipping the reference-list check. ",
+      "Add one if this package cites anything.")))
+  }
+
+  refs <- substring(readme, at)
+  body <- substring(readme, 1, at - 1)
+
+  # A "Data sources" or "Software" subsection lists things a *user* should
+  # cite, not things this documentation refers to, so its entries are not
+  # orphans. Cut them off before looking.
+  cut <- regexpr("(?m)^#+ *(Data sources|Software|Datasets)", refs, perl = TRUE)
+  papers <- if (cut > 0) substring(refs, 1, cut - 1) else refs
+
+  prose <- paste(c(
+    body,
+    unlist(lapply(list.files(file.path(root, "R"), "[.]R$", full.names = TRUE),
+                  readLines, warn = FALSE)),
+    unlist(lapply(list.files(file.path(root, "docs"), "[.]md$", full.names = TRUE),
+                  readLines, warn = FALSE))
+  ), collapse = "\n")
+
+  failures <- character()
+  notes <- character()
+
+  for (name in cc_cited_names(prose)) {
+    if (!grepl(name, refs, fixed = TRUE)) {
+      notes <- c(notes, paste0(
+        "`", name, "` is cited in the documentation but is not in the ",
+        "README reference list."))
+    }
+  }
+
+  entries <- cc_list_entries(papers)
+  for (entry in entries) {
+    if (!grepl(entry, prose, fixed = TRUE)) {
+      notes <- c(notes, paste0(
+        "`", entry, "` is in the reference list but cited nowhere."))
+    }
+  }
+
+  if (!length(notes)) {
+    cc_say("  ok  ", length(entries), " reference-list entries all cited, and ",
+           "every cited name is listed")
+  }
+
+  # Reported as notes rather than failures: name matching from prose is
+  # necessarily approximate, and a check that cries wolf gets ignored.
+  cc_result(notes = notes)
+}
+
 # --- driver -----------------------------------------------------------------
 
 #' Run a set of checks and report.
@@ -313,7 +405,8 @@ run_citation_checks <- function(registry_path, sources, root = ".",
       "1. Registry coverage" = check_registry_coverage,
       "2. CrossRef metadata" = check_crossref_metadata,
       "3. URL liveness"      = check_url_liveness,
-      "4. Package self-citation" = check_self_citation
+      "4. Package self-citation" = check_self_citation,
+      "5. Reference list" = check_reference_list
     ),
     hooks
   )
