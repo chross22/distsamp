@@ -21,11 +21,22 @@ reads, together with the alternative spellings accepted on input.
 \section{Coordinate naming}{
 
 The handbook's canonical event-position columns are \code{LAT_DD} and \code{LONG_DD}
-(8.A.17, 8.A.21). Data extracts distributed by the NARWC database manager,
+(8.A.18, 8.A.22). Data extracts distributed by the NARWC database manager,
 and the upstream Maine DMR processing, instead use \code{LATITUDE} and
 \code{LONGITUDE}. This package standardises internally on \code{LATITUDE}/\code{LONGITUDE}
-and accepts either spelling on input. \code{S_LAT}/\code{S_LONG} (8.A.32, 8.A.33) are
+and accepts either spelling on input. \code{S_LAT}/\code{S_LONG} (8.A.33, 8.A.34) are
 the \emph{exact sighting} position and are kept distinct from the event position.
+}
+
+\section{Version 8 additions}{
+
+\code{ANGLEL} and \code{ANGLER} are declination angles to a sighting, added in Version 8
+of the handbook. The New England Aquarium survey team stopped recording
+\code{STRIP} in 2022 and switched to these, which give a more precise right-angle
+distance and are less sensitive to changes in survey altitude (8.A.31). They
+are carried through as optional columns; converting them to perpendicular
+distance belongs with the detection-function work, which is out of scope for
+this version.
 }
 
 \examples{
@@ -33,7 +44,7 @@ narwc_schema()$required
 
 }
 \references{
-Kenney, R.D. (2021) \emph{The North Atlantic Right Whale Consortium Database: A
-Guide for Users and Contributors, Version 7}, Table 1. NARWC Reference Document
-2021-01.
+Kenney, R.D. (2023) \emph{The North Atlantic Right Whale Consortium Database: A
+Guide for Users and Contributors, Version 8}, Table 1. NARWC Reference Document
+2023-01.
 }

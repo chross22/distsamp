@@ -1,29 +1,30 @@
 #' NARWC database code books
 #'
 #' Lookup tables for the coded variables in the North Atlantic Right Whale
-#' Consortium (NARWC) sightings database, transcribed from Kenney (2021),
+#' Consortium (NARWC) sightings database, transcribed from Kenney (2023),
 #' *The North Atlantic Right Whale Consortium Database: A Guide for Users and
-#' Contributors*, Version 7 (NARWC Reference Document 2021-01), Chapter 8.
+#' Contributors*, Version 8 (NARWC Reference Document 2023-01), Chapter 8.
 #'
 #' These tables are the single source of truth for the package: validation,
 #' effort determination, and sighting filtering all read their permitted values
 #' from here rather than hard-coding numeric literals.
 #'
 #' @param variable Name of a coded NARWC variable. One of `"LEGTYPE"`,
-#'   `"LEGSTAGE"`, `"IDREL"`, `"TAXCODE"`, `"STRATUM"`, or `"VISIBLTY"`. If
+#'   `"LEGSTAGE"`, `"IDREL"`, `"TAXCODE"`, `"STRATUM"`, `"VISIBLTY"`, or
+#'   `"WX"`. If
 #'   `NULL` (the default), the whole code book is returned.
 #'
 #' @return A named character vector mapping codes to their meanings, or, when
 #'   `variable` is `NULL`, a named list of such vectors.
 #'
 #' @section Handbook sections:
-#' `LEGTYPE` 8.A.20, `LEGSTAGE` 8.A.19, `IDREL` 8.A.15, `TAXCODE` 8.A.35,
-#' `STRATUM` 8.A.29, `VISIBLTY` 8.A.37.
+#' `LEGTYPE` 8.A.21, `LEGSTAGE` 8.A.20, `IDREL` 8.A.16, `TAXCODE` 8.A.36,
+#' `STRATUM` 8.A.30, `VISIBLTY` 8.A.38, `WX` 8.A.39.
 #'
 #' @references
-#' Kenney, R.D. (2021) *The North Atlantic Right Whale Consortium Database: A
-#' Guide for Users and Contributors, Version 7*. North Atlantic Right Whale
-#' Consortium Reference Document 2021-01. University of Rhode Island, Graduate
+#' Kenney, R.D. (2023) *The North Atlantic Right Whale Consortium Database: A
+#' Guide for Users and Contributors, Version 8*. North Atlantic Right Whale
+#' Consortium Reference Document 2023-01. University of Rhode Island, Graduate
 #' School of Oceanography, Narragansett, Rhode Island.
 #'
 #' @examples
@@ -44,7 +45,7 @@ narwc_codes <- function(variable = NULL) {
   narwc_code_book[[variable]]
 }
 
-# Handbook 8.A.20. Note that codes 0-4 describe line-transect (and "relaxed"
+# Handbook 8.A.21. Note that codes 0-4 describe line-transect (and "relaxed"
 # line-transect) aerial surveys, 5-6 shipboard platforms-of-opportunity, and
 # 7/9 aerial platforms-of-opportunity. Only LEGTYPE 2 is a census track that
 # can contribute effort to a density estimate.
@@ -60,7 +61,7 @@ narwc_legtype <- c(
   "9" = "POP aerial, restricted data-recording"
 )
 
-# Handbook 8.A.19. For dedicated aerial surveys LEGSTAGE is recorded only
+# Handbook 8.A.20. For dedicated aerial surveys LEGSTAGE is recorded only
 # during census lines (LEGTYPE == 2), with the exception of code 7.
 narwc_legstage <- c(
   "1" = "begin line",
@@ -72,7 +73,7 @@ narwc_legstage <- c(
   "7" = "sighting detected in a vertical photograph"
 )
 
-# Handbook 8.A.15.
+# Handbook 8.A.16.
 narwc_idrel <- c(
   "1" = "unsure / possible",
   "2" = "probable",
@@ -80,7 +81,7 @@ narwc_idrel <- c(
   "9" = "unknown / not recorded"
 )
 
-# Handbook 8.A.35.
+# Handbook 8.A.36.
 narwc_taxcode <- c(
   "0" = "vessel, gear, human activity, debris/pollution",
   "1" = "large cetacean",
@@ -94,7 +95,7 @@ narwc_taxcode <- c(
   "9" = "other / unknown"
 )
 
-# Handbook 8.A.29.
+# Handbook 8.A.30.
 narwc_stratum <- c(
   "X" = "0-20 fathoms",
   "Y" = "20-50 fathoms",
@@ -108,8 +109,24 @@ narwc_stratum <- c(
   "R" = "NLPSC year 2+, Rhode Island"
 )
 
-# Handbook 8.A.37. Negative values are the pre-2004 OLDVIZ codes, folded into
-# VISIBLTY during the 2021 archive update. Non-negative values are an actual
+# Handbook 8.A.39.
+narwc_wx <- c(
+  "B" = "both rain (or other precipitation) and fog",
+  "C" = "clear",
+  "D" = "drizzle",
+  "F" = "fog",
+  "G" = "gray (heavy overcast and dark, but no precipitation)",
+  "H" = "haze",
+  "L" = "light rain, intermittent showers",
+  "P" = "patchy fog",
+  "R" = "rain",
+  "S" = "snow",
+  "T" = "thunderstorms, squalls",
+  "X" = "not recorded"
+)
+
+# Handbook 8.A.38. Negative values are the pre-2004 OLDVIZ codes, folded into
+# VISIBLTY when the archive was updated. Non-negative values are an actual
 # clear-visibility distance in nautical miles.
 narwc_visiblty <- c(
   "-1" = "clear visibility for at least 2 nautical miles",
@@ -125,7 +142,8 @@ narwc_code_book <- list(
   IDREL    = narwc_idrel,
   TAXCODE  = narwc_taxcode,
   STRATUM  = narwc_stratum,
-  VISIBLTY = narwc_visiblty
+  VISIBLTY = narwc_visiblty,
+  WX       = narwc_wx
 )
 
 #' NARWC columns recognised by distsamp
@@ -139,16 +157,25 @@ narwc_code_book <- list(
 #'
 #' @section Coordinate naming:
 #' The handbook's canonical event-position columns are `LAT_DD` and `LONG_DD`
-#' (8.A.17, 8.A.21). Data extracts distributed by the NARWC database manager,
+#' (8.A.18, 8.A.22). Data extracts distributed by the NARWC database manager,
 #' and the upstream Maine DMR processing, instead use `LATITUDE` and
 #' `LONGITUDE`. This package standardises internally on `LATITUDE`/`LONGITUDE`
-#' and accepts either spelling on input. `S_LAT`/`S_LONG` (8.A.32, 8.A.33) are
+#' and accepts either spelling on input. `S_LAT`/`S_LONG` (8.A.33, 8.A.34) are
 #' the *exact sighting* position and are kept distinct from the event position.
 #'
+#' @section Version 8 additions:
+#' `ANGLEL` and `ANGLER` are declination angles to a sighting, added in Version 8
+#' of the handbook. The New England Aquarium survey team stopped recording
+#' `STRIP` in 2022 and switched to these, which give a more precise right-angle
+#' distance and are less sensitive to changes in survey altitude (8.A.31). They
+#' are carried through as optional columns; converting them to perpendicular
+#' distance belongs with the detection-function work, which is out of scope for
+#' this version.
+#'
 #' @references
-#' Kenney, R.D. (2021) *The North Atlantic Right Whale Consortium Database: A
-#' Guide for Users and Contributors, Version 7*, Table 1. NARWC Reference Document
-#' 2021-01.
+#' Kenney, R.D. (2023) *The North Atlantic Right Whale Consortium Database: A
+#' Guide for Users and Contributors, Version 8*, Table 1. NARWC Reference Document
+#' 2023-01.
 #'
 #' @return A named list with elements `required`, `optional`, and `aliases`.
 #'
@@ -166,8 +193,8 @@ narwc_schema <- function() {
       "LEGSTAGE", "LEGNO", "ALT", "BEAUFORT", "VISIBLTY", "WX", "CLOUD",
       "GLAREL", "GLARER", "SURFTEMP", "HEADING", "PLATFORM", "STRATUM",
       "BLOCK", "SPECCODE", "TAXCODE", "IDREL", "NUMBER", "NUMCALF",
-      "SIGHTNO", "STRIP", "S_LAT", "S_LONG", "S_TIME", "PHOTOS",
-      "DDSOURCE", "IDSOURCE"
+      "SIGHTNO", "STRIP", "ANGLEL", "ANGLER", "S_LAT", "S_LONG", "S_TIME",
+      "PHOTOS", "DDSOURCE", "IDSOURCE"
     ),
     aliases = c(
       LAT_DD    = "LATITUDE",
@@ -195,6 +222,6 @@ narwc_numeric_columns <- c(
   "EVENTNO", "YEAR", "MONTH", "DAY", "TIME", "LATITUDE", "LONGITUDE",
   "LEGTYPE", "LEGSTAGE", "LEGNO", "ALT", "BEAUFORT", "VISIBLTY", "CLOUD",
   "GLAREL", "GLARER", "SURFTEMP", "HEADING", "PLATFORM", "TAXCODE", "IDREL",
-  "NUMBER", "NUMCALF", "SIGHTNO", "STRIP", "S_LAT", "S_LONG", "S_TIME",
-  "PHOTOS"
+  "NUMBER", "NUMCALF", "SIGHTNO", "STRIP", "ANGLEL", "ANGLER",
+  "S_LAT", "S_LONG", "S_TIME", "PHOTOS"
 )

@@ -12,8 +12,8 @@
 #'   be included in a density estimate", because it did not arise from the
 #'   standard search effort the detection function describes.
 #' * `LEGSTAGE == 7` — a sighting detected afterwards in a vertical photograph
-#'   (handbook 8.A.19), which likewise is not a visual detection by an observer.
-#' * `IDREL` of `1` (possible) or `9` (unknown). Handbook 8.A.15 records
+#'   (handbook 8.A.20), which likewise is not a visual detection by an observer.
+#' * `IDREL` of `1` (possible) or `9` (unknown). Handbook 8.A.16 records
 #'   Kenney's own practice of using only definite and probable identifications.
 #'
 #' The original processing code excluded `LEGSTAGE == 7` but kept `LEGSTAGE == 6`,
@@ -42,9 +42,9 @@
 #'   }
 #'
 #' @references
-#' Kenney, R.D. (2021) *The North Atlantic Right Whale Consortium Database: A
-#' Guide for Users and Contributors, Version 7*, sections 4.2, 8.A.15, 8.A.19.
-#' NARWC Reference Document 2021-01.
+#' Kenney, R.D. (2023) *The North Atlantic Right Whale Consortium Database: A
+#' Guide for Users and Contributors, Version 8*, sections 4.2, 8.A.16, 8.A.20.
+#' NARWC Reference Document 2023-01.
 #'
 #' Becker, E.A., Forney, K.A., Ferguson, M.C., Foley, D.G., Smith, R.C., Barlow,
 #' J. and Redfern, J.V. (2010) Comparing California Current cetacean-habitat

@@ -49,9 +49,9 @@ circling right whale and discarding circling sightings of everything else.
 }
 
 \references{
-Kenney, R.D. (2021) \emph{The North Atlantic Right Whale Consortium Database: A
-Guide for Users and Contributors, Version 7}, section 4.2 (event 11). NARWC
-Reference Document 2021-01.
+Kenney, R.D. (2023) \emph{The North Atlantic Right Whale Consortium Database: A
+Guide for Users and Contributors, Version 8}, section 4.2 (event 11). NARWC
+Reference Document 2023-01.
 
 CETAP (1982) \emph{A Characterization of Marine Mammals and Turtles in the Mid- and
 North-Atlantic Areas of the U.S. Outer Continental Shelf, Final Report.}

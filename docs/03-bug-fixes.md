@@ -1,8 +1,8 @@
 # Defects found in `original/`, and what was done about them
 
 The method being ported is Becker et al. (2010), *Marine Ecology Progress Series*
-413:163–183, `doi:10.3354/meps08696`; the data format is Kenney (2021), NARWC
-Reference Document 2021-01. Full citations and what each is relied on for are in
+413:163–183, `doi:10.3354/meps08696`; the data format is Kenney (2023), NARWC
+Reference Document 2023-01. Full citations and what each is relied on for are in
 [06-references.md](06-references.md).
 
 Each item names the file and line in `original/`, explains the consequence, and
@@ -20,7 +20,7 @@ code as it stands in `original/`, which is left untouched.
 I2 <- which(dat$VISIBLTY >= 2 & dat$ALT < 366 & dat$BEAUFORT <= 3)
 ```
 
-`VISIBLTY` carries two different encodings in the same column. Handbook 8.A.37:
+`VISIBLTY` carries two different encodings in the same column. Handbook 8.A.38:
 the field was originally a one-digit code recording only whether visibility
 reached the 2-nautical-mile CETAP standard and, if not, the weather responsible.
 In 2004 it was redefined to hold the actual visibility in nautical miles. During

@@ -26,7 +26,7 @@ Beyond that:
   pre-2004 survey effort.
 
 The goal is an installable R package whose input contract is the NARWC sightings
-database format (Kenney 2021, NARWC Reference Document 2021-01, Version 7) and
+database format (Kenney 2023, NARWC Reference Document 2023-01, Version 7) and
 whose output is a segment table ready for `Distance` and `dsm`.
 
 ## Decisions taken before starting
@@ -98,13 +98,13 @@ pipeline.
 
 | Variable | Handbook section | Used for |
 |---|---|---|
-| `LEGTYPE` | 8.A.20 | On-effort determination; only `2` is a census track |
-| `LEGSTAGE` | 8.A.19 | Circling detection; excluding non-observer and photographic sightings |
-| `IDREL` | 8.A.15 | Sighting reliability filter |
-| `VISIBLTY` | 8.A.37 | Effort determination, with two encodings in one column |
-| `LAT_DD` / `LONG_DD` | 8.A.17, 8.A.21 | Event position, with alias handling |
-| `STRIP`, `S_LAT`, `S_LONG` | 8.A.30, 8.A.32, 8.A.33 | Carried through, not interpreted in v1 |
-| `TAXCODE`, `STRATUM` | 8.A.35, 8.A.29 | Validation only |
+| `LEGTYPE` | 8.A.21 | On-effort determination; only `2` is a census track |
+| `LEGSTAGE` | 8.A.20 | Circling detection; excluding non-observer and photographic sightings |
+| `IDREL` | 8.A.16 | Sighting reliability filter |
+| `VISIBLTY` | 8.A.38 | Effort determination, with two encodings in one column |
+| `LAT_DD` / `LONG_DD` | 8.A.18, 8.A.22 | Event position, with alias handling |
+| `STRIP`, `S_LAT`, `S_LONG` | 8.A.31, 8.A.33, 8.A.34 | Carried through, not interpreted in v1 |
+| `TAXCODE`, `STRATUM` | 8.A.36, 8.A.30 | Validation only |
 
 ## Verification plan
 

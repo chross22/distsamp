@@ -1,5 +1,10 @@
 # distsamp
 
+<!-- badges: start -->
+[![R-CMD-check](https://github.com/chross22/distsamp/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/chross22/distsamp/actions/workflows/R-CMD-check.yaml)
+[![check-citations](https://github.com/chross22/distsamp/actions/workflows/check-citations.yaml/badge.svg)](https://github.com/chross22/distsamp/actions/workflows/check-citations.yaml)
+<!-- badges: end -->
+
 Segment aerial line-transect marine mammal survey data for distance sampling and
 density surface modeling.
 
@@ -75,9 +80,9 @@ if you are writing this up.
 ## Grounded in the handbook
 
 Effort criteria, sighting filters, and validation all read from the code books in
-Kenney (2021), *The North Atlantic Right Whale Consortium Database: A Guide for
-Users and Contributors*, Version 7 — `LEGTYPE` (8.A.20), `LEGSTAGE` (8.A.19),
-`IDREL` (8.A.15), `VISIBLTY` (8.A.37), and the rest. `narwc_codes()` prints them.
+Kenney (2023), *The North Atlantic Right Whale Consortium Database: A Guide for
+Users and Contributors*, Version 8 — `LEGTYPE` (8.A.21), `LEGSTAGE` (8.A.20),
+`IDREL` (8.A.16), `VISIBLTY` (8.A.38), and the rest. `narwc_codes()` prints them.
 
 A few consequences worth knowing:
 
@@ -154,7 +159,10 @@ methods and which are properties of Becker's implementation.
 ## References
 
 Alphabetical. What each source is relied on for is set out in
-[docs/06-references.md](docs/06-references.md).
+[docs/06-references.md](docs/06-references.md). These are checked monthly by
+CI — DOIs still resolve and still describe the paper we cite, hosted PDFs are
+still there, and the NARWC handbook is still at the version we cite. Run it
+yourself with `Rscript tools/check-citations.R`.
 
 Becker, E.A., Forney, K.A., Ferguson, M.C., Foley, D.G., Smith, R.C., Barlow, J.
 and Redfern, J.V. (2010) Comparing California Current cetacean–habitat models
@@ -190,8 +198,8 @@ Kenney, R.D. (2002) *Quality-control Issues for Data Submissions to the North
 Atlantic Right Whale Consortium Database.* NARWC Reference Document 2002-02.
 University of Rhode Island, Graduate School of Oceanography, Narragansett, RI.
 
-Kenney, R.D. (2021) *The North Atlantic Right Whale Consortium Database: A Guide
-for Users and Contributors, Version 7.* NARWC Reference Document 2021-01.
+Kenney, R.D. (2023) *The North Atlantic Right Whale Consortium Database: A Guide
+for Users and Contributors, Version 8.* NARWC Reference Document 2023-01.
 University of Rhode Island, Graduate School of Oceanography, Narragansett, RI.
 <https://www.narwc.org/sightings-database.html> — *the input format.*
 

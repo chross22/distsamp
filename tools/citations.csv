@@ -1,0 +1,18 @@
+key,doi,url,first_author,year,title,container,volume,pages,checks,note
+becker2010,10.3354/meps08696,,Becker,2010,Comparing California Current cetacean-habitat models developed using in situ and remotely sensed sea surface temperature data,Marine Ecology Progress Series,413,163-183,crossref,The segmentation method
+becker2019,10.1111/ddi.12867,,Becker,2019,Predicting cetacean abundance and distribution in a changing climate,Diversity and Distributions,25,626-643,crossref,Restatement of the method; covariates at segment mid-point
+becker2017,10.3389/fmars.2017.00121,,Becker,2017,Habitat-Based Density Models for Three Cetacean Species off Southern California Illustrate Pronounced Seasonal Differences,Frontiers in Marine Science,4,,crossref,Guidance on choosing segment length
+hedley2004,10.1198/1085711043578,,Hedley,2004,Spatial models for line transect sampling,"Journal of Agricultural, Biological, and Environmental Statistics",9,181-199,crossref,Segmented line-transect framework
+miller2013,10.1111/2041-210X.12105,,Miller,2013,Spatial models for distance sampling data: recent developments and future directions,Methods in Ecology and Evolution,4,1001-1010,crossref,Density surface modelling; the dsm package
+miller2019,10.18637/jss.v089.i01,,Miller,2019,Distance Sampling in R,Journal of Statistical Software,89,,crossref,The Distance package
+pebesma2018,10.32614/RJ-2018-009,,Pebesma,2018,Simple Features for R: Standardized Support for Spatial Vector Data,The R Journal,10,439,crossref,The sf package
+shoemake1985,10.1145/325165.325242,,Shoemake,1985,Animating rotation with quaternion curves,ACM SIGGRAPH Computer Graphics,19,245-254,crossref,Spherical linear interpolation
+kenney2023,,https://www.narwc.org/sightings-database.html,Kenney,2023,The North Atlantic Right Whale Consortium Database: A Guide for Users and Contributors Version 8,NARWC Reference Document 2023-01,,,url;narwc_version,The input format specification
+kenneywinn1986,,https://spo.nmfs.noaa.gov/sites/default/files/pdf-content/1986/842/kenney.pdf,Kenney,1986,Cetacean high-use habitats of the northeast United States continental shelf,Fishery Bulletin,84,345-357,url,The kenney distance formula (p. 347) and the CETAP on-effort criteria
+buckland2001,,,Buckland,2001,Introduction to Distance Sampling: Estimating Abundance of Biological Populations,Oxford University Press,,,none,Standard line-transect reference. Book; no DOI.
+cetap1982,,,CETAP,1982,A Characterization of Marine Mammals and Turtles in the Mid- and North-Atlantic Areas of the U.S. Outer Continental Shelf Final Report,Bureau of Land Management,,,none,Survey protocol behind the effort defaults. Grey literature; no DOI.
+kenneyscott1981,,,Kenney,1981,Calibration of the Beechcraft AT-11 forward observation bubble for population estimation purposes,CETAP Annual Report for 1979,,III.1-III.11,none,STRIP right-angle distance intervals. Grey literature; no DOI.
+kenneyshoop2012,,,Kenney,2012,Aerial surveys for marine turtles,Reptile Biodiversity: Standard Methods for Inventory and Monitoring,,264-271,none,Accessible summary of aerial line-transect methodology. Book chapter.
+kenney2002,,,Kenney,2002,Quality-control Issues for Data Submissions to the North Atlantic Right Whale Consortium Database,NARWC Reference Document 2002-02,,,none,Background for validate_narwc(). Grey literature; no DOI.
+sinnott1984,,,Sinnott,1984,Virtues of the haversine,Sky and Telescope,68,159,none,The haversine formulation. No DOI.
+rcore,,https://www.R-project.org/,R Core Team,2026,R: A Language and Environment for Statistical Computing,R Foundation for Statistical Computing,,,url,The language

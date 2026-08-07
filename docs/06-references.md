@@ -3,7 +3,7 @@
 Every source the package relies on, and what it is relied on *for*. All DOIs and
 bibliographic details verified against CrossRef or against the source document
 itself; the grey literature is transcribed from the NARWC handbook's own
-reference list (Kenney 2021, chapter 10).
+reference list (Kenney 2023, chapter 10).
 
 The consolidated list is at the [bottom of the README](../README.md#references).
 
@@ -170,9 +170,9 @@ midpoint between two bracketing survey positions.
 
 ## 4. The data format and survey protocol
 
-> **Kenney, R.D. (2021)** *The North Atlantic Right Whale Consortium Database: A
-> Guide for Users and Contributors, Version 7.* North Atlantic Right Whale
-> Consortium Reference Document 2021-01. University of Rhode Island, Graduate
+> **Kenney, R.D. (2023)** *The North Atlantic Right Whale Consortium Database: A
+> Guide for Users and Contributors, Version 8.* North Atlantic Right Whale
+> Consortium Reference Document 2023-01. University of Rhode Island, Graduate
 > School of Oceanography, Narragansett, Rhode Island.
 > <https://www.narwc.org/sightings-database.html>
 
@@ -183,16 +183,16 @@ The input-format specification. Sections used, and where:
 | 3.1 | Line-transect vs POP vs opportunistic data types | `?narwc_schema` |
 | 4.2, Figure 2 | The worked example the test fixture is built from; pilot sightings cannot enter a density estimate; the CETAP rule for circling sightings | `data-raw/make-fixture.R`, `?segment_sightings`, `?attach_circling_sightings` |
 | Table 1 | Master variable list and types | `?narwc_schema` |
-| 8.A.15 | `IDREL` | `?narwc_codes`, `?segment_sightings` |
-| 8.A.17, 8.A.21 | `LAT_DD`, `LONG_DD`, and the sign convention | `?read_narwc`, `?validate_narwc` |
-| 8.A.19 | `LEGSTAGE` | `?narwc_codes`, `?flag_circling`, `?segment_sightings` |
-| 8.A.20 | `LEGTYPE` | `?narwc_codes`, `?flag_effort`, `?flag_circling` |
-| 8.A.23 | `NUMBER` required for sightings | `?validate_narwc` |
-| 8.A.29 | `STRATUM` | `?narwc_codes` |
-| 8.A.30 | `STRIP` | carried through, not interpreted in v1 |
-| 8.A.35 | `TAXCODE` | `?narwc_codes` |
-| 8.A.36 | `TIME` | `?validate_narwc` |
-| 8.A.37 | `VISIBLTY`, including the two encodings | `?visibility_ok` |
+| 8.A.16 | `IDREL` | `?narwc_codes`, `?segment_sightings` |
+| 8.A.18, 8.A.22 | `LAT_DD`, `LONG_DD`, and the sign convention | `?read_narwc`, `?validate_narwc` |
+| 8.A.20 | `LEGSTAGE` | `?narwc_codes`, `?flag_circling`, `?segment_sightings` |
+| 8.A.21 | `LEGTYPE` | `?narwc_codes`, `?flag_effort`, `?flag_circling` |
+| 8.A.24 | `NUMBER` required for sightings | `?validate_narwc` |
+| 8.A.30 | `STRATUM` | `?narwc_codes` |
+| 8.A.31 | `STRIP` | carried through, not interpreted in v1 |
+| 8.A.36 | `TAXCODE` | `?narwc_codes` |
+| 8.A.37 | `TIME` | `?validate_narwc` |
+| 8.A.38 | `VISIBLTY`, including the two encodings | `?visibility_ok` |
 
 > **CETAP (1982)** *A Characterization of Marine Mammals and Turtles in the Mid-
 > and North-Atlantic Areas of the U.S. Outer Continental Shelf, Final Report.*
@@ -215,7 +215,7 @@ of 366 m (1,200 ft) sits comfortably above normal survey altitude.
 > 1979.* Bureau of Land Management, Washington, DC.
 
 The calibrated strip markings behind the `STRIP` right-angle distance intervals
-(handbook 8.A.30). Relevant to the detection-function work in
+(handbook 8.A.31). Relevant to the detection-function work in
 [05-next-steps.md](05-next-steps.md), not to v1.
 
 > **Kenney, R.D. (2002)** *Quality-control Issues for Data Submissions to the
@@ -266,10 +266,71 @@ In a methods section, cite the method and the software separately — for exampl
 > record boundaries, with the remainder of each trackline assigned to a randomly
 > selected segment when it fell below half the target length; habitat covariates
 > were sampled at the along-track mid-point of each segment. On-effort criteria
-> followed the CETAP standard (CETAP 1982; Kenney 2021): survey line, Beaufort
+> followed the CETAP standard (CETAP 1982; Kenney 2023): survey line, Beaufort
 > sea state of 3 or lower, altitude below 366 m, and clear visibility of at least
 > 2 nautical miles. Sightings by observers other than the dedicated on-duty
 > observers, sightings detected in vertical photographs, and identifications
-> below "probable" reliability were excluded (Kenney 2021).
+> below "probable" reliability were excluded (Kenney 2023).
 
 Record the `seed` you used — without it the segmentation is not reproducible.
+
+---
+
+## 7. Keeping citations current
+
+Citations rot. A DOI gets corrected, a hosted PDF moves, and — the one that
+actually matters here — the NARWC publishes a new handbook version whose code
+books the package's correctness depends on.
+
+`tools/citations.csv` is the registry: one row per source, with the DOI or URL
+and the metadata we print. `tools/check-citations.R` verifies it:
+
+```bash
+Rscript tools/check-citations.R
+```
+
+Four checks:
+
+1. **Registry coverage** — every DOI appearing anywhere in the package is in the
+   registry, and every registry DOI is actually cited. Stops a new citation
+   slipping in unchecked. Offline, so it also runs in the test suite.
+2. **CrossRef metadata** — first author, year, title, journal, and volume still
+   match. Catches both a transcription error on our side and a correction on the
+   publisher's.
+3. **URL liveness** — the NARWC page, the NOAA-hosted Kenney and Winn PDF, and
+   the R project page still resolve.
+4. **NARWC handbook version** — the Consortium's sightings-database page still
+   offers the version we cite.
+
+`.github/workflows/check-citations.yaml` runs this on the first of each month
+and on any pull request touching `R/`, `docs/`, `README.md`, `DESCRIPTION`, or
+the registry. A scheduled failure opens a single issue labelled `citations`;
+it will not open a second while one is open.
+
+### When the handbook version check fires
+
+Do not simply bump the citation. Diff the new version against
+`R/narwc-codes.R` first — `LEGTYPE`, `LEGSTAGE`, `IDREL`, `VISIBLTY`,
+`TAXCODE`, and `STRATUM` values are load-bearing, and section numbers shift
+whenever a variable is added.
+
+That is exactly what happened on the check's first run. It found Version 8
+(October 2023, Reference Document 2023-01) while the package cited Version 7.
+Reviewing it:
+
+- **No code-book values changed.** `LEGTYPE`, `LEGSTAGE`, `IDREL`, `TAXCODE`,
+  `STRATUM`, `STRIP`, and — importantly — the negative `VISIBLTY` codes that
+  [03-bug-fixes.md](03-bug-fixes.md#1-legacy-visibility-codes-silently-discarded-all-pre-2004-effort)
+  turns on are identical. Nothing in the package's behaviour was wrong.
+- **Section numbers shifted by one** from `ANGLEL` onward, because Version 8
+  inserts a new section for `ANGLEL`/`ANGLER`. All 84 cross-references in the
+  code and docs were remapped.
+- **`ANGLEL` and `ANGLER` are new**: declination angles to a sighting. The New
+  England Aquarium survey team stopped recording `STRIP` in 2022 and switched to
+  these, which give a more precise right-angle distance and are less sensitive to
+  survey altitude (8.A.31). They are now carried through as optional columns;
+  converting them to perpendicular distance belongs with the detection-function
+  work ([05-next-steps.md](05-next-steps.md)).
+- **`WX`** is now in the code book (`narwc_codes("WX")`).
+- Version 8 dates the archive update that folded `OLDVIZ` into `VISIBLTY` to
+  2020; Version 7 said 2021. The package no longer names a year for it.

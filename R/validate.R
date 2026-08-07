@@ -13,24 +13,24 @@
 #'   \item{`unknown_code`}{A value of `LEGTYPE`, `LEGSTAGE`, `IDREL`, `TAXCODE`,
 #'     or `STRATUM` that is not in the handbook's code book.}
 #'   \item{`legstage_off_census`}{`LEGSTAGE` recorded on a record that is not a
-#'     census line. Handbook 8.A.19: for dedicated aerial surveys `LEGSTAGE` is
+#'     census line. Handbook 8.A.20: for dedicated aerial surveys `LEGSTAGE` is
 #'     recorded only during census tracks (`LEGTYPE == 2`), except for code 7.}
 #'   \item{`sighting_at_boundary`}{A sighting recorded at a `LEGSTAGE` of 1, 3,
-#'     4, or 5. Handbook 8.A.19 and 4.2: sightings should not occur at
+#'     4, or 5. Handbook 8.A.20 and 4.2: sightings should not occur at
 #'     begin-line, break-off, resume, or end-line events.}
 #'   \item{`eventno_not_increasing`}{`EVENTNO` does not increase through a
 #'     `FILEID`. Repeated values are allowed — the handbook (4.2) assigns one
 #'     event several sightings — but decreases indicate mis-sorted records.}
 #'   \item{`bad_time_format`}{`TIME` is not a 6-digit `hhmmss` in 24-hour form
-#'     (handbook 8.A.36). Four-digit `hhmm` times are reported separately as a
+#'     (handbook 8.A.37). Four-digit `hhmm` times are reported separately as a
 #'     warning since they are still found in older data.}
 #'   \item{`coordinates_out_of_range`}{Latitude outside \[-90, 90\] or longitude
 #'     outside \[-180, 180\].}
 #'   \item{`positive_west_longitude`}{Every longitude is positive. Handbook
-#'     8.A.21 requires west longitudes to be negative; all-positive longitudes
+#'     8.A.22 requires west longitudes to be negative; all-positive longitudes
 #'     in a western North Atlantic dataset mean the sign convention was lost.}
 #'   \item{`sighting_without_number`}{`SPECCODE` present but `NUMBER` missing.
-#'     Handbook 8.A.23 requires `NUMBER` for all sightings.}
+#'     Handbook 8.A.24 requires `NUMBER` for all sightings.}
 #' }
 #'
 #' @param dat A data frame of NARWC survey data, ideally from [read_narwc()].
@@ -47,9 +47,9 @@
 #'   A zero-row tibble means every check passed.
 #'
 #' @references
-#' Kenney, R.D. (2021) *The North Atlantic Right Whale Consortium Database: A
-#' Guide for Users and Contributors, Version 7*. NARWC Reference Document
-#' 2021-01. University of Rhode Island, Graduate School of Oceanography. Every
+#' Kenney, R.D. (2023) *The North Atlantic Right Whale Consortium Database: A
+#' Guide for Users and Contributors, Version 8*. NARWC Reference Document
+#' 2023-01. University of Rhode Island, Graduate School of Oceanography. Every
 #' check above cites the section it derives from.
 #'
 #' Kenney, R.D. (2002) *Quality-control Issues for Data Submissions to the North
@@ -124,7 +124,7 @@ validate_narwc <- function(dat) {
       "legstage_off_census", "note", "LEGSTAGE", bad,
       paste0(
         "LEGSTAGE recorded on records that are not census lines. Handbook ",
-        "8.A.19: for dedicated aerial surveys LEGSTAGE is recorded only ",
+        "8.A.20: for dedicated aerial surveys LEGSTAGE is recorded only ",
         "during LEGTYPE 2, except code 7."
       )
     )
@@ -136,7 +136,7 @@ validate_narwc <- function(dat) {
     add(
       "sighting_at_boundary", "warning", "LEGSTAGE", bad,
       paste0(
-        "Sightings recorded at LEGSTAGE 1, 3, 4, or 5. Handbook 8.A.19: ",
+        "Sightings recorded at LEGSTAGE 1, 3, 4, or 5. Handbook 8.A.20: ",
         "sightings should not occur at begin-line, break-off, resume, or ",
         "end-line events."
       )
@@ -164,14 +164,14 @@ validate_narwc <- function(dat) {
     ok <- is.na(tm) | (tm >= 0 & tm <= 235959)
     add(
       "bad_time_format", "warning", "TIME", which(!ok),
-      "TIME outside the range of a valid hhmmss clock time (handbook 8.A.36)."
+      "TIME outside the range of a valid hhmmss clock time (handbook 8.A.37)."
     )
     four_digit <- which(!is.na(tm) & tm > 0 & tm <= 2359 & tm %% 1 == 0)
     add(
       "bad_time_format", "note", "TIME", four_digit,
       paste0(
         "TIME values look like four-digit hhmm rather than six-digit hhmmss ",
-        "(handbook 8.A.36). Ambiguous with early-morning hhmmss times."
+        "(handbook 8.A.37). Ambiguous with early-morning hhmmss times."
       )
     )
   }
@@ -193,7 +193,7 @@ validate_narwc <- function(dat) {
         check = "positive_west_longitude", severity = "warning",
         column = "LONGITUDE", n = length(lon), rows = list(integer(0)),
         message = paste0(
-          "All longitudes are positive. Handbook 8.A.21 requires west ",
+          "All longitudes are positive. Handbook 8.A.22 requires west ",
           "longitudes to be negative; the sign convention may have been lost."
         )
       )
@@ -205,7 +205,7 @@ validate_narwc <- function(dat) {
     add(
       "sighting_without_number", "warning", "NUMBER",
       which(!is.na(dat$SPECCODE) & is.na(dat$NUMBER)),
-      "SPECCODE present but NUMBER missing (handbook 8.A.23)."
+      "SPECCODE present but NUMBER missing (handbook 8.A.24)."
     )
   }
 

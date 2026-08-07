@@ -22,7 +22,7 @@ visibility threshold.
 }
 \section{Why this is not a simple comparison}{
 
-Handbook 8.A.37 explains that \code{VISIBLTY} was originally a one-digit code
+Handbook 8.A.38 explains that \code{VISIBLTY} was originally a one-digit code
 recording only whether visibility reached the 2-nautical-mile CETAP standard
 and, if not, the weather responsible. In 2004 the field was redefined to hold
 the actual estimated clear visibility in nautical miles. During the 2021
@@ -55,7 +55,7 @@ visibility_ok(-1, min_nmi = 3)
 
 }
 \references{
-Kenney, R.D. (2021) \emph{The North Atlantic Right Whale Consortium Database: A
-Guide for Users and Contributors, Version 7}, section 8.A.37. NARWC Reference
-Document 2021-01.
+Kenney, R.D. (2023) \emph{The North Atlantic Right Whale Consortium Database: A
+Guide for Users and Contributors, Version 8}, section 8.A.38. NARWC Reference
+Document 2023-01.
 }

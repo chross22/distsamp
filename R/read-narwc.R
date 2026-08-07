@@ -28,9 +28,9 @@
 #'   from a raw data frame.
 #'
 #' @references
-#' Kenney, R.D. (2021) *The North Atlantic Right Whale Consortium Database: A
-#' Guide for Users and Contributors, Version 7*. NARWC Reference Document
-#' 2021-01.
+#' Kenney, R.D. (2023) *The North Atlantic Right Whale Consortium Database: A
+#' Guide for Users and Contributors, Version 8*. NARWC Reference Document
+#' 2023-01.
 #'
 #' @seealso [validate_narwc()] to check the result against the handbook,
 #'   [narwc_schema()] for the recognised columns.

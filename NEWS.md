@@ -1,12 +1,38 @@
 # distsamp 0.1.0
 
+## Handbook version
+
+Cites Version 8 of the NARWC user's guide (Kenney 2023, Reference Document
+2023-01, October 2023). The package was originally written against Version 7;
+the automated citation check found Version 8 on its first run.
+
+No code-book values changed between the two — `LEGTYPE`, `LEGSTAGE`, `IDREL`,
+`TAXCODE`, `STRATUM`, `STRIP`, and the negative `VISIBLTY` codes are identical,
+so no behaviour was affected. Section numbers shift by one from `ANGLEL`
+onward; all cross-references were remapped. New in Version 8:
+
+* `ANGLEL` and `ANGLER`, declination angles to a sighting, which replaced
+  `STRIP` for New England Aquarium surveys from 2022. Carried through as
+  optional columns; not yet converted to perpendicular distance.
+* `WX` is now available from `narwc_codes("WX")`.
+
+## Keeping citations current
+
+* `tools/citations.csv` — a registry of every source the package cites.
+* `tools/check-citations.R` — verifies registry coverage, CrossRef metadata,
+  URL liveness, and whether a newer handbook version has been published.
+* `.github/workflows/check-citations.yaml` — runs it monthly and on pull
+  requests that touch citations; opens an issue on a scheduled failure.
+* `.github/workflows/R-CMD-check.yaml` — `R CMD check` on Linux, macOS, and
+  Windows, on R release and oldrel.
+
 First release. The segmentation core of the research scripts in `original/`,
 rebuilt as an installable package with tests and documentation.
 
 ## Features
 
 * `read_narwc()` and `validate_narwc()` — ingest and check data against the NARWC
-  handbook (Kenney 2021, Version 7). Validation reports findings and never stops.
+  handbook (Kenney 2023, Version 7). Validation reports findings and never stops.
 * `narwc_codes()` and `narwc_schema()` — the handbook code books as data.
 * `flag_effort()`, `visibility_ok()`, `make_leg_id()`, `flag_circling()` —
   on-effort determination with every threshold as an argument.

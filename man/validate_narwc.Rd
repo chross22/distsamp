@@ -36,24 +36,24 @@ Severity \code{error} — segmentation cannot proceed.}
 \item{\code{unknown_code}}{A value of \code{LEGTYPE}, \code{LEGSTAGE}, \code{IDREL}, \code{TAXCODE},
 or \code{STRATUM} that is not in the handbook's code book.}
 \item{\code{legstage_off_census}}{\code{LEGSTAGE} recorded on a record that is not a
-census line. Handbook 8.A.19: for dedicated aerial surveys \code{LEGSTAGE} is
+census line. Handbook 8.A.20: for dedicated aerial surveys \code{LEGSTAGE} is
 recorded only during census tracks (\code{LEGTYPE == 2}), except for code 7.}
 \item{\code{sighting_at_boundary}}{A sighting recorded at a \code{LEGSTAGE} of 1, 3,
-4, or 5. Handbook 8.A.19 and 4.2: sightings should not occur at
+4, or 5. Handbook 8.A.20 and 4.2: sightings should not occur at
 begin-line, break-off, resume, or end-line events.}
 \item{\code{eventno_not_increasing}}{\code{EVENTNO} does not increase through a
 \code{FILEID}. Repeated values are allowed — the handbook (4.2) assigns one
 event several sightings — but decreases indicate mis-sorted records.}
 \item{\code{bad_time_format}}{\code{TIME} is not a 6-digit \code{hhmmss} in 24-hour form
-(handbook 8.A.36). Four-digit \code{hhmm} times are reported separately as a
+(handbook 8.A.37). Four-digit \code{hhmm} times are reported separately as a
 warning since they are still found in older data.}
 \item{\code{coordinates_out_of_range}}{Latitude outside [-90, 90] or longitude
 outside [-180, 180].}
 \item{\code{positive_west_longitude}}{Every longitude is positive. Handbook
-8.A.21 requires west longitudes to be negative; all-positive longitudes
+8.A.22 requires west longitudes to be negative; all-positive longitudes
 in a western North Atlantic dataset mean the sign convention was lost.}
 \item{\code{sighting_without_number}}{\code{SPECCODE} present but \code{NUMBER} missing.
-Handbook 8.A.23 requires \code{NUMBER} for all sightings.}
+Handbook 8.A.24 requires \code{NUMBER} for all sightings.}
 }
 }
 
@@ -64,9 +64,9 @@ issues[, c("check", "severity", "n")]
 
 }
 \references{
-Kenney, R.D. (2021) \emph{The North Atlantic Right Whale Consortium Database: A
-Guide for Users and Contributors, Version 7}. NARWC Reference Document
-2021-01. University of Rhode Island, Graduate School of Oceanography. Every
+Kenney, R.D. (2023) \emph{The North Atlantic Right Whale Consortium Database: A
+Guide for Users and Contributors, Version 8}. NARWC Reference Document
+2023-01. University of Rhode Island, Graduate School of Oceanography. Every
 check above cites the section it derives from.
 
 Kenney, R.D. (2002) \emph{Quality-control Issues for Data Submissions to the North

@@ -15,7 +15,7 @@ gc_distance(
 \arguments{
 \item{lat1, lon1}{Numeric vectors of latitudes and longitudes, in decimal
 degrees, of the first positions. West longitudes are negative (handbook
-8.A.21).}
+8.A.22).}
 
 \item{lat2, lon2}{Numeric vectors of the second positions. Recycled against
 \code{lat1}/\code{lon1} following the usual R rules.}

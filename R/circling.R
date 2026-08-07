@@ -6,10 +6,10 @@
 #' Two signals are used, either of which is sufficient:
 #'
 #' * `LEGTYPE == 4`, the line-transect "other (circling)" code (handbook
-#'   8.A.20); and
+#'   8.A.21); and
 #' * any record between a `LEGSTAGE == 3` (break off line to circle) and the
 #'   following `LEGSTAGE == 4` (resume line) within the same survey line
-#'   occupation (handbook 8.A.19).
+#'   occupation (handbook 8.A.20).
 #'
 #' The second signal matters because a survey may log positions during circling
 #' without changing `LEGTYPE`, and because the break-off and resume records
@@ -22,9 +22,9 @@
 #'   otherwise.
 #'
 #' @references
-#' Kenney, R.D. (2021) *The North Atlantic Right Whale Consortium Database: A
-#' Guide for Users and Contributors, Version 7*, sections 8.A.19 and 8.A.20. NARWC Reference Document
-#' 2021-01.
+#' Kenney, R.D. (2023) *The North Atlantic Right Whale Consortium Database: A
+#' Guide for Users and Contributors, Version 8*, sections 8.A.20 and 8.A.21. NARWC Reference Document
+#' 2023-01.
 #'
 #' @examples
 #' path <- system.file("extdata", "narwc-example.csv", package = "distsamp")
@@ -113,9 +113,9 @@ flag_circling <- function(dat) {
 #'   them cannot change any segment's length.
 #'
 #' @references
-#' Kenney, R.D. (2021) *The North Atlantic Right Whale Consortium Database: A
-#' Guide for Users and Contributors, Version 7*, section 4.2 (event 11). NARWC
-#' Reference Document 2021-01.
+#' Kenney, R.D. (2023) *The North Atlantic Right Whale Consortium Database: A
+#' Guide for Users and Contributors, Version 8*, section 4.2 (event 11). NARWC
+#' Reference Document 2023-01.
 #'
 #' CETAP (1982) *A Characterization of Marine Mammals and Turtles in the Mid- and
 #' North-Atlantic Areas of the U.S. Outer Continental Shelf, Final Report.*

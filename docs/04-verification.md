@@ -35,10 +35,10 @@ R CMD check --as-cran distsamp_0.1.0.tar.gz
 ## Test suite
 
 ```
-[ FAIL 0 | WARN 0 | SKIP 0 | PASS 180 ]
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 189 ]
 ```
 
-180 tests across five files. What they establish:
+189 tests across six files. What they establish:
 
 ### Effort is conserved
 
@@ -114,6 +114,16 @@ monotonic.
 - `segments_wide()` produces zeros, never `NA`, for absent species.
 - `write_segments()` writes exactly the requested tables.
 
+### Citations stay honest
+
+Three offline checks (`test-citations.R`): every DOI cited anywhere in the
+package is in `tools/citations.csv`; the registry is well formed; and the
+handbook version is cited consistently across the code, the README, and the
+checker script.
+
+The network-dependent half runs monthly in CI (`tools/check-citations.R`) — see
+[06-references.md](06-references.md#7-keeping-citations-current).
+
 ## Vignette
 
 `vignettes/segmenting-narwc-data.Rmd` knits end-to-end from the bundled fixture
@@ -134,6 +144,7 @@ Reference values for the bundled example, useful for spotting a regression:
 | Circling records detected | 5 |
 | Validation findings | 0 |
 | Exported functions | 24 |
+| Tests | 189 |
 
 ## Cross-check against `original/`
 

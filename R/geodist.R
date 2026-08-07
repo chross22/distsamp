@@ -37,7 +37,7 @@
 #'
 #' @param lat1,lon1 Numeric vectors of latitudes and longitudes, in decimal
 #'   degrees, of the first positions. West longitudes are negative (handbook
-#'   8.A.21).
+#'   8.A.22).
 #' @param lat2,lon2 Numeric vectors of the second positions. Recycled against
 #'   `lat1`/`lon1` following the usual R rules.
 #' @param method One of `"haversine"` (default), `"becker"`, or `"kenney"`; see

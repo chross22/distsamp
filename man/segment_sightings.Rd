@@ -46,8 +46,8 @@ typically the pilot. Handbook 4.2 is explicit that such a sighting "cannot
 be included in a density estimate", because it did not arise from the
 standard search effort the detection function describes.
 \item \code{LEGSTAGE == 7} — a sighting detected afterwards in a vertical photograph
-(handbook 8.A.19), which likewise is not a visual detection by an observer.
-\item \code{IDREL} of \code{1} (possible) or \code{9} (unknown). Handbook 8.A.15 records
+(handbook 8.A.20), which likewise is not a visual detection by an observer.
+\item \code{IDREL} of \code{1} (possible) or \code{9} (unknown). Handbook 8.A.16 records
 Kenney's own practice of using only definite and probable identifications.
 }
 
@@ -64,9 +64,9 @@ Prefer the weighted value as a detection covariate.
 }
 
 \references{
-Kenney, R.D. (2021) \emph{The North Atlantic Right Whale Consortium Database: A
-Guide for Users and Contributors, Version 7}, sections 4.2, 8.A.15, 8.A.19.
-NARWC Reference Document 2021-01.
+Kenney, R.D. (2023) \emph{The North Atlantic Right Whale Consortium Database: A
+Guide for Users and Contributors, Version 8}, sections 4.2, 8.A.16, 8.A.20.
+NARWC Reference Document 2023-01.
 
 Becker, E.A., Forney, K.A., Ferguson, M.C., Foley, D.G., Smith, R.C., Barlow,
 J. and Redfern, J.V. (2010) Comparing California Current cetacean-habitat

@@ -22,10 +22,10 @@ sighting.
 Two signals are used, either of which is sufficient:
 \itemize{
 \item \code{LEGTYPE == 4}, the line-transect "other (circling)" code (handbook
-8.A.20); and
+8.A.21); and
 \item any record between a \code{LEGSTAGE == 3} (break off line to circle) and the
 following \code{LEGSTAGE == 4} (resume line) within the same survey line
-occupation (handbook 8.A.19).
+occupation (handbook 8.A.20).
 }
 
 The second signal matters because a survey may log positions during circling
@@ -39,7 +39,7 @@ sum(dat$CIRCLE)
 
 }
 \references{
-Kenney, R.D. (2021) \emph{The North Atlantic Right Whale Consortium Database: A
-Guide for Users and Contributors, Version 7}, sections 8.A.19 and 8.A.20. NARWC Reference Document
-2021-01.
+Kenney, R.D. (2023) \emph{The North Atlantic Right Whale Consortium Database: A
+Guide for Users and Contributors, Version 8}, sections 8.A.20 and 8.A.21. NARWC Reference Document
+2023-01.
 }

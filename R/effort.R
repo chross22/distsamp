@@ -5,7 +5,7 @@
 #' visibility threshold.
 #'
 #' @section Why this is not a simple comparison:
-#' Handbook 8.A.37 explains that `VISIBLTY` was originally a one-digit code
+#' Handbook 8.A.38 explains that `VISIBLTY` was originally a one-digit code
 #' recording only whether visibility reached the 2-nautical-mile CETAP standard
 #' and, if not, the weather responsible. In 2004 the field was redefined to hold
 #' the actual estimated clear visibility in nautical miles. During the 2021
@@ -36,9 +36,9 @@
 #' @return A logical vector, `NA` where the record cannot answer the question.
 #'
 #' @references
-#' Kenney, R.D. (2021) *The North Atlantic Right Whale Consortium Database: A
-#' Guide for Users and Contributors, Version 7*, section 8.A.37. NARWC Reference
-#' Document 2021-01.
+#' Kenney, R.D. (2023) *The North Atlantic Right Whale Consortium Database: A
+#' Guide for Users and Contributors, Version 8*, section 8.A.38. NARWC Reference
+#' Document 2023-01.
 #'
 #' @examples
 #' visibility_ok(c(5, 1.5, -1, -2, NA))
@@ -74,7 +74,7 @@ visibility_ok <- function(visibility, min_nmi = 2) {
 #' A record is on effort when all of the following hold:
 #'
 #' * `LEGTYPE` is in `legtype_on_effort` — by default `2`, a line-transect
-#'   survey line (handbook 8.A.20). Transits, cross-legs, and circling do not
+#'   survey line (handbook 8.A.21). Transits, cross-legs, and circling do not
 #'   contribute effort to a density estimate.
 #' * `BEAUFORT` is at most `max_beaufort`.
 #' * `ALT` is below `max_alt_m`, in metres (handbook 8.A.1).
@@ -86,7 +86,7 @@ visibility_ok <- function(visibility, min_nmi = 2) {
 #' The defaults are the CETAP standard. Kenney and Winn (1986, p. 347) state the
 #' criteria applied to that programme's data as "observer(s) formally on watch,
 #' clear visibility of at least 2 miles, and sea states of Beaufort 3 or lower";
-#' surveys were flown at 750 ft (229 m) (p. 346). The handbook (8.A.37) confirms
+#' surveys were flown at 750 ft (229 m) (p. 346). The handbook (8.A.38) confirms
 #' 2 nautical miles as the standard for acceptable survey conditions defined
 #' during CETAP. Every threshold here is an argument, because a different
 #' programme may reasonably choose differently.
@@ -120,9 +120,9 @@ visibility_ok <- function(visibility, min_nmi = 2) {
 #' Cetacean and Turtle Assessment Program, University of Rhode Island. Bureau of
 #' Land Management, Washington, DC.
 #'
-#' Kenney, R.D. (2021) *The North Atlantic Right Whale Consortium Database: A
-#' Guide for Users and Contributors, Version 7*. NARWC Reference Document
-#' 2021-01.
+#' Kenney, R.D. (2023) *The North Atlantic Right Whale Consortium Database: A
+#' Guide for Users and Contributors, Version 8*. NARWC Reference Document
+#' 2023-01.
 #'
 #' @seealso [visibility_ok()], [point_to_point_effort()]
 #'
@@ -204,9 +204,9 @@ flag_effort <- function(dat,
 #' @return `dat` with `LEGNO2` (a character copy of `LEGNO`) and `LEGNO3` added.
 #'
 #' @references
-#' Kenney, R.D. (2021) *The North Atlantic Right Whale Consortium Database: A
-#' Guide for Users and Contributors, Version 7*, section 8.A.18. NARWC Reference
-#' Document 2021-01.
+#' Kenney, R.D. (2023) *The North Atlantic Right Whale Consortium Database: A
+#' Guide for Users and Contributors, Version 8*, section 8.A.19. NARWC Reference
+#' Document 2023-01.
 #'
 #' @examples
 #' path <- system.file("extdata", "narwc-example.csv", package = "distsamp")

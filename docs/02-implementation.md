@@ -29,7 +29,7 @@ attach_circling_sightings  ->  segment_midpoints  ->  segment_sightings
 Does four things and nothing else:
 
 1. **Alias renaming.** The handbook's canonical event position is
-   `LAT_DD`/`LONG_DD` (8.A.17, 8.A.21), but the extracts the database manager
+   `LAT_DD`/`LONG_DD` (8.A.18, 8.A.22), but the extracts the database manager
    distributes — and all of `original/` — use `LATITUDE`/`LONGITUDE`. The
    package standardises internally on `LATITUDE`/`LONGITUDE` and accepts either
    on input, along with `LEGTYPE_BK`, `EVENT`, and a handful of other spellings
@@ -63,13 +63,13 @@ checks, each traceable to a handbook statement:
 | `missing_required` | error | Segmentation is impossible without it |
 | `missing_values` | error | `NA` in a required column |
 | `unknown_code` | warning | Value outside the code book for `LEGTYPE`, `LEGSTAGE`, `IDREL`, `TAXCODE`, `STRATUM` |
-| `legstage_off_census` | note | 8.A.19: `LEGSTAGE` is recorded only during `LEGTYPE == 2`, except code 7 |
-| `sighting_at_boundary` | warning | 8.A.19, 4.2: sightings should not occur at `LEGSTAGE` 1, 3, 4, or 5 |
+| `legstage_off_census` | note | 8.A.20: `LEGSTAGE` is recorded only during `LEGTYPE == 2`, except code 7 |
+| `sighting_at_boundary` | warning | 8.A.20, 4.2: sightings should not occur at `LEGSTAGE` 1, 3, 4, or 5 |
 | `eventno_not_increasing` | warning | Repeats are legal (4.2 assigns one event several sightings); decreases mean mis-sorted records |
-| `bad_time_format` | warning/note | 8.A.36: six-digit `hhmmss` |
+| `bad_time_format` | warning/note | 8.A.37: six-digit `hhmmss` |
 | `coordinates_out_of_range` | error | Latitude and longitude bounds |
-| `positive_west_longitude` | warning | 8.A.21: west longitudes must be negative |
-| `sighting_without_number` | warning | 8.A.23: `NUMBER` required for all sightings |
+| `positive_west_longitude` | warning | 8.A.22: west longitudes must be negative |
+| `sighting_without_number` | warning | 8.A.24: `NUMBER` required for all sightings |
 
 `positive_west_longitude` is worth singling out. It fires only when *every*
 longitude in the file is positive, which in a western North Atlantic dataset can
@@ -97,10 +97,10 @@ because `rle()` does not handle `NA` as a value. `rle_id()` in `R/utils.R` maps
 
 Two signals, either sufficient:
 
-- `LEGTYPE == 4` — the "other (circling)" code (8.A.20); and
+- `LEGTYPE == 4` — the "other (circling)" code (8.A.21); and
 - any record between a `LEGSTAGE == 3` (break off line to circle) and the
   following `LEGSTAGE == 4` (resume line), within the same line occupation
-  (8.A.19).
+  (8.A.20).
 
 The second matters because a survey may log positions during circling without
 changing `LEGTYPE`. The break-off and resume records themselves stay at
@@ -297,8 +297,8 @@ Default exclusions, each with a handbook basis:
   4.2 is explicit that a pilot sighting "cannot be included in a density
   estimate". **The original kept these** (`ds_data_dmr.R:259` excluded only
   `LEGSTAGE != 7`).
-- `LEGSTAGE == 7` — sighting found afterwards in a vertical photograph (8.A.19).
-- `IDREL` of 1 (possible) or 9 (unknown) — 8.A.15 records Kenney's own practice
+- `LEGSTAGE == 7` — sighting found afterwards in a vertical photograph (8.A.20).
+- `IDREL` of 1 (possible) or 9 (unknown) — 8.A.16 records Kenney's own practice
   of using only definite and probable identifications.
 
 All three are arguments.

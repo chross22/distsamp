@@ -26,9 +26,9 @@
 #'
 #' The data format and survey protocol:
 #'
-#' Kenney, R.D. (2021) *The North Atlantic Right Whale Consortium Database: A
-#' Guide for Users and Contributors, Version 7*. NARWC Reference Document
-#' 2021-01. University of Rhode Island, Graduate School of Oceanography,
+#' Kenney, R.D. (2023) *The North Atlantic Right Whale Consortium Database: A
+#' Guide for Users and Contributors, Version 8*. NARWC Reference Document
+#' 2023-01. University of Rhode Island, Graduate School of Oceanography,
 #' Narragansett, RI.
 #'
 #' CETAP (1982) *A Characterization of Marine Mammals and Turtles in the Mid- and

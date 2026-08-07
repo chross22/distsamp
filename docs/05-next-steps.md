@@ -58,12 +58,12 @@ The natural v2. It needs:
 
 - **`STRIP` to right-angle distance.** The intervals come from calibrated
   markings on the observation bubble and wing struts (Kenney and Scott 1981);
-  handbook 8.A.30 defines *two* interval code books — one for CETAP and the WEA surveys, another for NLPSC/MassCEC from
+  handbook 8.A.31 defines *two* interval code books — one for CETAP and the WEA surveys, another for NLPSC/MassCEC from
   October 2011 — and which applies depends on the platform (AT-11 versus
   Skymaster) and the year. Odd codes are the port side, even the starboard. A
   correct conversion needs `PLATFORM` and the survey date, and should return an
   interval rather than a point, so that `Distance` can fit to binned data.
-- **Exact sighting positions.** Where `S_LAT`/`S_LONG` exist (8.A.32, 8.A.33),
+- **Exact sighting positions.** Where `S_LAT`/`S_LONG` exist (8.A.33, 8.A.34),
   perpendicular distance can be computed directly against the trackline, as
   `original/compute_distance.R` did with `geosphere::distHaversine`. That is the
   better estimate where available and a check on `STRIP` where both exist.
@@ -108,7 +108,7 @@ directory.
   `Region.Label` / `Area` / `Sample.Label` / `Effort` / `distance` / `size`, with
   area and region as arguments rather than the hard-coded 5,811 km² of
   `ds_data_dmr.R:248`.
-- **`LEGSTAGE` sequence validation.** The handbook (8.A.19) requires that stages
+- **`LEGSTAGE` sequence validation.** The handbook (8.A.20) requires that stages
   occur in logical order — `1` cannot follow `2`, `2` cannot follow `5` or a
   blank, `5` cannot follow a blank. `validate_narwc()` checks the code book but
   not the sequence. The fixture originally contained exactly this kind of

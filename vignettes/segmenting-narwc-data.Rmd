@@ -23,7 +23,7 @@ what was seen along it. This package takes aerial line-transect survey data in
 the format of the North Atlantic Right Whale Consortium (NARWC) sightings
 database and produces exactly that.
 
-The input contract is the NARWC format described in Kenney (2021), *The North
+The input contract is the NARWC format described in Kenney (2023), *The North
 Atlantic Right Whale Consortium Database: A Guide for Users and Contributors*,
 Version 7. The output is a segment table you can hand to `Distance` or `dsm`.
 
@@ -279,8 +279,8 @@ distance sampling data: recent developments and future directions. *Methods in
 Ecology and Evolution* 4:1001-1010.
 <https://doi.org/10.1111/2041-210X.12105>
 
-Kenney, R.D. (2021) *The North Atlantic Right Whale Consortium Database: A Guide
-for Users and Contributors, Version 7.* NARWC Reference Document 2021-01.
+Kenney, R.D. (2023) *The North Atlantic Right Whale Consortium Database: A Guide
+for Users and Contributors, Version 8.* NARWC Reference Document 2023-01.
 
 Kenney, R.D. and Winn, H.E. (1986) Cetacean high-use habitats of the northeast
 United States continental shelf. *Fishery Bulletin* 84:345-357.

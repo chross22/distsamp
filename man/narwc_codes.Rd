@@ -8,7 +8,8 @@ narwc_codes(variable = NULL)
 }
 \arguments{
 \item{variable}{Name of a coded NARWC variable. One of \code{"LEGTYPE"},
-\code{"LEGSTAGE"}, \code{"IDREL"}, \code{"TAXCODE"}, \code{"STRATUM"}, or \code{"VISIBLTY"}. If
+\code{"LEGSTAGE"}, \code{"IDREL"}, \code{"TAXCODE"}, \code{"STRATUM"}, \code{"VISIBLTY"}, or
+\code{"WX"}. If
 \code{NULL} (the default), the whole code book is returned.}
 }
 \value{
@@ -17,9 +18,9 @@ A named character vector mapping codes to their meanings, or, when
 }
 \description{
 Lookup tables for the coded variables in the North Atlantic Right Whale
-Consortium (NARWC) sightings database, transcribed from Kenney (2021),
+Consortium (NARWC) sightings database, transcribed from Kenney (2023),
 \emph{The North Atlantic Right Whale Consortium Database: A Guide for Users and
-Contributors}, Version 7 (NARWC Reference Document 2021-01), Chapter 8.
+Contributors}, Version 8 (NARWC Reference Document 2023-01), Chapter 8.
 }
 \details{
 These tables are the single source of truth for the package: validation,
@@ -28,8 +29,8 @@ from here rather than hard-coding numeric literals.
 }
 \section{Handbook sections}{
 
-\code{LEGTYPE} 8.A.20, \code{LEGSTAGE} 8.A.19, \code{IDREL} 8.A.15, \code{TAXCODE} 8.A.35,
-\code{STRATUM} 8.A.29, \code{VISIBLTY} 8.A.37.
+\code{LEGTYPE} 8.A.21, \code{LEGSTAGE} 8.A.20, \code{IDREL} 8.A.16, \code{TAXCODE} 8.A.36,
+\code{STRATUM} 8.A.30, \code{VISIBLTY} 8.A.38, \code{WX} 8.A.39.
 }
 
 \examples{
@@ -38,8 +39,8 @@ names(narwc_codes("LEGTYPE"))
 
 }
 \references{
-Kenney, R.D. (2021) \emph{The North Atlantic Right Whale Consortium Database: A
-Guide for Users and Contributors, Version 7}. North Atlantic Right Whale
-Consortium Reference Document 2021-01. University of Rhode Island, Graduate
+Kenney, R.D. (2023) \emph{The North Atlantic Right Whale Consortium Database: A
+Guide for Users and Contributors, Version 8}. North Atlantic Right Whale
+Consortium Reference Document 2023-01. University of Rhode Island, Graduate
 School of Oceanography, Narragansett, Rhode Island.
 }

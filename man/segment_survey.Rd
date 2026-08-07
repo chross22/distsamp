@@ -121,9 +121,9 @@ for distance sampling data: recent developments and future directions.
 \emph{Methods in Ecology and Evolution} 4:1001-1010.
 \doi{10.1111/2041-210X.12105}
 
-Kenney, R.D. (2021) \emph{The North Atlantic Right Whale Consortium Database: A
-Guide for Users and Contributors, Version 7}. NARWC Reference Document
-2021-01. University of Rhode Island, Graduate School of Oceanography.
+Kenney, R.D. (2023) \emph{The North Atlantic Right Whale Consortium Database: A
+Guide for Users and Contributors, Version 8}. NARWC Reference Document
+2023-01. University of Rhode Island, Graduate School of Oceanography.
 }
 \seealso{
 \code{\link[=segments_wide]{segments_wide()}} for a segment table with one count column per

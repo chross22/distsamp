@@ -34,7 +34,7 @@ unique(dat$LEGNO3)
 
 }
 \references{
-Kenney, R.D. (2021) \emph{The North Atlantic Right Whale Consortium Database: A
-Guide for Users and Contributors, Version 7}, section 8.A.18. NARWC Reference
-Document 2021-01.
+Kenney, R.D. (2023) \emph{The North Atlantic Right Whale Consortium Database: A
+Guide for Users and Contributors, Version 8}, section 8.A.19. NARWC Reference
+Document 2023-01.
 }
