@@ -65,11 +65,29 @@ gc_interpolate <- function(lat1, lon1, lat2, lon2, fraction) {
 #' the line entirely. Walking half the segment's effort puts the midpoint on the
 #' track by construction, and weights it by distance rather than by record count.
 #'
+#' The segment mid-point is the location at which habitat covariates are
+#' conventionally sampled in this family of models. Becker et al. (2019) describe
+#' covariates "derived based on the segment's geographical mid-point", with sea
+#' surface temperature and depth standard deviations taken over a 3 x 3-pixel box
+#' around it. That is the intended use of these coordinates.
+#'
 #' @param chopped Point-level segmented data from [cut_segments()], in survey
 #'   order, with `DATE`, `new_trackno`, `seg_id`, `seg_eff`, `LATITUDE`,
 #'   `LONGITUDE`, and `pt2pt.effort`.
 #'
 #' @return A tibble with one row per segment: `seg_id`, `mid_lat`, `mid_lon`.
+#'
+#' @references
+#' Becker, E.A., Forney, K.A., Redfern, J.V., Barlow, J., Jacox, M.G., Roberts,
+#' J.J. and Palacios, D.M. (2019) Predicting cetacean abundance and distribution
+#' in a changing climate. *Diversity and Distributions* 25:626-643.
+#' \doi{10.1111/ddi.12867}
+#'
+#' Becker, E.A., Forney, K.A., Ferguson, M.C., Foley, D.G., Smith, R.C., Barlow,
+#' J. and Redfern, J.V. (2010) Comparing California Current cetacean-habitat
+#' models developed using in situ and remotely sensed sea surface temperature
+#' data. *Marine Ecology Progress Series* 413:163-183.
+#' \doi{10.3354/meps08696}
 #'
 #' @seealso [cut_segments()], [gc_interpolate()]
 #' @export

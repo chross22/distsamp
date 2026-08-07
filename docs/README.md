@@ -7,6 +7,7 @@
 | [03-bug-fixes.md](03-bug-fixes.md) | The 14 defects found in `original/`, each with file and line, consequence, fix, and the test that guards it |
 | [04-verification.md](04-verification.md) | `R CMD check` and test-suite results, what the 180 tests establish, and reference numbers for the fixture |
 | [05-next-steps.md](05-next-steps.md) | What v1 does not do, in the order it is worth doing |
+| [06-references.md](06-references.md) | Every citation, what it is relied on for, what the published methods do *not* cover, and how to cite this in a methods section |
 
 For using the package rather than understanding how it was built, start with the
 vignette:

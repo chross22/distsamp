@@ -38,7 +38,7 @@ work.
 |---|---|
 | Scope of v1 | **Segmentation core only.** Detection-function fitting, Copernicus covariate access, mapping, and GAM/DSM fitting stay out. Those files remain in `original/` and can be promoted later. |
 | Test data | **Synthetic fixtures.** No real NARWC extract was available, so the test fixture is hand-built from the handbook's own worked example. |
-| Fidelity to the original algorithm | **Keep the method, fix the defects.** Segment boundaries are still produced by the Becker logic — segments-per-track, `leftover`/`segtol`, one randomly chosen absorbing segment, coin-flip over/under the target. The bugs get fixed and chopping becomes reproducible from a seed. |
+| Fidelity to the original algorithm | **Keep the method, fix the defects.** Segment boundaries are still produced by the Becker et al. (2010) logic — segments-per-track, `leftover`/`segtol`, one randomly chosen absorbing segment, coin-flip over/under the target. The bugs get fixed and chopping becomes reproducible from a seed. |
 
 A fourth was added mid-build at the user's request: **the great-circle distance
 method must be selectable between Becker and Kenney.** That is implemented, along
@@ -117,6 +117,13 @@ pipeline.
 
 All three are met. Results are recorded in
 [04-verification.md](04-verification.md).
+
+## Citations
+
+The method, the statistical framework it serves, and the data-format
+specification are set out in [06-references.md](06-references.md), along with a
+note on which parts of the algorithm are attributable to the published methods
+and which are properties of Becker's implementation.
 
 ## Deliberately out of scope for v1
 

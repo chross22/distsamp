@@ -60,6 +60,26 @@
 #'     \item{`call`, `settings`}{The call and the parameters used.}
 #'   }
 #'
+#' @references
+#' Becker, E.A., Forney, K.A., Ferguson, M.C., Foley, D.G., Smith, R.C., Barlow,
+#' J. and Redfern, J.V. (2010) Comparing California Current cetacean-habitat
+#' models developed using in situ and remotely sensed sea surface temperature
+#' data. *Marine Ecology Progress Series* 413:163-183.
+#' \doi{10.3354/meps08696}
+#'
+#' Hedley, S.L. and Buckland, S.T. (2004) Spatial models for line transect
+#' sampling. *Journal of Agricultural, Biological, and Environmental Statistics*
+#' 9:181-199. \doi{10.1198/1085711043578}
+#'
+#' Miller, D.L., Burt, M.L., Rexstad, E.A. and Thomas, L. (2013) Spatial models
+#' for distance sampling data: recent developments and future directions.
+#' *Methods in Ecology and Evolution* 4:1001-1010.
+#' \doi{10.1111/2041-210X.12105}
+#'
+#' Kenney, R.D. (2021) *The North Atlantic Right Whale Consortium Database: A
+#' Guide for Users and Contributors, Version 7*. NARWC Reference Document
+#' 2021-01. University of Rhode Island, Graduate School of Oceanography.
+#'
 #' @seealso [segments_wide()] for a segment table with one count column per
 #'   species, which is the shape `dsm` expects.
 #'

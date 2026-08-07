@@ -29,8 +29,14 @@ cutting half is \code{\link[=cut_segments]{cut_segments()}}.
 }
 \section{The method}{
 
-Adapted from Elizabeth Becker's \code{segchopr} code. For a track of length \code{L}
-and a target segment length \code{s}:
+Adapted from Elizabeth Becker's \code{segchopr} code, which implements the
+segmenting approach of Becker et al. (2010): continuous portions of survey
+effort are divided into segments of approximately equal length, sightings are
+assigned to the segment they fall in, and habitat covariates are taken at each
+segment's mid-point. It sits within the segmented line-transect framework of
+Hedley and Buckland (2004) and Miller et al. (2013).
+
+For a track of length \code{L} and a target segment length \code{s}:
 \itemize{
 \item \code{L} shorter than \code{s} gives a single segment of length \code{L}.
 \item Otherwise \code{floor(L / s)} whole segments fit, leaving a remainder
@@ -53,6 +59,19 @@ The random choice makes segmentation non-deterministic. Pass a \code{seed} to fi
 it. The RNG state of the calling session is left unchanged either way.
 }
 
+\section{On the published record}{
+
+Becker et al. (2010) is the citation the literature uses for this approach —
+later papers describe their samples as "divided into approximate 5-km segments
+of continuous survey effort using the approach described by Becker et al.
+(2010)" (Becker et al. 2019). What the published methods state is the target
+length and the use of continuous effort; the specific handling of the leftover
+distance at the end of a track — the tolerance test, and assigning the
+remainder to a randomly chosen segment rather than the last one — is a
+property of the \code{segchopr} implementation and does not appear to be described
+in print. It is documented here instead, and is controlled by \code{seg_tol_frac}.
+}
+
 \examples{
 tracks <- tibble::tibble(
   DATE = as.Date("2024-04-01"), new_trackno = "1",
@@ -60,6 +79,27 @@ tracks <- tibble::tibble(
 )
 plan_segments(tracks, seg_length = 5, seed = 1)
 
+}
+\references{
+Becker, E.A., Forney, K.A., Ferguson, M.C., Foley, D.G., Smith, R.C., Barlow,
+J. and Redfern, J.V. (2010) Comparing California Current cetacean-habitat
+models developed using in situ and remotely sensed sea surface temperature
+data. \emph{Marine Ecology Progress Series} 413:163-183.
+\doi{10.3354/meps08696}
+
+Becker, E.A., Forney, K.A., Redfern, J.V., Barlow, J., Jacox, M.G., Roberts,
+J.J. and Palacios, D.M. (2019) Predicting cetacean abundance and distribution
+in a changing climate. \emph{Diversity and Distributions} 25:626-643.
+\doi{10.1111/ddi.12867}
+
+Hedley, S.L. and Buckland, S.T. (2004) Spatial models for line transect
+sampling. \emph{Journal of Agricultural, Biological, and Environmental Statistics}
+9:181-199. \doi{10.1198/1085711043578}
+
+Miller, D.L., Burt, M.L., Rexstad, E.A. and Thomas, L. (2013) Spatial models
+for distance sampling data: recent developments and future directions.
+\emph{Methods in Ecology and Evolution} 4:1001-1010.
+\doi{10.1111/2041-210X.12105}
 }
 \seealso{
 \code{\link[=cut_segments]{cut_segments()}}, \code{\link[=segment_survey]{segment_survey()}}

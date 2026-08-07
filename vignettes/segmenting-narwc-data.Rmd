@@ -246,14 +246,41 @@ plan <- plan_segments(tracks, seg_length = 5, seed = 1)
 head(plan)
 ```
 
+## Citing this
+
+The segmentation method is Becker et al. (2010). The package is the
+implementation. Cite them separately, and record the `seed` — without it the
+segmentation is not reproducible.
+
+Note that the published methods state the target segment length and that segments
+are cut from continuous effort, but do not describe what happens to the leftover
+distance at the end of a track. The tolerance test and the random choice of an
+absorbing segment come from Becker's `segchopr` code; `?plan_segments` is the
+documentation of record for them.
+
 ## References
+
+Becker, E.A., Forney, K.A., Ferguson, M.C., Foley, D.G., Smith, R.C., Barlow, J.
+and Redfern, J.V. (2010) Comparing California Current cetacean-habitat models
+developed using in situ and remotely sensed sea surface temperature data. *Marine
+Ecology Progress Series* 413:163-183. <https://doi.org/10.3354/meps08696>
+
+Becker, E.A., Forney, K.A., Redfern, J.V., Barlow, J., Jacox, M.G., Roberts, J.J.
+and Palacios, D.M. (2019) Predicting cetacean abundance and distribution in a
+changing climate. *Diversity and Distributions* 25:626-643.
+<https://doi.org/10.1111/ddi.12867>
+
+Hedley, S.L. and Buckland, S.T. (2004) Spatial models for line transect sampling.
+*Journal of Agricultural, Biological, and Environmental Statistics* 9:181-199.
+<https://doi.org/10.1198/1085711043578>
+
+Miller, D.L., Burt, M.L., Rexstad, E.A. and Thomas, L. (2013) Spatial models for
+distance sampling data: recent developments and future directions. *Methods in
+Ecology and Evolution* 4:1001-1010.
+<https://doi.org/10.1111/2041-210X.12105>
 
 Kenney, R.D. (2021) *The North Atlantic Right Whale Consortium Database: A Guide
 for Users and Contributors, Version 7.* NARWC Reference Document 2021-01.
 
 Kenney, R.D. and Winn, H.E. (1986) Cetacean high-use habitats of the northeast
 United States continental shelf. *Fishery Bulletin* 84:345-357.
-
-Miller, D.L., Burt, M.L., Rexstad, E.A. and Thomas, L. (2013) Spatial models for
-distance sampling data: recent developments and future directions. *Methods in
-Ecology and Evolution* 4:1001-1010.

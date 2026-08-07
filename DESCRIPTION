@@ -9,7 +9,10 @@ Description: Turns marine mammal aerial line-transect survey data recorded in th
     Provides NARWC schema validation, on-effort determination, great-circle effort
     accumulation, splitting of survey lines at breaks in effort, and chopping of
     continuous tracklines into segments of a target length following the approach
-    of Becker and colleagues.
+    of Becker et al. (2010) <doi:10.3354/meps08696>, within the segmented
+    line-transect framework of Hedley and Buckland (2004)
+    <doi:10.1198/1085711043578> and Miller et al. (2013)
+    <doi:10.1111/2041-210X.12105>.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

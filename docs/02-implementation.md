@@ -181,6 +181,9 @@ the same rule expressed as three vector operations
 
 **File:** `R/segments.R`
 **Ports:** `compute_num_segs.R`.
+**Method:** Becker et al. (2010), *MEPS* 413:163–183, `doi:10.3354/meps08696`.
+See [06-references.md](06-references.md#the-segmentation-method), including what
+the published methods do and do not cover.
 
 For a track of length `L` and target `s`, with tolerance `t = seg_tol_frac * s`
 (default `0.5 * s`):
@@ -269,6 +272,12 @@ and on a curved or dog-legged track it can fall off the line entirely. The
 along-track midpoint is on the track by construction and is weighted by distance
 rather than by record count. `test-tracks-midpoints.R` builds a segment with its
 records deliberately bunched at one end and asserts the two disagree.
+
+The mid-point is the conventional place to sample habitat covariates in this
+family of models. Becker et al. (2019) describe covariates "derived based on the
+segment's geographical mid-point", with SST and depth standard deviations taken
+over a 3 x 3-pixel box around it — so the accuracy of this coordinate propagates
+directly into the covariates a density surface model is fitted on.
 
 ## Step 12 — `segment_sightings()`
 
