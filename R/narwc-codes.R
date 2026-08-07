@@ -158,7 +158,7 @@ narwc_code_book <- list(
 #' @section Coordinate naming:
 #' The handbook's canonical event-position columns are `LAT_DD` and `LONG_DD`
 #' (8.A.18, 8.A.22). Data extracts distributed by the NARWC database manager,
-#' and the upstream Maine DMR processing, instead use `LATITUDE` and
+#' and some upstream processing pipelines, instead use `LATITUDE` and
 #' `LONGITUDE`. This package standardises internally on `LATITUDE`/`LONGITUDE`
 #' and accepts either spelling on input. `S_LAT`/`S_LONG` (8.A.33, 8.A.34) are
 #' the *exact sighting* position and are kept distinct from the event position.

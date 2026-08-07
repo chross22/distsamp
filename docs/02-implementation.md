@@ -33,7 +33,7 @@ Does four things and nothing else:
    distributes — and all of `original/` — use `LATITUDE`/`LONGITUDE`. The
    package standardises internally on `LATITUDE`/`LONGITUDE` and accepts either
    on input, along with `LEGTYPE_BK`, `EVENT`, and a handful of other spellings
-   seen in the upstream Maine DMR files. An alias never overwrites a column that
+   seen in upstream processed files. An alias never overwrites a column that
    is already correctly named.
 2. **Column selection.** Recognised columns plus anything named in
    `extra_columns`. Passing `extra_columns = NULL` keeps everything, which is

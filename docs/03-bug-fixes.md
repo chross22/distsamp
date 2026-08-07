@@ -5,9 +5,13 @@ The method being ported is Becker et al. (2010), *Marine Ecology Progress Series
 Reference Document 2023-01. Full citations and what each is relied on for are in
 [06-references.md](06-references.md).
 
-Each item names the file and line in `original/`, explains the consequence, and
-points at the regression test that now guards it. All line references are to the
-code as it stands in `original/`, which is left untouched.
+Each item names the file and line in the original research scripts, explains the
+consequence, and points at the regression test that now guards it.
+
+Those scripts are **not distributed** with this package — they contain
+collaborators' working notes and local paths. The `original/…:NN` references are
+provenance rather than links: they record where each defect came from, so the
+rewrite can be audited by anyone holding the original code.
 
 ---
 

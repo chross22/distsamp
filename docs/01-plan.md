@@ -46,8 +46,9 @@ with a finding about the two — see [03-bug-fixes.md](03-bug-fixes.md#the-becke
 
 ## Target layout
 
-`original/` stays untouched as the reference implementation and is excluded from
-the build.
+The original scripts stay untouched as the reference implementation, but are
+kept outside the repository — they hold collaborators' working notes and local
+paths, and are not published.
 
 ```
 DESCRIPTION, NAMESPACE, LICENSE, README.md, NEWS.md, .Rbuildignore

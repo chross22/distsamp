@@ -26,9 +26,9 @@ in [03-bug-fixes.md](03-bug-fixes.md); anything that is not is a finding.
 
 ## 2. A documented profile for the upstream processed format
 
-`original/DataExploration.R` reads `MEDMR_proc_all_formodel_*.csv` and
-`NARWC_proc_all_formodel_*.csv`, which are not raw NARWC. They carry derived
-columns that are not NARWC variables at all:
+The upstream processing pipeline emits a "processed, ready for model" CSV that
+is not raw NARWC. It carries derived columns that are not NARWC variables at
+all:
 
 | Column | Apparently |
 |---|---|
@@ -42,7 +42,7 @@ columns that are not NARWC variables at all:
 v1 treats these as optional pass-through columns; `LEGTYPE_BK` is aliased to
 `LEGTYPE`, and the rest survive if named in `extra_columns`. That works by
 arrangement rather than by design. With one of those files in hand,
-`read_narwc(profile = "medmr")` could map them properly, and the `IS_*` columns
+`read_narwc(profile = ...)` could map them properly, and the `IS_*` columns
 would give a second, independent source of sighting position.
 
 Note the handling in `DataExploration.R:52` and `:71`: those scripts

@@ -22,7 +22,7 @@ reads, together with the alternative spellings accepted on input.
 
 The handbook's canonical event-position columns are \code{LAT_DD} and \code{LONG_DD}
 (8.A.18, 8.A.22). Data extracts distributed by the NARWC database manager,
-and the upstream Maine DMR processing, instead use \code{LATITUDE} and
+and some upstream processing pipelines, instead use \code{LATITUDE} and
 \code{LONGITUDE}. This package standardises internally on \code{LATITUDE}/\code{LONGITUDE}
 and accepts either spelling on input. \code{S_LAT}/\code{S_LONG} (8.A.33, 8.A.34) are
 the \emph{exact sighting} position and are kept distinct from the event position.

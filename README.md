@@ -147,8 +147,9 @@ precision.
 [references](docs/06-references.md) — including how to cite this in a methods
 section.
 
-`original/` holds the research scripts this package was built from. They are kept
-for reference and excluded from the build.
+This package was rewritten from a set of internal research scripts. Those are
+not distributed — they contain collaborators' working notes and local paths.
+`docs/` records what was carried over, what was fixed, and why.
 
 ## Citing distsamp
 

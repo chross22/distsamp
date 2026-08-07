@@ -16,6 +16,13 @@ vignette:
 vignette("segmenting-narwc-data", package = "distsamp")
 ```
 
+> **A note on `original/`.** This package was rewritten from a set of internal
+> research scripts. Those scripts are **not distributed** — they contain
+> collaborators' working notes and local paths, and were never intended for
+> publication. References below of the form `original/ds_data_dmr.R:106` are
+> provenance: they record which defect came from where, so the rewrite can be
+> audited by anyone who has the original code. They are not links.
+
 ## The short version
 
 `original/` could not run end-to-end: it called two functions that were never
