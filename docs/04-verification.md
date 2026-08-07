@@ -155,3 +155,8 @@ rule — that is stated explicitly.
 If you can supply a real NARWC extract together with segment output from a
 previous run, a numerical comparison becomes possible and is worth doing. It is
 the first item in [05-next-steps.md](05-next-steps.md).
+
+
+---
+
+Full citations: [06-references.md](06-references.md).

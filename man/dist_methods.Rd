@@ -17,3 +17,9 @@ one means.
 dist_methods()
 
 }
+\references{
+Kenney, R.D. and Winn, H.E. (1986) Cetacean high-use habitats of the
+northeast United States continental shelf. \emph{Fishery Bulletin} 84(2):345-357.
+
+Sinnott, R.W. (1984) Virtues of the haversine. \emph{Sky and Telescope} 68(2):159.
+}

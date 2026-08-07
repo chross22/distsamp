@@ -145,6 +145,11 @@ narwc_code_book <- list(
 #' and accepts either spelling on input. `S_LAT`/`S_LONG` (8.A.32, 8.A.33) are
 #' the *exact sighting* position and are kept distinct from the event position.
 #'
+#' @references
+#' Kenney, R.D. (2021) *The North Atlantic Right Whale Consortium Database: A
+#' Guide for Users and Contributors, Version 7*, Table 1. NARWC Reference Document
+#' 2021-01.
+#'
 #' @return A named list with elements `required`, `optional`, and `aliases`.
 #'
 #' @examples

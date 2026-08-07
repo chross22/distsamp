@@ -45,6 +45,11 @@ dat <- read_narwc(path)
 head(dat[, c("FILEID", "EVENTNO", "LEGTYPE", "LEGSTAGE", "SPECCODE")])
 
 }
+\references{
+Kenney, R.D. (2021) \emph{The North Atlantic Right Whale Consortium Database: A
+Guide for Users and Contributors, Version 7}. NARWC Reference Document
+2021-01.
+}
 \seealso{
 \code{\link[=validate_narwc]{validate_narwc()}} to check the result against the handbook,
 \code{\link[=narwc_schema]{narwc_schema()}} for the recognised columns.

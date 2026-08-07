@@ -31,3 +31,7 @@ if (requireNamespace("sf", quietly = TRUE)) {
 }
 
 }
+\references{
+Pebesma, E. (2018) Simple features for R: standardized support for spatial
+vector data. \emph{The R Journal} 10(1):439-446. \doi{10.32614/RJ-2018-009}
+}

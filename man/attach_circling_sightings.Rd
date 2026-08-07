@@ -48,6 +48,16 @@ The original processing code instead hard-coded right whales, attaching every
 circling right whale and discarding circling sightings of everything else.
 }
 
+\references{
+Kenney, R.D. (2021) \emph{The North Atlantic Right Whale Consortium Database: A
+Guide for Users and Contributors, Version 7}, section 4.2 (event 11). NARWC
+Reference Document 2021-01.
+
+CETAP (1982) \emph{A Characterization of Marine Mammals and Turtles in the Mid- and
+North-Atlantic Areas of the U.S. Outer Continental Shelf, Final Report.}
+Cetacean and Turtle Assessment Program, University of Rhode Island. Bureau of
+Land Management, Washington, DC.
+}
 \seealso{
 \code{\link[=flag_circling]{flag_circling()}}, \code{\link[=segment_sightings]{segment_sightings()}}
 }

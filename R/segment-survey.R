@@ -247,6 +247,12 @@ print.distsamp_segments <- function(x, ...) {
 #' @return A tibble: the `segments` table with one count column per species.
 #'   Segments with no sightings of a species get `0`, not `NA`.
 #'
+#' @references
+#' Miller, D.L., Burt, M.L., Rexstad, E.A. and Thomas, L. (2013) Spatial models
+#' for distance sampling data: recent developments and future directions.
+#' *Methods in Ecology and Evolution* 4:1001-1010.
+#' \doi{10.1111/2041-210X.12105}
+#'
 #' @examples
 #' path <- system.file("extdata", "narwc-example.csv", package = "distsamp")
 #' segs <- segment_survey(read_narwc(path), seg_length = 5, seed = 1)

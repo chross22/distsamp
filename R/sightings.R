@@ -41,6 +41,17 @@
 #'       `wt_beaufort`, and `n_records`.}
 #'   }
 #'
+#' @references
+#' Kenney, R.D. (2021) *The North Atlantic Right Whale Consortium Database: A
+#' Guide for Users and Contributors, Version 7*, sections 4.2, 8.A.15, 8.A.19.
+#' NARWC Reference Document 2021-01.
+#'
+#' Becker, E.A., Forney, K.A., Ferguson, M.C., Foley, D.G., Smith, R.C., Barlow,
+#' J. and Redfern, J.V. (2010) Comparing California Current cetacean-habitat
+#' models developed using in situ and remotely sensed sea surface temperature
+#' data. *Marine Ecology Progress Series* 413:163-183.
+#' \doi{10.3354/meps08696}
+#'
 #' @seealso [segment_survey()]
 #' @export
 segment_sightings <- function(chopped,

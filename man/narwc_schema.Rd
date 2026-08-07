@@ -32,3 +32,8 @@ the \emph{exact sighting} position and are kept distinct from the event position
 narwc_schema()$required
 
 }
+\references{
+Kenney, R.D. (2021) \emph{The North Atlantic Right Whale Consortium Database: A
+Guide for Users and Contributors, Version 7}, Table 1. NARWC Reference Document
+2021-01.
+}

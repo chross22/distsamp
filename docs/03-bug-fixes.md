@@ -1,5 +1,10 @@
 # Defects found in `original/`, and what was done about them
 
+The method being ported is Becker et al. (2010), *Marine Ecology Progress Series*
+413:163–183, `doi:10.3354/meps08696`; the data format is Kenney (2021), NARWC
+Reference Document 2021-01. Full citations and what each is relied on for are in
+[06-references.md](06-references.md).
+
 Each item names the file and line in `original/`, explains the consequence, and
 points at the regression test that now guards it. All line references are to the
 code as it stands in `original/`, which is left untouched.
@@ -380,3 +385,8 @@ degree, and agrees with the other two to well under a millimetre at all survey
 scales — asserted over 200 random short displacements in `test-geodist.R`. It is
 the default for that reason; `"becker"` and `"kenney"` remain available and
 produce results indistinguishable at any scale the data can support.
+
+
+---
+
+Full citations: [06-references.md](06-references.md).

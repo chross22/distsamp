@@ -35,6 +35,11 @@
 #'
 #' @return A logical vector, `NA` where the record cannot answer the question.
 #'
+#' @references
+#' Kenney, R.D. (2021) *The North Atlantic Right Whale Consortium Database: A
+#' Guide for Users and Contributors, Version 7*, section 8.A.37. NARWC Reference
+#' Document 2021-01.
+#'
 #' @examples
 #' visibility_ok(c(5, 1.5, -1, -2, NA))
 #'
@@ -78,6 +83,14 @@ visibility_ok <- function(visibility, min_nmi = 2) {
 #' A criterion whose column is absent from the data is skipped, with a message.
 #' A criterion whose value is `NA` fails, unless `na_action = "pass"`.
 #'
+#' The defaults are the CETAP standard. Kenney and Winn (1986, p. 347) state the
+#' criteria applied to that programme's data as "observer(s) formally on watch,
+#' clear visibility of at least 2 miles, and sea states of Beaufort 3 or lower";
+#' surveys were flown at 750 ft (229 m) (p. 346). The handbook (8.A.37) confirms
+#' 2 nautical miles as the standard for acceptable survey conditions defined
+#' during CETAP. Every threshold here is an argument, because a different
+#' programme may reasonably choose differently.
+#'
 #' Records are *not* removed. Off-effort records are retained because the
 #' distance between consecutive on-effort positions still needs them for
 #' correct effort accounting, and because sightings made while circling are
@@ -97,6 +110,19 @@ visibility_ok <- function(visibility, min_nmi = 2) {
 #'
 #' @return `dat` with an integer `OnOff.Effort` column added: `1` on effort,
 #'   `0` off effort.
+#'
+#' @references
+#' Kenney, R.D. and Winn, H.E. (1986) Cetacean high-use habitats of the
+#' northeast United States continental shelf. *Fishery Bulletin* 84(2):345-357.
+#'
+#' CETAP (1982) *A Characterization of Marine Mammals and Turtles in the Mid- and
+#' North-Atlantic Areas of the U.S. Outer Continental Shelf, Final Report.*
+#' Cetacean and Turtle Assessment Program, University of Rhode Island. Bureau of
+#' Land Management, Washington, DC.
+#'
+#' Kenney, R.D. (2021) *The North Atlantic Right Whale Consortium Database: A
+#' Guide for Users and Contributors, Version 7*. NARWC Reference Document
+#' 2021-01.
 #'
 #' @seealso [visibility_ok()], [point_to_point_effort()]
 #'
@@ -176,6 +202,11 @@ flag_effort <- function(dat,
 #'   Run-length identification is meaningless on unsorted records.
 #'
 #' @return `dat` with `LEGNO2` (a character copy of `LEGNO`) and `LEGNO3` added.
+#'
+#' @references
+#' Kenney, R.D. (2021) *The North Atlantic Right Whale Consortium Database: A
+#' Guide for Users and Contributors, Version 7*, section 8.A.18. NARWC Reference
+#' Document 2021-01.
 #'
 #' @examples
 #' path <- system.file("extdata", "narwc-example.csv", package = "distsamp")

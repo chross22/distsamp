@@ -56,6 +56,13 @@ dat <- split_tracks(flag_effort(make_leg_id(read_narwc(path))))
 table(dat$DATE, dat$new_trackno)
 
 }
+\references{
+Becker, E.A., Forney, K.A., Ferguson, M.C., Foley, D.G., Smith, R.C., Barlow,
+J. and Redfern, J.V. (2010) Comparing California Current cetacean-habitat
+models developed using in situ and remotely sensed sea surface temperature
+data. \emph{Marine Ecology Progress Series} 413:163-183.
+\doi{10.3354/meps08696}
+}
 \seealso{
 \code{\link[=make_leg_id]{make_leg_id()}}, \code{\link[=flag_effort]{flag_effort()}}, \code{\link[=segment_survey]{segment_survey()}}
 }

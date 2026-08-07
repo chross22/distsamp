@@ -21,6 +21,11 @@
 #' @return `dat` with an integer `CIRCLE` column: `1` while circling, `0`
 #'   otherwise.
 #'
+#' @references
+#' Kenney, R.D. (2021) *The North Atlantic Right Whale Consortium Database: A
+#' Guide for Users and Contributors, Version 7*, sections 8.A.19 and 8.A.20. NARWC Reference Document
+#' 2021-01.
+#'
 #' @examples
 #' path <- system.file("extdata", "narwc-example.csv", package = "distsamp")
 #' dat <- flag_circling(make_leg_id(read_narwc(path)))
@@ -106,6 +111,16 @@ flag_circling <- function(dat) {
 #'   `seg_id`, `seg_no`, and `seg_eff` of the segment they were attached to and
 #'   `case = "circling"`. Their `pt2pt.effort` is set to `0` so that attaching
 #'   them cannot change any segment's length.
+#'
+#' @references
+#' Kenney, R.D. (2021) *The North Atlantic Right Whale Consortium Database: A
+#' Guide for Users and Contributors, Version 7*, section 4.2 (event 11). NARWC
+#' Reference Document 2021-01.
+#'
+#' CETAP (1982) *A Characterization of Marine Mammals and Turtles in the Mid- and
+#' North-Atlantic Areas of the U.S. Outer Continental Shelf, Final Report.*
+#' Cetacean and Turtle Assessment Program, University of Rhode Island. Bureau of
+#' Land Management, Washington, DC.
 #'
 #' @seealso [flag_circling()], [segment_sightings()]
 #' @export

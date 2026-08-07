@@ -193,6 +193,13 @@ plan_one_track <- function(total, seg_length, seg_tol) {
 #'     records.}
 #' }
 #'
+#' @references
+#' Becker, E.A., Forney, K.A., Ferguson, M.C., Foley, D.G., Smith, R.C., Barlow,
+#' J. and Redfern, J.V. (2010) Comparing California Current cetacean-habitat
+#' models developed using in situ and remotely sensed sea surface temperature
+#' data. *Marine Ecology Progress Series* 413:163-183.
+#' \doi{10.3354/meps08696}
+#'
 #' @seealso [plan_segments()], [segment_survey()]
 #' @export
 cut_segments <- function(plan, dat, min_segment_km = 1, seed = NULL) {

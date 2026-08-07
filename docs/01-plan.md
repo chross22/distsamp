@@ -136,3 +136,8 @@ and which are properties of Becker's implementation.
 - GAM/DSM fitting.
 
 See [05-next-steps.md](05-next-steps.md).
+
+
+---
+
+Full citations: [06-references.md](06-references.md).

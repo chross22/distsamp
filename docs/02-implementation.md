@@ -115,8 +115,13 @@ still on the line at those instants.
 A record is on effort when `LEGTYPE` is in `legtype_on_effort` (default `2`),
 `BEAUFORT <= max_beaufort` (default 3), `ALT < max_alt_m` (default 366 m =
 1,200 ft), and visibility clears `min_visibility_nmi` (default 2 nmi, the CETAP
-standard). Every threshold is an argument; the original hard-coded all four. A
-criterion whose column is absent is skipped with a message rather than silently.
+standard). Those defaults are the CETAP criteria as stated by Kenney and Winn
+(1986, p. 347) — "observer(s) formally on watch, clear visibility of at least 2
+miles, and sea states of Beaufort 3 or lower" — with the altitude ceiling set
+above the 750 ft (229 m) at which CETAP surveys were flown (p. 346).
+
+Every threshold is an argument; the original hard-coded all four. A criterion
+whose column is absent is skipped with a message rather than silently.
 
 Records are **not** removed. Off-effort records are needed for correct distance
 accounting and for attaching circling sightings back to their segments. The
@@ -361,3 +366,8 @@ Geometry is deliberately simple: every line runs due north along a constant
 meridian in 0.01-degree steps, so one step is exactly 1.1112 km and every
 expected distance can be checked by hand. Total on-effort distance is 92.2296 km
 across seven tracks.
+
+
+---
+
+Full citations: [06-references.md](06-references.md).

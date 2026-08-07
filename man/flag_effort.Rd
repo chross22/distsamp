@@ -55,6 +55,14 @@ contribute effort to a density estimate.
 A criterion whose column is absent from the data is skipped, with a message.
 A criterion whose value is \code{NA} fails, unless \code{na_action = "pass"}.
 
+The defaults are the CETAP standard. Kenney and Winn (1986, p. 347) state the
+criteria applied to that programme's data as "observer(s) formally on watch,
+clear visibility of at least 2 miles, and sea states of Beaufort 3 or lower";
+surveys were flown at 750 ft (229 m) (p. 346). The handbook (8.A.37) confirms
+2 nautical miles as the standard for acceptable survey conditions defined
+during CETAP. Every threshold here is an argument, because a different
+programme may reasonably choose differently.
+
 Records are \emph{not} removed. Off-effort records are retained because the
 distance between consecutive on-effort positions still needs them for
 correct effort accounting, and because sightings made while circling are
@@ -69,6 +77,19 @@ table(dat$OnOff.Effort)
 # A stricter sea-state cutoff
 table(flag_effort(read_narwc(path), max_beaufort = 2)$OnOff.Effort)
 
+}
+\references{
+Kenney, R.D. and Winn, H.E. (1986) Cetacean high-use habitats of the
+northeast United States continental shelf. \emph{Fishery Bulletin} 84(2):345-357.
+
+CETAP (1982) \emph{A Characterization of Marine Mammals and Turtles in the Mid- and
+North-Atlantic Areas of the U.S. Outer Continental Shelf, Final Report.}
+Cetacean and Turtle Assessment Program, University of Rhode Island. Bureau of
+Land Management, Washington, DC.
+
+Kenney, R.D. (2021) \emph{The North Atlantic Right Whale Consortium Database: A
+Guide for Users and Contributors, Version 7}. NARWC Reference Document
+2021-01.
 }
 \seealso{
 \code{\link[=visibility_ok]{visibility_ok()}}, \code{\link[=point_to_point_effort]{point_to_point_effort()}}

@@ -1,11 +1,15 @@
 # References
 
-Every citation the package relies on, and what it is relied on *for*. All DOIs
-verified against CrossRef.
+Every source the package relies on, and what it is relied on *for*. All DOIs and
+bibliographic details verified against CrossRef or against the source document
+itself; the grey literature is transcribed from the NARWC handbook's own
+reference list (Kenney 2021, chapter 10).
+
+The consolidated list is at the [bottom of the README](../README.md#references).
 
 ---
 
-## The segmentation method
+## 1. The segmentation method
 
 > **Becker, E.A., Forney, K.A., Ferguson, M.C., Foley, D.G., Smith, R.C.,
 > Barlow, J. and Redfern, J.V. (2010)** Comparing California Current
@@ -13,13 +17,13 @@ verified against CrossRef.
 > temperature data. *Marine Ecology Progress Series* **413**: 163–183.
 > <https://doi.org/10.3354/meps08696>
 
-This is the citation for the segment-chopping approach that `plan_segments()` and
-`cut_segments()` implement, and the paper behind Becker's `segchopr` code that
+The citation for the segment-chopping approach that `plan_segments()` and
+`cut_segments()` implement, and the paper behind the `segchopr` code that
 `original/compute_num_segs.R` was adapted from.
 
 It is what the literature points at. Later papers in the same programme describe
 their samples by reference to it rather than restating the method — Becker et al.
-(2019), for instance:
+(2019):
 
 > "Continuous portions of survey effort were divided into approximate 5-km
 > segments to create samples for modelling using the approach described by Becker
@@ -50,39 +54,15 @@ tolerance parameter, and the over/under cut rule, the description in
 a methods section — those details are reproducible from here but are not
 attributable to the 2010 paper.
 
----
-
-## Supporting method papers
-
-> **Hedley, S.L. and Buckland, S.T. (2004)** Spatial models for line transect
-> sampling. *Journal of Agricultural, Biological, and Environmental Statistics*
-> **9**: 181–199. <https://doi.org/10.1198/1085711043578>
-
-The statistical framework segmenting exists to serve: modelling counts per
-segment against spatial covariates, with effort as an offset.
-
-> **Miller, D.L., Burt, M.L., Rexstad, E.A. and Thomas, L. (2013)** Spatial
-> models for distance sampling data: recent developments and future directions.
-> *Methods in Ecology and Evolution* **4**: 1001–1010.
-> <https://doi.org/10.1111/2041-210X.12105>
-
-The density surface modelling formulation and the `dsm` package, which the output
-of `segment_survey()` is shaped for.
-
-> **Buckland, S.T., Anderson, D.R., Burnham, K.P., Laake, J.L., Borchers, D.L.
-> and Thomas, L. (2001)** *Introduction to Distance Sampling: Estimating
-> Abundance of Biological Populations.* Oxford University Press.
-
-The standard reference for line-transect distance sampling, and the one the NARWC
-handbook itself names (section 3.1).
+### Restatements of the method, cited for specific details
 
 > **Becker, E.A., Forney, K.A., Redfern, J.V., Barlow, J., Jacox, M.G., Roberts,
 > J.J. and Palacios, D.M. (2019)** Predicting cetacean abundance and distribution
 > in a changing climate. *Diversity and Distributions* **25**: 626–643.
 > <https://doi.org/10.1111/ddi.12867>
 
-Cited for its restatement of the segmenting procedure, quoted above, and for
-covariate sampling at the segment mid-point.
+Quoted above. Also the source for covariates being sampled at the segment
+mid-point over a 3 × 3-pixel box — cited in `?segment_midpoints`.
 
 > **Becker, E.A., Forney, K.A., Thayre, B.J., Debich, A.J., Campbell, G.S.,
 > Whitaker, K., Douglas, A.B., Gilles, A., Hoopes, R. and Hildebrand, J.A.
@@ -90,13 +70,105 @@ covariate sampling at the segment mid-point.
 > California illustrate pronounced seasonal differences. *Frontiers in Marine
 > Science* **4**: 121. <https://doi.org/10.3389/fmars.2017.00121>
 
-Another restatement, and the source of the note that segment length is chosen so
-that habitat is expected to vary little within a segment — which is the practical
-guidance for choosing `seg_length`.
+Source of the practical guidance for choosing `seg_length`: segment size is
+selected for the oceanography and bathymetry of the study area, so that habitat
+is expected to vary little within a segment.
 
 ---
 
-## The data format
+## 2. The statistical framework
+
+> **Hedley, S.L. and Buckland, S.T. (2004)** Spatial models for line transect
+> sampling. *Journal of Agricultural, Biological, and Environmental Statistics*
+> **9**: 181–199. <https://doi.org/10.1198/1085711043578>
+
+The framework segmenting exists to serve: modelling counts per segment against
+spatial covariates, with effort as an offset.
+
+> **Miller, D.L., Burt, M.L., Rexstad, E.A. and Thomas, L. (2013)** Spatial
+> models for distance sampling data: recent developments and future directions.
+> *Methods in Ecology and Evolution* **4**: 1001–1010.
+> <https://doi.org/10.1111/2041-210X.12105>
+
+The density surface modelling formulation and the `dsm` package, which
+`segments_wide()` is shaped for.
+
+> **Buckland, S.T., Anderson, D.R., Burnham, K.P., Laake, J.L., Borchers, D.L.
+> and Thomas, L. (2001)** *Introduction to Distance Sampling: Estimating
+> Abundance of Biological Populations.* Oxford University Press, New York, NY.
+
+The standard reference for line-transect distance sampling; the one the NARWC
+handbook names in section 3.1 as the place to begin.
+
+> **Kenney, R.D. and Shoop, C.R. (2012)** Aerial surveys for marine turtles. Pp.
+> 264–271 *in* R.W. McDiarmid, M.S. Foster, C. Guyer, J.W. Gibbons and N.
+> Chernoff, eds. *Reptile Biodiversity: Standard Methods for Inventory and
+> Monitoring.* University of California Press, Berkeley, CA.
+
+Named by the handbook (3.1) as an accessible summary of aerial line-transect
+methodology.
+
+---
+
+## 3. Distance calculation
+
+> **Kenney, R.D. and Winn, H.E. (1986)** Cetacean high-use habitats of the
+> northeast United States continental shelf. *Fishery Bulletin* **84**(2):
+> 345–357.
+
+**The verified primary source for the `"kenney"` method.** The formula is given
+on p. 347:
+
+> "For any pair of successive positions, the length of track line between the
+> points (D, in km) can be calculated by:
+>
+>     D = 111.12 arccos [sin (X₁) sin (X₂) + cos (X₁) cos (X₂) cos (Y₂ − Y₁)],
+>
+> where X₁ and X₂ are the latitudes of the two positions, and Y₁ and Y₂ are the
+> corresponding longitudes. This calculates great circle distance."
+
+That is exactly `dist.rdk` in `original/ds_data_dmr.R:62-66` — except that the
+original passes decimal degrees straight into `sin()` and `cos()` without
+converting to radians, so it never computed this. `gc_distance(method = "kenney")`
+computes what the paper published.
+
+Note the disambiguation: there are **two** Kenney & Winn 1986 works, and the
+handbook cites both. This is the *Fishery Bulletin* paper. The other —
+*Marine Mammal Data Transfer and Documentation*, NMFS final report, contract no.
+40-EANF-501629 — concerns the CETAP database transfer and is not the source of
+the distance formula.
+
+The same page also justifies using great-circle distance for a platform that
+actually flies rhumb lines:
+
+> "Flight or cruise tracks would actually be rhumb lines rather than great
+> circles, but the algorithm required to calculate rhumb line distance is much
+> more complex. Furthermore, for two points around 10 km apart, typical of track
+> line segments in the data, great circle and rhumb line distance differ by <1 m,
+> an error of <0.01%."
+
+> **Sinnott, R.W. (1984)** Virtues of the haversine. *Sky and Telescope*
+> **68**(2): 159.
+
+The haversine formulation, and the standard reference for why it is preferred
+over the law of cosines at short range. `"haversine"` is the package default.
+
+Becker's `fn.grcirclkm` — the `"becker"` method — has no separate published
+description that I could find; it appears in the `segchopr` code, reproduced at
+`original/ds_data_dmr.R:70-98`. As shown in
+[03-bug-fixes.md](03-bug-fixes.md#the-becker-and-kenney-methods-are-the-same-formula),
+it is algebraically identical to Kenney and Winn's.
+
+> **Shoemake, K. (1985)** Animating rotation with quaternion curves. *ACM
+> SIGGRAPH Computer Graphics* **19**(3): 245–254.
+> <https://doi.org/10.1145/325165.325242>
+
+Spherical linear interpolation, used by `gc_interpolate()` to place a segment
+midpoint between two bracketing survey positions.
+
+---
+
+## 4. The data format and survey protocol
 
 > **Kenney, R.D. (2021)** *The North Atlantic Right Whale Consortium Database: A
 > Guide for Users and Contributors, Version 7.* North Atlantic Right Whale
@@ -104,47 +176,81 @@ guidance for choosing `seg_length`.
 > School of Oceanography, Narragansett, Rhode Island.
 > <https://www.narwc.org/sightings-database.html>
 
-The input-format specification. Sections used:
+The input-format specification. Sections used, and where:
 
-| Section | Used for |
-|---|---|
-| 3.1 | Line-transect vs POP vs opportunistic data types |
-| 4.2, Figure 2 | The worked example the test fixture is built from; the rule that pilot sightings cannot enter a density estimate; the CETAP rule for circling sightings |
-| Table 1 | Master variable list and types |
-| 8.A.15 | `IDREL` |
-| 8.A.19 | `LEGSTAGE` |
-| 8.A.20 | `LEGTYPE` |
-| 8.A.29 | `STRATUM` |
-| 8.A.30 | `STRIP` |
-| 8.A.35 | `TAXCODE` |
-| 8.A.36 | `TIME` |
-| 8.A.37 | `VISIBLTY`, including the two encodings |
+| Section | Used for | Where |
+|---|---|---|
+| 3.1 | Line-transect vs POP vs opportunistic data types | `?narwc_schema` |
+| 4.2, Figure 2 | The worked example the test fixture is built from; pilot sightings cannot enter a density estimate; the CETAP rule for circling sightings | `data-raw/make-fixture.R`, `?segment_sightings`, `?attach_circling_sightings` |
+| Table 1 | Master variable list and types | `?narwc_schema` |
+| 8.A.15 | `IDREL` | `?narwc_codes`, `?segment_sightings` |
+| 8.A.17, 8.A.21 | `LAT_DD`, `LONG_DD`, and the sign convention | `?read_narwc`, `?validate_narwc` |
+| 8.A.19 | `LEGSTAGE` | `?narwc_codes`, `?flag_circling`, `?segment_sightings` |
+| 8.A.20 | `LEGTYPE` | `?narwc_codes`, `?flag_effort`, `?flag_circling` |
+| 8.A.23 | `NUMBER` required for sightings | `?validate_narwc` |
+| 8.A.29 | `STRATUM` | `?narwc_codes` |
+| 8.A.30 | `STRIP` | carried through, not interpreted in v1 |
+| 8.A.35 | `TAXCODE` | `?narwc_codes` |
+| 8.A.36 | `TIME` | `?validate_narwc` |
+| 8.A.37 | `VISIBLTY`, including the two encodings | `?visibility_ok` |
+
+> **CETAP (1982)** *A Characterization of Marine Mammals and Turtles in the Mid-
+> and North-Atlantic Areas of the U.S. Outer Continental Shelf, Final Report.*
+> Cetacean and Turtle Assessment Program, University of Rhode Island. Bureau of
+> Land Management, Washington, DC.
+
+The programme whose protocol the effort defaults come from, and the origin of the
+data structures the NARWC database inherited.
+
+The on-effort criteria in `flag_effort()` are stated by Kenney and Winn (1986,
+p. 347) as those applied to the CETAP data: "observer(s) formally on watch, clear
+visibility of at least 2 miles, and sea states of Beaufort 3 or lower". Surveys
+were flown at 750 ft — 229 m (p. 346) — which is why the default altitude ceiling
+of 366 m (1,200 ft) sits comfortably above normal survey altitude.
+
+> **Kenney, R.D. and Scott, G.P. (1981)** Calibration of the Beechcraft AT-11
+> forward observation bubble for population estimation purposes. Pp. III.1–III.11
+> *in* CETAP, *A Characterization of Marine Mammals and Turtles in the Mid- and
+> North-Atlantic Areas of the U.S. Outer Continental Shelf, Annual Report for
+> 1979.* Bureau of Land Management, Washington, DC.
+
+The calibrated strip markings behind the `STRIP` right-angle distance intervals
+(handbook 8.A.30). Relevant to the detection-function work in
+[05-next-steps.md](05-next-steps.md), not to v1.
+
+> **Kenney, R.D. (2002)** *Quality-control Issues for Data Submissions to the
+> North Atlantic Right Whale Consortium Database.* NARWC Reference Document
+> 2002-02. University of Rhode Island, Graduate School of Oceanography.
+
+Background for `validate_narwc()`.
 
 ---
 
-## Distance calculation
+## 5. Software
 
-> **Kenney, R.D. and Winn, H.E. (1986)** Cetacean high-use habitats of the
-> northeast United States continental shelf. *Fishery Bulletin* **84**: 345–357.
+> **R Core Team (2026)** *R: A Language and Environment for Statistical
+> Computing.* R Foundation for Statistical Computing, Vienna, Austria.
+> <https://www.R-project.org/>
 
-The `"kenney"` method in `gc_distance()`: the spherical law of cosines scaled by
-111.12 km per degree.
+> **Pebesma, E. (2018)** Simple features for R: standardized support for spatial
+> vector data. *The R Journal* **10**(1): 439–446.
+> <https://doi.org/10.32614/RJ-2018-009>
 
-Becker's `fn.grcirclkm` — the `"becker"` method — has no separate published
-description that I could find; it appears in the `segchopr` code, reproduced in
-`original/ds_data_dmr.R:70-98`. As documented in
-[03-bug-fixes.md](03-bug-fixes.md#the-becker-and-kenney-methods-are-the-same-formula),
-it is the same formula as Kenney and Winn's.
+Used by `segments_as_sf()` and `crop_to_bbox()`. In `Suggests`.
 
-> **Kenney, R.D. and Scott, G.P. (1981)** Cited in handbook 8.A.30 for the
-> calibrated strip markings used to classify right-angle sighting distances on the
-> AT-11 and Skymaster.
+> **Miller, D.L., Rexstad, E., Thomas, L., Marshall, L. and Laake, J.L. (2019)**
+> Distance sampling in R. *Journal of Statistical Software* **89**(1): 1–28.
+> <https://doi.org/10.18637/jss.v089.i01>
 
-Relevant to `STRIP`, which v1 carries through but does not interpret.
+The `Distance` package, a downstream consumer of this package's output. Not a
+dependency of v1.
+
+For the remaining dependencies — `dplyr`, `tidyr`, `rlang`, `tibble`, `withr`,
+`testthat` — use `citation("dplyr")` and so on.
 
 ---
 
-## How to cite the package
+## 6. How to cite the package
 
 ```
 Ross, C. (2026) distsamp: Segment Aerial Line-Transect Survey Data for Distance
@@ -156,11 +262,14 @@ In a methods section, cite the method and the software separately — for exampl
 > Continuous portions of on-effort survey trackline were divided into segments of
 > approximately 5 km following Becker et al. (2010), using the `distsamp` R
 > package (Ross 2026). Effort was accumulated as great-circle distance between
-> consecutive on-effort positions; segments were cut at record boundaries, with
-> the remainder of each trackline assigned to a randomly selected segment when it
-> fell below half the target length. Habitat covariates were sampled at the
-> along-track mid-point of each segment. On-effort criteria followed the CETAP
-> standard (Kenney 2021): survey line, Beaufort sea state at most 3, altitude
-> below 366 m, and visibility of at least 2 nautical miles.
+> consecutive on-effort positions (Kenney and Winn 1986). Segments were cut at
+> record boundaries, with the remainder of each trackline assigned to a randomly
+> selected segment when it fell below half the target length; habitat covariates
+> were sampled at the along-track mid-point of each segment. On-effort criteria
+> followed the CETAP standard (CETAP 1982; Kenney 2021): survey line, Beaufort
+> sea state of 3 or lower, altitude below 366 m, and clear visibility of at least
+> 2 nautical miles. Sightings by observers other than the dedicated on-duty
+> observers, sightings detected in vertical photographs, and identifications
+> below "probable" reliability were excluded (Kenney 2021).
 
 Record the `seed` you used — without it the segmentation is not reproducible.

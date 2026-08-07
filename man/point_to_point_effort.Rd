@@ -51,6 +51,13 @@ dat <- point_to_point_effort(dat)
 sum(dat$pt2pt.effort)
 
 }
+\references{
+Kenney, R.D. and Winn, H.E. (1986) Cetacean high-use habitats of the
+northeast United States continental shelf. \emph{Fishery Bulletin} 84(2):345-357.
+Effort is accumulated here as they describe it: "for any pair of successive
+positions, the length of track line between the points" summed over the
+qualifying records.
+}
 \seealso{
 \code{\link[=gc_distance]{gc_distance()}}, \code{\link[=make_leg_id]{make_leg_id()}}
 }

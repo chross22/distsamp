@@ -37,8 +37,10 @@ Vectorised great-circle distance in kilometres on a spherical Earth.
 Becker's \code{segchopr} code. Spherical law of cosines: convert to radians,
 take the arc cosine, convert the resulting angle back to degrees, then
 scale by 60 nautical miles per degree and 1.852 km per nautical mile.}
-\item{\code{"kenney"} (alias \code{"rdk"})}{Kenney and Winn (1986). The same arc
-cosine, scaled by 111.12 km per degree.}
+\item{\code{"kenney"} (alias \code{"rdk"})}{Kenney and Winn (1986), p. 347, who give
+the formula as
+\verb{D = 111.12 arccos[sin(X1) sin(X2) + cos(X1) cos(X2) cos(Y2 - Y1)]}
+for latitudes \code{X} and longitudes \code{Y}, with the arc cosine in degrees.}
 \item{\code{"haversine"}}{The haversine formula, on the same sphere. Default.}
 }
 }
@@ -66,6 +68,16 @@ default for that reason.
 }
 }
 
+\section{Great circles versus rhumb lines}{
+
+A survey aircraft flies a rhumb line, not a great circle, so these distances
+are formally the wrong ones. Kenney and Winn (1986, p. 347) addressed this
+directly and dismissed it: "for two points around 10 km apart, typical of
+track line segments in the data, great circle and rhumb line distance differ
+by <1 m, an error of <0.01\%." Consecutive positions in modern computer-logged
+data are far closer together than 10 km, so the discrepancy is smaller still.
+}
+
 \examples{
 # Roughly one degree of latitude, in km
 gc_distance(43, -69, 44, -69)
@@ -81,5 +93,8 @@ gc_distance(43, -69, 43.01, -69, method = "becker")
 }
 \references{
 Kenney, R.D. and Winn, H.E. (1986) Cetacean high-use habitats of the
-northeast United States continental shelf. \emph{Fishery Bulletin} 84:345-357.
+northeast United States continental shelf. \emph{Fishery Bulletin} 84(2):345-357.
+(The distance formula is on p. 347.)
+
+Sinnott, R.W. (1984) Virtues of the haversine. \emph{Sky and Telescope} 68(2):159.
 }

@@ -9,6 +9,11 @@
 #'
 #' @return A tibble with columns `lat` and `lon`, in decimal degrees.
 #'
+#' @references
+#' Shoemake, K. (1985) Animating rotation with quaternion curves.
+#' *ACM SIGGRAPH Computer Graphics* 19(3):245-254, for spherical linear
+#' interpolation. \doi{10.1145/325165.325242}
+#'
 #' @examples
 #' # Halfway along a degree of latitude
 #' gc_interpolate(43, -69, 44, -69, 0.5)

@@ -63,6 +63,17 @@ a sea state recorded over 3 km counts for more than one recorded over 200 m.
 Prefer the weighted value as a detection covariate.
 }
 
+\references{
+Kenney, R.D. (2021) \emph{The North Atlantic Right Whale Consortium Database: A
+Guide for Users and Contributors, Version 7}, sections 4.2, 8.A.15, 8.A.19.
+NARWC Reference Document 2021-01.
+
+Becker, E.A., Forney, K.A., Ferguson, M.C., Foley, D.G., Smith, R.C., Barlow,
+J. and Redfern, J.V. (2010) Comparing California Current cetacean-habitat
+models developed using in situ and remotely sensed sea surface temperature
+data. \emph{Marine Ecology Progress Series} 413:163-183.
+\doi{10.3354/meps08696}
+}
 \seealso{
 \code{\link[=segment_survey]{segment_survey()}}
 }

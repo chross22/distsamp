@@ -12,6 +12,10 @@
 #' @return An `sf` object with one feature per segment, carrying the segment
 #'   attributes.
 #'
+#' @references
+#' Pebesma, E. (2018) Simple features for R: standardized support for spatial
+#' vector data. *The R Journal* 10(1):439-446. \doi{10.32614/RJ-2018-009}
+#'
 #' @examples
 #' if (requireNamespace("sf", quietly = TRUE)) {
 #'   path <- system.file("extdata", "narwc-example.csv", package = "distsamp")

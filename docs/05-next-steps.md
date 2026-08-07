@@ -56,8 +56,9 @@ worth settling before that profile is written.
 
 The natural v2. It needs:
 
-- **`STRIP` to right-angle distance.** Handbook 8.A.30 defines *two* interval
-  code books — one for CETAP and the WEA surveys, another for NLPSC/MassCEC from
+- **`STRIP` to right-angle distance.** The intervals come from calibrated
+  markings on the observation bubble and wing struts (Kenney and Scott 1981);
+  handbook 8.A.30 defines *two* interval code books — one for CETAP and the WEA surveys, another for NLPSC/MassCEC from
   October 2011 — and which applies depends on the platform (AT-11 versus
   Skymaster) and the year. Odd codes are the port side, even the starboard. A
   correct conversion needs `PLATFORM` and the survey date, and should return an
@@ -66,8 +67,8 @@ The natural v2. It needs:
   perpendicular distance can be computed directly against the trackline, as
   `original/compute_distance.R` did with `geosphere::distHaversine`. That is the
   better estimate where available and a check on `STRIP` where both exist.
-- Wrappers around `Distance::ds()`, and the multi-year fitting from
-  `original/detectionFunctionMultipleYears.R`.
+- Wrappers around `Distance::ds()` (Miller et al. 2019), and the multi-year
+  fitting from `original/detectionFunctionMultipleYears.R`.
 
 One caution carried over from the original: `detection_function.R:10` filters
 `CIRCLE != 1`, which drops rows where `CIRCLE` is `NA` as well as where it is 1.
@@ -117,3 +118,8 @@ directory.
   `attach_circling_sightings()` loops over candidate sightings and
   `segment_midpoints()` splits by segment. Neither has been profiled on hundreds
   of thousands of records.
+
+
+---
+
+Full citations: [06-references.md](06-references.md).

@@ -25,3 +25,8 @@ fraction of the way along the great-circle arc joining them.
 gc_interpolate(43, -69, 44, -69, 0.5)
 
 }
+\references{
+Shoemake, K. (1985) Animating rotation with quaternion curves.
+\emph{ACM SIGGRAPH Computer Graphics} 19(3):245-254, for spherical linear
+interpolation. \doi{10.1145/325165.325242}
+}

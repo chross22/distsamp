@@ -63,3 +63,12 @@ issues <- validate_narwc(read_narwc(path))
 issues[, c("check", "severity", "n")]
 
 }
+\references{
+Kenney, R.D. (2021) \emph{The North Atlantic Right Whale Consortium Database: A
+Guide for Users and Contributors, Version 7}. NARWC Reference Document
+2021-01. University of Rhode Island, Graduate School of Oceanography. Every
+check above cites the section it derives from.
+
+Kenney, R.D. (2002) \emph{Quality-control Issues for Data Submissions to the North
+Atlantic Right Whale Consortium Database.} NARWC Reference Document 2002-02.
+}

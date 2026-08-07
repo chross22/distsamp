@@ -54,3 +54,8 @@ visibility_ok(c(5, 1.5, -1, -2, NA))
 visibility_ok(-1, min_nmi = 3)
 
 }
+\references{
+Kenney, R.D. (2021) \emph{The North Atlantic Right Whale Consortium Database: A
+Guide for Users and Contributors, Version 7}, section 8.A.37. NARWC Reference
+Document 2021-01.
+}

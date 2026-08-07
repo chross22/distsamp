@@ -134,30 +134,99 @@ section.
 `original/` holds the research scripts this package was built from. They are kept
 for reference and excluded from the build.
 
+## Citing this
+
+Cite the method and the software separately, and record the `seed` — without it
+the segmentation is not reproducible.
+
+```
+Ross, C. (2026) distsamp: Segment Aerial Line-Transect Survey Data for Distance
+Sampling. R package version 0.1.0. https://github.com/chross22/distsamp
+```
+
+Suggested methods-section wording is in
+[docs/06-references.md](docs/06-references.md#6-how-to-cite-the-package), along
+with a note on which parts of the algorithm are attributable to the published
+methods and which are properties of Becker's implementation.
+
+---
+
 ## References
+
+Alphabetical. What each source is relied on for is set out in
+[docs/06-references.md](docs/06-references.md).
 
 Becker, E.A., Forney, K.A., Ferguson, M.C., Foley, D.G., Smith, R.C., Barlow, J.
 and Redfern, J.V. (2010) Comparing California Current cetacean–habitat models
 developed using in situ and remotely sensed sea surface temperature data. *Marine
 Ecology Progress Series* 413:163–183. <https://doi.org/10.3354/meps08696>
+— *the segmentation method.*
+
+Becker, E.A., Forney, K.A., Redfern, J.V., Barlow, J., Jacox, M.G., Roberts, J.J.
+and Palacios, D.M. (2019) Predicting cetacean abundance and distribution in a
+changing climate. *Diversity and Distributions* 25:626–643.
+<https://doi.org/10.1111/ddi.12867>
+
+Becker, E.A., Forney, K.A., Thayre, B.J., Debich, A.J., Campbell, G.S., Whitaker,
+K., Douglas, A.B., Gilles, A., Hoopes, R. and Hildebrand, J.A. (2017)
+Habitat-based density models for three cetacean species off southern California
+illustrate pronounced seasonal differences. *Frontiers in Marine Science* 4:121.
+<https://doi.org/10.3389/fmars.2017.00121>
+
+Buckland, S.T., Anderson, D.R., Burnham, K.P., Laake, J.L., Borchers, D.L. and
+Thomas, L. (2001) *Introduction to Distance Sampling: Estimating Abundance of
+Biological Populations.* Oxford University Press, New York, NY.
+
+CETAP (1982) *A Characterization of Marine Mammals and Turtles in the Mid- and
+North-Atlantic Areas of the U.S. Outer Continental Shelf, Final Report.* Cetacean
+and Turtle Assessment Program, University of Rhode Island. Bureau of Land
+Management, Washington, DC. — *the survey protocol behind the effort defaults.*
 
 Hedley, S.L. and Buckland, S.T. (2004) Spatial models for line transect sampling.
 *Journal of Agricultural, Biological, and Environmental Statistics* 9:181–199.
 <https://doi.org/10.1198/1085711043578>
+
+Kenney, R.D. (2002) *Quality-control Issues for Data Submissions to the North
+Atlantic Right Whale Consortium Database.* NARWC Reference Document 2002-02.
+University of Rhode Island, Graduate School of Oceanography, Narragansett, RI.
+
+Kenney, R.D. (2021) *The North Atlantic Right Whale Consortium Database: A Guide
+for Users and Contributors, Version 7.* NARWC Reference Document 2021-01.
+University of Rhode Island, Graduate School of Oceanography, Narragansett, RI.
+<https://www.narwc.org/sightings-database.html> — *the input format.*
+
+Kenney, R.D. and Scott, G.P. (1981) Calibration of the Beechcraft AT-11 forward
+observation bubble for population estimation purposes. Pp. III.1–III.11 *in*
+CETAP, *A Characterization of Marine Mammals and Turtles in the Mid- and
+North-Atlantic Areas of the U.S. Outer Continental Shelf, Annual Report for
+1979.* Bureau of Land Management, Washington, DC.
+
+Kenney, R.D. and Shoop, C.R. (2012) Aerial surveys for marine turtles. Pp.
+264–271 *in* R.W. McDiarmid, M.S. Foster, C. Guyer, J.W. Gibbons and N. Chernoff,
+eds. *Reptile Biodiversity: Standard Methods for Inventory and Monitoring.*
+University of California Press, Berkeley, CA.
+
+Kenney, R.D. and Winn, H.E. (1986) Cetacean high-use habitats of the northeast
+United States continental shelf. *Fishery Bulletin* 84(2):345–357. — *the
+`"kenney"` distance formula, p. 347, and the CETAP on-effort criteria.*
 
 Miller, D.L., Burt, M.L., Rexstad, E.A. and Thomas, L. (2013) Spatial models for
 distance sampling data: recent developments and future directions. *Methods in
 Ecology and Evolution* 4:1001–1010.
 <https://doi.org/10.1111/2041-210X.12105>
 
-Buckland, S.T., Anderson, D.R., Burnham, K.P., Laake, J.L., Borchers, D.L. and
-Thomas, L. (2001) *Introduction to Distance Sampling.* Oxford University Press.
+Miller, D.L., Rexstad, E., Thomas, L., Marshall, L. and Laake, J.L. (2019)
+Distance sampling in R. *Journal of Statistical Software* 89(1):1–28.
+<https://doi.org/10.18637/jss.v089.i01>
 
-Kenney, R.D. (2021) *The North Atlantic Right Whale Consortium Database: A Guide
-for Users and Contributors, Version 7.* NARWC Reference Document 2021-01.
+Pebesma, E. (2018) Simple features for R: standardized support for spatial vector
+data. *The R Journal* 10(1):439–446. <https://doi.org/10.32614/RJ-2018-009>
 
-Kenney, R.D. and Winn, H.E. (1986) Cetacean high-use habitats of the northeast
-United States continental shelf. *Fishery Bulletin* 84:345–357.
+R Core Team (2026) *R: A Language and Environment for Statistical Computing.* R
+Foundation for Statistical Computing, Vienna, Austria.
+<https://www.R-project.org/>
 
-Full list, with what each is relied on for:
-[docs/06-references.md](docs/06-references.md).
+Shoemake, K. (1985) Animating rotation with quaternion curves. *ACM SIGGRAPH
+Computer Graphics* 19(3):245–254. <https://doi.org/10.1145/325165.325242>
+
+Sinnott, R.W. (1984) Virtues of the haversine. *Sky and Telescope* 68(2):159.
