@@ -1,0 +1,149 @@
+name: citation-check (reusable)
+
+# A reusable citation check, callable from any repository.
+#
+# Add this to a consuming repo as .github/workflows/check-citations.yaml:
+#
+#   name: check-citations
+#   on:
+#     schedule:
+#       - cron: '0 7 1 * *'
+#     workflow_dispatch:
+#     pull_request:
+#       paths: ['tools/citations.csv', 'R/**', 'docs/**', 'README.md', 'DESCRIPTION']
+#   permissions:
+#     contents: read
+#     issues: write
+#   jobs:
+#     citations:
+#       uses: chross22/distsamp/.github/workflows/citation-check-reusable.yaml@main
+#
+# The consuming repo needs only `tools/citations.csv`. The generic engine is
+# fetched from here, so a fix lands everywhere at once. A repo with its own
+# `tools/citation-hooks.R` gets those hooks run too; without one, just the four
+# generic checks run.
+
+on:
+  workflow_call:
+    inputs:
+      registry:
+        description: 'Path to the citation registry CSV, relative to the repo root.'
+        type: string
+        default: 'tools/citations.csv'
+      engine-ref:
+        description: 'Ref of chross22/distsamp to take the engine from.'
+        type: string
+        default: 'main'
+      file-issue-on-failure:
+        description: 'Open an issue when a scheduled run fails.'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check-citations:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Check out the calling repository
+        uses: actions/checkout@v4
+
+      - name: Fetch the shared citation engine
+        uses: actions/checkout@v4
+        with:
+          repository: chross22/distsamp
+          ref: ${{ inputs.engine-ref }}
+          sparse-checkout: tools
+          sparse-checkout-cone-mode: false
+          path: .citation-engine
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: release
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: any::jsonlite
+
+      - name: Check citations
+        id: check
+        shell: bash
+        run: |
+          set +e
+          Rscript - <<'RSCRIPT' 2>&1 | tee citation-report.txt
+          source(".citation-engine/tools/citation-checks.R")
+
+          # Project-specific hooks are optional: a repo that has them gets them,
+          # a repo that does not runs the generic checks alone.
+          hooks <- list()
+          if (file.exists("tools/citation-hooks.R")) {
+            source("tools/citation-hooks.R")
+            if (exists("citation_hooks")) hooks <- citation_hooks()
+          }
+
+          registry <- Sys.getenv("CITATION_REGISTRY", "tools/citations.csv")
+          if (!file.exists(registry)) {
+            stop("No citation registry at '", registry, "'.")
+          }
+
+          sources <- c(
+            list.files("R", "[.]R$", full.names = TRUE),
+            list.files("docs", "[.]md$", full.names = TRUE),
+            list.files("vignettes", "[.]Rmd$", full.names = TRUE),
+            c("README.md", "NEWS.md", "DESCRIPTION")
+          )
+
+          ok <- run_citation_checks(registry, sources, root = ".", hooks = hooks)
+          if (!ok) quit(status = 1L)
+          RSCRIPT
+          echo "status=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+        env:
+          CITATION_REGISTRY: ${{ inputs.registry }}
+
+      - name: Summarise
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo '## Citation check'
+            echo ''
+            echo '```'
+            cat citation-report.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # On a scheduled run there is no PR to annotate, so file an issue - but
+      # only ever one at a time.
+      - name: Open an issue on failure
+        if: >-
+          steps.check.outputs.status != '0' &&
+          github.event_name == 'schedule' &&
+          inputs.file-issue-on-failure
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          existing=$(gh issue list --label citations --state open --json number --jq 'length')
+          if [ "$existing" != "0" ]; then
+            echo "A citation issue is already open; not filing another."
+            exit 0
+          fi
+          gh label create citations \
+            --description "Citation currency and correctness" \
+            --color BFD4F2 --force || true
+          gh issue create \
+            --title "Citation check failed ($(date -u +%Y-%m-%d))" \
+            --label citations \
+            --body "$(printf 'The scheduled citation check failed.\n\n```\n%s\n```\n\n[Run](%s/%s/actions/runs/%s)\n' \
+                      "$(cat citation-report.txt)" \
+                      "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID")"
+
+      - name: Fail the job if checks failed
+        if: steps.check.outputs.status != '0'
+        run: exit 1

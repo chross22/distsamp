@@ -1,0 +1,4 @@
+key,doi,url,first_author,year,title,container,volume,pages,checks,note
+example-paper,10.1111/2041-210X.12105,,Miller,2013,Spatial models for distance sampling data: recent developments and future directions,Methods in Ecology and Evolution,4,1001-1010,crossref,Delete this row and add your own
+example-website,,https://www.r-project.org/,R Core Team,2026,R: A Language and Environment for Statistical Computing,R Foundation for Statistical Computing,,,url,Rows with a url and checks=url are pinged for liveness
+example-book,,,Buckland,2001,Introduction to Distance Sampling,Oxford University Press,,,none,Rows with checks=none are recorded but not verified

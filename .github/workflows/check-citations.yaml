@@ -1,12 +1,7 @@
 name: check-citations
 
-# Citations go stale in ways nothing else in CI would notice: a DOI is
-# corrected, a hosted PDF moves, or - most importantly here - the NARWC
-# publishes a new version of the handbook whose code books the package's
-# correctness depends on.
-#
-# Runs monthly, and on any change to the citation registry or the files that
-# carry citations.
+# distsamp consumes the same reusable workflow it hosts, so the shared engine is
+# exercised on every run rather than only when another repo calls it.
 
 on:
   schedule:
@@ -15,71 +10,17 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
-      - 'tools/citations.csv'
-      - 'tools/check-citations.R'
+      - 'tools/**'
       - 'R/**'
       - 'docs/**'
       - 'README.md'
       - 'DESCRIPTION'
+      - 'inst/CITATION'
 
 permissions:
   contents: read
   issues: write
 
 jobs:
-  check-citations:
-    runs-on: ubuntu-latest
-    env:
-      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: r-lib/actions/setup-r@v2
-        with:
-          r-version: release
-          use-public-rspm: true
-
-      - uses: r-lib/actions/setup-r-dependencies@v2
-        with:
-          packages: any::jsonlite
-
-      - name: Check citations
-        id: check
-        run: |
-          set +e
-          Rscript tools/check-citations.R 2>&1 | tee citation-report.txt
-          echo "status=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
-
-      - name: Summarise
-        if: always()
-        run: |
-          {
-            echo '## Citation check'
-            echo ''
-            echo '```'
-            cat citation-report.txt
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      # On a scheduled run there is no PR to annotate, so file an issue - but
-      # only one. If a citation issue is already open, leave it alone.
-      - name: Open an issue on failure
-        if: steps.check.outputs.status != '0' && github.event_name == 'schedule'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          existing=$(gh issue list --label citations --state open --json number --jq 'length')
-          if [ "$existing" != "0" ]; then
-            echo "A citation issue is already open; not filing another."
-            exit 0
-          fi
-          gh label create citations --description "Citation currency and correctness" --color BFD4F2 --force || true
-          gh issue create \
-            --title "Citation check failed ($(date -u +%Y-%m-%d))" \
-            --label citations \
-            --body "$(printf 'The scheduled citation check failed.\n\nMost often this means the NARWC has published a new handbook version. Before bumping the citation, diff the new version against `R/narwc-codes.R` — LEGTYPE, LEGSTAGE, IDREL, VISIBLTY, TAXCODE and STRATUM values are load-bearing.\n\n```\n%s\n```\n\n[Run](%s/%s/actions/runs/%s)\n' "$(cat citation-report.txt)" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID")"
-
-      - name: Fail the job if checks failed
-        if: steps.check.outputs.status != '0'
-        run: exit 1
+  citations:
+    uses: ./.github/workflows/citation-check-reusable.yaml
