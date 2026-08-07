@@ -1,0 +1,259 @@
+---
+title: "Segmenting NARWC line-transect data"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Segmenting NARWC line-transect data}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+```{r setup}
+library(distsamp)
+```
+
+## What this package does
+
+Density surface modelling needs survey effort chopped into short, roughly equal
+pieces — segments — each with a location, an amount of effort, and a count of
+what was seen along it. This package takes aerial line-transect survey data in
+the format of the North Atlantic Right Whale Consortium (NARWC) sightings
+database and produces exactly that.
+
+The input contract is the NARWC format described in Kenney (2021), *The North
+Atlantic Right Whale Consortium Database: A Guide for Users and Contributors*,
+Version 7. The output is a segment table you can hand to `Distance` or `dsm`.
+
+## Reading data
+
+`read_narwc()` standardises column names and types. It accepts the handbook's
+canonical `LAT_DD`/`LONG_DD` as well as the `LATITUDE`/`LONGITUDE` spelling used
+in the extracts the database manager distributes.
+
+```{r}
+path <- system.file("extdata", "narwc-example.csv", package = "distsamp")
+dat <- read_narwc(path)
+
+dim(dat)
+head(dat[, c("FILEID", "EVENTNO", "TIME", "LATITUDE", "LEGTYPE", "LEGSTAGE", "SPECCODE")])
+```
+
+The bundled example is a synthetic two-day survey built to mirror the
+hypothetical survey in Figure 2 of the handbook: transits, survey lines,
+sightings sharing an event number, a pilot sighting, a cross-leg, a break-off to
+circle, and a line abandoned and re-flown later in the day.
+
+## Checking data
+
+`validate_narwc()` reports problems rather than raising them, so you can decide
+what matters. It never modifies the data.
+
+```{r}
+validate_narwc(dat)
+```
+
+Nothing to report here. On real data you will typically see codes outside the
+handbook's code book, sightings recorded at line-boundary events, and gaps in
+required fields. Each finding names the rows involved:
+
+```{r}
+broken <- dat
+broken$LEGTYPE[1] <- 8       # not a NARWC LEGTYPE
+broken$LONGITUDE <- abs(broken$LONGITUDE)  # sign convention lost
+
+issues <- validate_narwc(broken)
+issues[, c("check", "severity", "column", "n")]
+issues$message[1]
+```
+
+## Segmenting
+
+`segment_survey()` runs the whole pipeline.
+
+```{r}
+segs <- segment_survey(dat, seg_length = 5, seed = 1)
+segs
+```
+
+The `segments` table has one row per segment:
+
+```{r}
+head(segs$segments[, c("seg_id", "LEGNO3", "seg_eff", "mid_lat", "mid_lon", "wt_beaufort")])
+```
+
+`seg_eff` is the segment's realised length in km. `mid_lat`/`mid_lon` are the
+point half of the segment's effort along the track — the location to use for a
+covariate lookup. `wt_beaufort` is the mean sea state weighted by the distance
+each record covers, which is the right form for a detection covariate.
+
+Counts arrive separately, one row per segment per species:
+
+```{r}
+head(segs$sightings)
+```
+
+For a density surface model you usually want them spread across columns:
+
+```{r}
+wide <- segments_wide(segs)
+head(wide[, c("seg_id", "seg_eff", "mid_lat", "mid_lon", "n_RIWH", "n_FIWH")])
+```
+
+## Effort is conserved
+
+Every kilometre of on-effort trackline ends up in exactly one segment.
+
+```{r}
+sum(segs$tracks$track_effort)
+sum(segs$segments$seg_eff)
+```
+
+## Reproducibility
+
+Segmentation makes two random choices: which segment absorbs a track's leftover
+distance, and whether a segment that cannot land exactly on its target runs a
+little long or a little short. Pass a `seed` and a run repeats exactly.
+
+```{r}
+a <- segment_survey(dat, seg_length = 5, seed = 1)
+b <- segment_survey(dat, seg_length = 5, seed = 1)
+identical(a$segments, b$segments)
+
+c <- segment_survey(dat, seg_length = 5, seed = 2)
+identical(a$segments$seg_eff, c$segments$seg_eff)
+```
+
+Your session's own random stream is never disturbed.
+
+## Choosing a distance method
+
+```{r}
+dist_methods()
+```
+
+Becker's `segchopr` routine and Kenney and Winn (1986) are the same formula —
+the spherical law of cosines, scaled by 111.12 km per degree — so choosing
+between them does not change your results:
+
+```{r}
+gc_distance(43, -69, 44, -70, method = "becker") ==
+  gc_distance(43, -69, 44, -70, method = "kenney")
+```
+
+Both names are kept so that existing scripts read sensibly and so you can record
+which lineage you meant to follow. The default is `"haversine"`, which is the
+same sphere but numerically stable at the short ranges between consecutive
+survey records, where the law of cosines loses precision.
+
+```{r}
+segment_survey(dat, seg_length = 5, seed = 1, dist_method = "becker")$settings$dist_method
+```
+
+## What counts as effort
+
+`flag_effort()` decides which records are on effort. The defaults follow the
+CETAP standard: on a survey line (`LEGTYPE == 2`), Beaufort at most 3, below
+1,200 ft, and visibility at least 2 nautical miles.
+
+```{r}
+table(flag_effort(dat)$OnOff.Effort)
+table(flag_effort(dat, max_beaufort = 1)$OnOff.Effort)
+```
+
+Visibility deserves a note. `VISIBLTY` carries two encodings in one column: since
+2004 an actual distance in nautical miles, and before that a code folded into the
+same field as a negative number. `-1` means *clear for at least 2 nautical
+miles* — good conditions — so a plain `VISIBLTY >= 2` test throws away every
+legacy record.
+
+```{r}
+visibility_ok(c(5, 1.5, -1, -2))
+```
+
+## What counts as a sighting
+
+Only detections that arose from standard search effort belong in a density
+estimate. By default the package excludes sightings by anyone other than an
+on-duty observer (`LEGSTAGE == 6`), sightings found afterwards in a vertical
+photograph (`LEGSTAGE == 7`), and identifications that are merely possible or
+unrecorded (`IDREL` of 1 or 9).
+
+```{r}
+strict <- segment_survey(dat, seg_length = 5, seed = 1)
+loose <- segment_survey(
+  dat, seg_length = 5, seed = 1,
+  sighting_args = list(legstage_exclude = numeric(0), idrel_keep = 1:3)
+)
+
+sum(strict$sightings$n_sightings)
+sum(loose$sightings$n_sightings)
+```
+
+A group sighted from the track and then circled for photographs has its position
+recorded off effort. Those detections are attached back to the segment they came
+from, following the CETAP rule that only further groups *of the same species*
+count with the original:
+
+```{r}
+sapply(c("none", "same_species", "all"), function(m) {
+  s <- segment_survey(dat, seg_length = 5, seed = 1, circling = m)
+  sum(s$sightings$n_animals[s$sightings$SPECCODE == "RIWH"])
+})
+```
+
+## Spatial output
+
+```{r, eval = requireNamespace("sf", quietly = TRUE)}
+pts <- segments_as_sf(segs, "midpoints")
+lines <- segments_as_sf(segs, "lines")
+lines[1:3, c("seg_id", "seg_eff")]
+```
+
+Cropping works on the whole result at once, keeping the tables consistent:
+
+```{r}
+gom <- c(xmin = -69.05, xmax = -68.5, ymin = 42, ymax = 48)
+nrow(crop_to_bbox(segs, gom)$segments)
+```
+
+## Writing results
+
+Nothing in the package writes to disk unless you ask.
+
+```{r}
+out <- file.path(tempdir(), "segments")
+write_segments(segs, out)
+list.files(out)
+```
+
+## Running the steps yourself
+
+Every stage is exported, so you can intervene between them:
+
+```{r}
+step <- dat |>
+  make_leg_id() |>          # separate re-occupations of a line
+  flag_circling() |>        # mark records taken while circling
+  flag_effort() |>          # decide what is on effort
+  point_to_point_effort() |># great-circle distance along the track
+  split_tracks()            # start a new track where effort breaks
+
+tracks <- track_effort(step)
+plan <- plan_segments(tracks, seg_length = 5, seed = 1)
+head(plan)
+```
+
+## References
+
+Kenney, R.D. (2021) *The North Atlantic Right Whale Consortium Database: A Guide
+for Users and Contributors, Version 7.* NARWC Reference Document 2021-01.
+
+Kenney, R.D. and Winn, H.E. (1986) Cetacean high-use habitats of the northeast
+United States continental shelf. *Fishery Bulletin* 84:345-357.
+
+Miller, D.L., Burt, M.L., Rexstad, E.A. and Thomas, L. (2013) Spatial models for
+distance sampling data: recent developments and future directions. *Methods in
+Ecology and Evolution* 4:1001-1010.

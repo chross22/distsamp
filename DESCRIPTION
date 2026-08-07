@@ -1,0 +1,34 @@
+Package: distsamp
+Title: Segment Aerial Line-Transect Survey Data for Distance Sampling
+Version: 0.1.0
+Authors@R:
+    person("Camille", "Ross", , "camille.ross@maine.edu", role = c("aut", "cre"))
+Description: Turns marine mammal aerial line-transect survey data recorded in the
+    North Atlantic Right Whale Consortium (NARWC) sightings database format into
+    effort segments suitable for distance sampling and density surface modeling.
+    Provides NARWC schema validation, on-effort determination, great-circle effort
+    accumulation, splitting of survey lines at breaks in effort, and chopping of
+    continuous tracklines into segments of a target length following the approach
+    of Becker and colleagues.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Depends:
+    R (>= 4.1)
+Imports:
+    dplyr (>= 1.1.0),
+    rlang (>= 1.0.0),
+    tibble,
+    tidyr,
+    utils,
+    withr
+Suggests:
+    knitr,
+    rmarkdown,
+    sf,
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+VignetteBuilder: knitr
+URL: https://github.com/chross22/distsamp
+BugReports: https://github.com/chross22/distsamp/issues
+Config/roxygen2/version: 8.1.0

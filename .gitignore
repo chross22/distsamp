@@ -1,0 +1,14 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj
+.DS_Store
+
+# R CMD build / check artefacts
+*.tar.gz
+*.Rcheck/
+inst/doc/
+
+# Claude Code
+.claude/
