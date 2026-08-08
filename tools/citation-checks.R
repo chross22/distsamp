@@ -62,7 +62,11 @@ cc_scan_dois <- function(paths) {
     text,
     gregexpr("10\\.[0-9]{4,9}/[^\\s\"'<>)\\]},;`*_]+", text, perl = TRUE)
   )
-  unique(sub("[.,;:>`)\\]]+$", "", unlist(found)))
+  found <- unique(sub("[.,;:>`)\\]]+$", "", unlist(found)))
+  # Documentation shows citation *templates* as well as citations: "DOI:
+  # 10.48670/moi-xxxxx (Accessed on DD MMM YYYY)" is an instruction to the
+  # reader, not a reference. An ellipsis or a run of x's marks the difference.
+  found[!grepl("[.]{3}|x{4,}|X{4,}", found)]
 }
 
 # --- check 1: registry coverage --------------------------------------------
@@ -104,6 +108,34 @@ cc_crossref <- function(doi) {
   out$message
 }
 
+# Dataset DOIs - Copernicus Marine (10.48670), NOAA NCEI (10.25921), BODC
+# (10.5285) - are registered with DataCite, not CrossRef, so a CrossRef lookup
+# returns nothing for them. That is not a dead DOI, and treating it as one would
+# make the check useless in exactly the repositories that cite the most data.
+cc_datacite <- function(doi) {
+  url <- paste0("https://api.datacite.org/dois/", utils::URLencode(doi, TRUE))
+  out <- tryCatch(jsonlite::fromJSON(url, simplifyVector = FALSE),
+                  error = function(e) NULL)
+  a <- out$data$attributes
+  if (is.null(a)) return(NULL)
+  list(
+    registrar = "DataCite",
+    author = if (length(a$creators)) {
+      a$creators[[1]]$familyName %||% a$creators[[1]]$name %||% ""
+    } else "",
+    year = a$publicationYear %||% "",
+    title = if (length(a$titles)) a$titles[[1]]$title else "",
+    container = a$publisher %||% ""
+  )
+}
+
+# Does the DOI resolve at all? Used for dataset DOIs, where the registrar may
+# be neither CrossRef nor DataCite, and where "it still points somewhere" is
+# the question worth asking.
+cc_doi_resolves <- function(doi) {
+  cc_url_ok(paste0("https://doi.org/", doi))
+}
+
 check_crossref_metadata <- function(registry, ctx) {
   rows <- registry[!is.na(registry$doi) & grepl("crossref", registry$checks), ,
                    drop = FALSE]
@@ -112,9 +144,31 @@ check_crossref_metadata <- function(registry, ctx) {
   for (i in seq_len(nrow(rows))) {
     r <- rows[i, ]
     m <- cc_crossref(r$doi)
+
     if (is.null(m)) {
-      failures <- c(failures,
-                    paste0(r$key, ": DOI did not resolve at CrossRef (", r$doi, ")"))
+      # Not a CrossRef work. Try DataCite, then bare resolution, before
+      # concluding anything is wrong.
+      dc <- cc_datacite(r$doi)
+      if (!is.null(dc)) {
+        prob <- character()
+        if (nzchar(dc$author) && nzchar(r$first_author) &&
+            cc_norm(dc$author) != cc_norm(r$first_author)) {
+          prob <- c(prob, sprintf("first creator '%s' vs registry '%s'",
+                                  dc$author, r$first_author))
+        }
+        if (length(prob)) {
+          failures <- c(failures, paste0(r$key, " (DataCite ", r$doi, "):\n      - ",
+                                         paste(prob, collapse = "\n      - ")))
+        } else {
+          cc_say("  ok  ", r$key, "  ", r$doi, "  (DataCite)")
+        }
+      } else if (cc_doi_resolves(r$doi)) {
+        cc_say("  ok  ", r$key, "  ", r$doi,
+               "  (resolves; not indexed by CrossRef or DataCite)")
+      } else {
+        failures <- c(failures,
+                      paste0(r$key, ": DOI does not resolve (", r$doi, ")"))
+      }
       next
     }
 
