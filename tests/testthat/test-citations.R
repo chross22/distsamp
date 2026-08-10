@@ -3,11 +3,9 @@
 # and runs monthly in CI, because it cannot be part of R CMD check.
 
 registry_path <- function() {
-  for (p in c("tools/citations.csv", "../../tools/citations.csv",
-              "../../../tools/citations.csv")) {
-    if (file.exists(p)) return(p)
-  }
-  NA_character_
+  root <- citation_root()
+  if (is.na(root)) return(NA_character_)
+  file.path(root, "tools", "citations.csv")
 }
 
 test_that("every DOI cited in the package is in the citation registry", {
