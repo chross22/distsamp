@@ -419,6 +419,41 @@ the original computed.
 
 ---
 
+## 16. Blank columns were filled across survey days and files
+
+**Where:** `DataExploration.R:52`, `:71`
+**Severity:** high — corrupts effort and conditions, undetectably
+
+```r
+tidyr::fill(c("LEGTYPE", "LEGSTAGE", "LEGNO", "VISIBLTY", "BEAUFORT",
+              "CLOUD", "GLAREL", "GLARER", "WX"), .direction = "downup")
+```
+
+NARWC records a value once and leaves it blank until it changes, so filling is
+necessary. This one is ungrouped — there is no `group_by()` anywhere near it —
+so it runs the length of the file. The sea state from the last record of one
+survey day carries forward into the next day; a `LEGNO` carries across a
+`FILEID` boundary into a different survey; and the `up` half carries a value
+backwards into the trailing blanks of whatever preceded it.
+
+The consequence is worse than a wrong number, because a filled value is
+indistinguishable from a recorded one. A `BEAUFORT` of 2 propagated into a day
+that was actually flown at 5 puts records on effort that should have been
+excluded, and nothing downstream can tell.
+
+The same scripts also disagree with each other about direction:
+`detectionFunctionMultipleYears.R:55`, `:67`, and `:76` fill the same nine
+columns with no `.direction` argument at all, which is `"down"`.
+
+**Fix:** `fill_narwc()` groups by `FILEID` and `DATE` by default, warns rather
+than filling across an ungroupable frame, refuses to fill sighting columns at
+all, and reports what it filled — separating values carried *forward*, which are
+recovered, from values carried *backward*, which are inferred. Guarded by
+`test-fill.R`, "nothing crosses a survey day or a file", which asserts both the
+correct result and the result the ungrouped version would have produced.
+
+---
+
 ## Not fixed, by decision
 
 **`add_effort_buffer()`** (`add_effort_buffer.R`, `add_effort_offset.R`) adds

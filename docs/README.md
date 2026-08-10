@@ -4,7 +4,7 @@
 |---|---|
 | [01-plan.md](01-plan.md) | Why the package exists, the decisions taken before building, the target layout and API, and what is deliberately out of scope |
 | [02-implementation.md](02-implementation.md) | How each pipeline stage was built, what it replaces in `original/`, and why it works the way it does |
-| [03-bug-fixes.md](03-bug-fixes.md) | The 15 defects found in `original/`, each with file and line, consequence, fix, and the test that guards it |
+| [03-bug-fixes.md](03-bug-fixes.md) | The 16 defects found in `original/`, each with file and line, consequence, fix, and the test that guards it |
 | [04-verification.md](04-verification.md) | `R CMD check` and test-suite results, what the tests establish, and reference numbers for the fixture |
 | [05-next-steps.md](05-next-steps.md) | What v1 does not do, in the order it is worth doing |
 | [06-references.md](06-references.md) | Every citation, what it is relied on for, what the published methods do *not* cover, and how to cite this in a methods section |

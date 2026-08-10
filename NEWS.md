@@ -102,6 +102,33 @@ arguments.
 None of these sources are wired into `sighting_distances()` or `segment_survey()`
 yet; unifying them behind a `distance_source` column is the next step.
 
+## Filling blank survey-state columns
+
+NARWC records a value once and leaves it blank until it changes — `LEGTYPE` is
+entered as `2` at the start of a census line and the rows beneath are empty until
+the leg type changes. `fill_narwc()` carries that state forward.
+
+* **Grouped by `FILEID` and `DATE` by default.** The scripts this was ported from
+  filled ungrouped, so a sea state from the last record of one survey day carried
+  into the next, and a leg number crossed a `FILEID` boundary into a different
+  survey. A frame with neither column warns rather than filling across
+  everything.
+* **Sighting columns are refused, not merely left out of the default.** Carrying
+  `SPECCODE` and `NUMBER` forward would replicate one group of three right whales
+  onto every row until the next sighting. `narwc_never_fill()` lists what is
+  refused and why; asking for one is an error.
+* **The report separates recovery from inference.** `"downup"` fills down and
+  then up, so its backward fills are the values before the first record of a
+  group — state that was never logged. Those are counted separately, because only
+  the forward fills recover something.
+* `narwc_fill_columns()` is the default set, and documents the distinction
+  between state that persists and measurements that belong to one record.
+
+Note that `LEGSTAGE` is the least safe of the defaults: if a file records `1` and
+leaves the continuation blank, filling down marks the whole line "begin line"
+rather than `2`, and on-effort eligibility is `LEGSTAGE == 2`. Check the
+per-column counts against what you expect.
+
 ## Columns from other survey programmes
 
 A NARWC extract is not the only shape this data arrives in. Survey programmes add

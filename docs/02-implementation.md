@@ -49,6 +49,71 @@ It deliberately does **not** filter, repair, or reject anything. The original
 began by dropping rows with `LEGNO == "."`; here that is a validation finding,
 and the decision about what to do with it is yours.
 
+## Step 1c — `fill_narwc()`
+
+**File:** `R/fill.R`
+**Ports:** `DataExploration.R:52`, `:71`; `detectionFunctionMultipleYears.R:55`,
+`:67`, `:76`.
+
+NARWC data records a value once and leaves it blank until it changes. `LEGTYPE`
+is entered as `2` at the start of a census line and the rows beneath are empty
+until the leg type changes; `BEAUFORT` stays as recorded until the sea state is
+re-assessed. Downstream code needs the state each record was actually flown
+under, so the blanks have to be filled.
+
+The original did this:
+
+```r
+tidyr::fill(c("LEGTYPE", "LEGSTAGE", "LEGNO", "VISIBLTY", "BEAUFORT",
+              "CLOUD", "GLAREL", "GLARER", "WX"), .direction = "downup")
+```
+
+**Ungrouped.** There is no `group_by()` anywhere near it, so the fill runs the
+length of the file: the sea state from the last record of one survey day carries
+into the first records of the next, and a leg number carries across a `FILEID`
+boundary into a different survey. Neither is recoverable afterwards, because a
+filled value is indistinguishable from a recorded one. `by` therefore defaults to
+`FILEID` and `DATE`, and a frame with neither warns rather than filling across
+everything.
+
+The same scripts also disagree with themselves:
+`detectionFunctionMultipleYears.R:55` fills the same nine columns with **no**
+`.direction`, which is `"down"`, while `DataExploration.R:52` uses `"downup"`.
+Two different treatments of the same data in one codebase.
+
+Four judgement calls:
+
+- **State may be filled; measurements may not.** `LEGTYPE` and `BEAUFORT`
+  persist until something changes them, so a blank means "as above" and filling
+  recovers information deliberately not repeated. A position, a time, a species,
+  a group size describes one moment, and a blank means it was not taken. Filling
+  one fabricates a measurement.
+- **Sighting columns are refused outright, not merely omitted from the default.**
+  `narwc_never_fill()` covers `SPECCODE`, `NUMBER`, `SIGHTNO`, `STRIP`, the
+  angles, `S_LAT`/`S_LONG`, and the per-record identifiers, and asking for one is
+  an error. Carrying `SPECCODE` and `NUMBER` forward would replicate a single
+  group of three right whales onto every row until the next sighting, and every
+  count downstream would be wrong by orders of magnitude. This is the failure
+  mode that would be hardest to notice, because the result still looks like data.
+- **Backward fills are counted separately.** `"downup"` fills down and then up,
+  so the only values it fills backwards are those before the first recorded value
+  in a group — a smaller claim than it first appears, but still a guess about
+  state that was never logged. Where a day begins on transit before the first
+  `LEGTYPE` is entered, back-filling a `2` marks that transit as census effort.
+  The report separates *carried forward* from *carried backward*, because only
+  the first is recovery.
+- **`LEGSTAGE` is flagged as the least safe default.** If a file records `1`
+  (begin line) and leaves the continuation rows blank, filling down marks the
+  whole line "begin line" rather than `2` (continue) — and since on-effort
+  eligibility is `LEGSTAGE == 2`, that line drops out of every distance
+  calculation. Whether it happens depends on the recording convention of the file
+  in hand, which cannot be settled without one. The behaviour is documented and
+  the per-column counts are reported so it is visible.
+
+A regression test gaps the fixture — blanking every value that repeats the row
+above, within file and day — and asserts that filling restores it exactly and
+that `segment_survey()` gives identical segments and sightings either way.
+
 ## Step 2 — `validate_narwc()`
 
 **File:** `R/validate.R`
