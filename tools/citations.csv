@@ -16,3 +16,4 @@ kenneyshoop2012,,,Kenney,2012,Aerial surveys for marine turtles,Reptile Biodiver
 kenney2002,,,Kenney,2002,Quality-control Issues for Data Submissions to the North Atlantic Right Whale Consortium Database,NARWC Reference Document 2002-02,,,none,Background for validate_narwc(). Grey literature; no DOI.
 sinnott1984,,,Sinnott,1984,Virtues of the haversine,Sky and Telescope,68,159,none,The haversine formulation. No DOI.
 rcore,,https://www.R-project.org/,R Core Team,2026,R: A Language and Environment for Statistical Computing,R Foundation for Statistical Computing,,,url,The language
+veness2019,,https://www.movable-type.co.uk/scripts/latlong.html,Veness,2019,Calculating distance bearing and more between latitude/longitude points,Movable Type Scripts,,,url,Cross-track and along-track great-circle formulae used by cross_track_distance()

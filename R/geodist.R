@@ -117,6 +117,87 @@ gc_distance <- function(lat1, lon1, lat2, lon2,
   out
 }
 
+#' Initial great-circle bearing between positions
+#'
+#' The bearing, in degrees clockwise from true north, along which a great circle
+#' leaves the first position heading for the second.
+#'
+#' @section Initial, not constant:
+#' A great circle changes bearing as it is followed, so this is the bearing *at
+#' the first position*. Over the distances between consecutive survey positions
+#' the change is negligible — a tenth of a degree over 10 km at these latitudes —
+#' but it is the reason [cross_track_distance()] takes a bearing and a point
+#' together rather than a bearing alone.
+#'
+#' @param lat1,lon1 Numeric vectors of latitudes and longitudes of the start
+#'   positions, in decimal degrees. West longitudes are negative.
+#' @param lat2,lon2 Numeric vectors of the positions bearing is taken to.
+#'   Recycled against `lat1`/`lon1`.
+#'
+#' @return A numeric vector of bearings in `[0, 360)`. `NA` where any coordinate
+#'   is `NA`, and `NA` where the two positions coincide, which has no bearing.
+#'
+#' @seealso [gc_distance()], [cross_track_distance()], [track_bearing()]
+#'
+#' @examples
+#' # Due north along a meridian
+#' gc_bearing(43, -69, 44, -69)
+#'
+#' # Due east, at the moment of departure
+#' gc_bearing(43, -69, 43, -68)
+#'
+#' # A position has no bearing to itself
+#' gc_bearing(43, -69, 43, -69)
+#'
+#' @export
+gc_bearing <- function(lat1, lon1, lat2, lon2) {
+  n <- max(length(lat1), length(lon1), length(lat2), length(lon2))
+  lat1 <- rep_len(as.numeric(lat1), n)
+  lon1 <- rep_len(as.numeric(lon1), n)
+  lat2 <- rep_len(as.numeric(lat2), n)
+  lon2 <- rep_len(as.numeric(lon2), n)
+
+  d2r <- pi / 180
+  phi1 <- lat1 * d2r
+  phi2 <- lat2 * d2r
+  dlam <- (lon2 - lon1) * d2r
+
+  y <- sin(dlam) * cos(phi2)
+  x <- cos(phi1) * sin(phi2) - sin(phi1) * cos(phi2) * cos(dlam)
+  out <- (atan2(y, x) / d2r) %% 360
+
+  # atan2(0, 0) is 0, so coincident positions would otherwise report a bearing
+  # of due north rather than admitting that they have none.
+  missing <- is.na(lat1) | is.na(lon1) | is.na(lat2) | is.na(lon2)
+  out[!missing & lat1 == lat2 & lon1 == lon2] <- NA_real_
+  out[missing] <- NA_real_
+  out
+}
+
+# The sphere every routine here works on. All three methods in `gc_distance()`
+# scale by 111.12 km per degree (60 nmi x 1.852 km/nmi is exactly that), so
+# there is only one radius to agree on.
+gc_radius_km <- function() 111.12 / (pi / 180)
+
+# Position reached by travelling `distance_km` from (lat, lon) on `bearing`.
+# Not exported: it exists so that test geometry can be constructed exactly
+# rather than by inverting `cross_track_distance()` numerically.
+gc_destination <- function(lat, lon, bearing, distance_km) {
+  d2r <- pi / 180
+  phi1 <- lat * d2r
+  lam1 <- lon * d2r
+  theta <- bearing * d2r
+  delta <- distance_km / gc_radius_km()
+
+  phi2 <- asin(sin(phi1) * cos(delta) + cos(phi1) * sin(delta) * cos(theta))
+  lam2 <- lam1 + atan2(
+    sin(theta) * sin(delta) * cos(phi1),
+    cos(delta) - sin(phi1) * sin(phi2)
+  )
+
+  tibble::tibble(lat = phi2 / d2r, lon = ((lam2 / d2r + 540) %% 360) - 180)
+}
+
 #' Distance methods available
 #'
 #' The method names [gc_distance()] and [segment_survey()] accept, and what each

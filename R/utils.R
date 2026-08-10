@@ -114,3 +114,21 @@ rle_id <- function(x) {
 `%|NA|%` <- function(x, y) ifelse(is.na(x), y, x)
 
 is_empty_df <- function(x) is.null(x) || nrow(x) == 0L
+
+# Records eligible for a right-angle distance: on effort, on a census line, and
+# continuing it. Handbook 8.A.31 restricts the measurement to these. Shared by
+# every distance source so that they cannot disagree about which sightings are
+# fittable. Columns that are absent cannot disqualify a record.
+on_effort_census_rows <- function(dat) {
+  ok <- rep(TRUE, nrow(dat))
+  if ("OnOff.Effort" %in% names(dat)) {
+    ok <- ok & !is.na(dat$OnOff.Effort) & dat$OnOff.Effort == 1
+  }
+  if ("LEGTYPE" %in% names(dat)) {
+    ok <- ok & !is.na(dat$LEGTYPE) & dat$LEGTYPE == 2
+  }
+  if ("LEGSTAGE" %in% names(dat)) {
+    ok <- ok & !is.na(dat$LEGSTAGE) & dat$LEGSTAGE == 2
+  }
+  ok
+}

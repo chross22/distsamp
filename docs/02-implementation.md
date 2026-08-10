@@ -324,6 +324,175 @@ rise once offshore wind turbines were in place, and `STRIP`'s fixed distance
 intervals shift with altitude, whereas "the calculations of distances from
 angles would always need to factor in altitude" (8.A.2).
 
+## Step 11c — `narwc_strip_bins()` and `strip_distance()`
+
+**File:** `R/strip.R`
+**Replaces:** nothing. The original scripts never decoded `STRIP`.
+
+`STRIP` records right-angle distance as an *interval*, from calibrated markings
+on the observation bubble and wing struts (Kenney and Scott 1981). Handbook
+8.A.31 gives two code books, and which applies depends on the programme, the
+date, and the aircraft. `narwc_strip_bins()` returns whichever is asked for;
+`strip_distance()` resolves codes against it.
+
+The reason this needed care rather than a lookup table: the same code means
+different things under the two books.
+
+| code | CETAP | NLPSC |
+|---|---|---|
+| 5 | 1/8 – 1/4 nmi | 1/4 – 1/2 nmi |
+| 13 | 1 – 2 nmi (Skymaster) | over 4 nmi |
+
+Reading a code with the wrong book produces plausible distances that are wrong,
+and nothing downstream would notice. `scheme = "auto"` picks from the date —
+NLPSC from October 2011 — and errors rather than guess when given no date.
+
+Two handbook details that are easy to lose, both encoded and tested:
+
+- Codes `1,2` are the *original unsplit* 0–1/4 nmi interval, later split at
+  1/8 nmi into `3,4` and `5,6`. Both forms are in the archive, so `1,2` is kept
+  as the wider bin rather than merged into the split ones.
+- The Skymaster could not see beneath itself. CETAP-era distances from it "are
+  actually measured from about 1/8 mile to either side of the survey line" —
+  a genuine left truncation, offered as `left_truncation = TRUE` and better
+  handled as `ds(left = )`.
+
+Every scheme's top bin is open (`>1`, `>2`, `>4` nmi), so `distend` is `Inf`. A
+detection function cannot be fitted to an unbounded bin; truncation is required.
+
+## Step 11d — exact sighting positions
+
+**File:** `R/exact.R`, plus `gc_bearing()` and `gc_destination()` in
+`R/geodist.R`
+**Replaces:** `original/compute_distance.R`.
+
+Where `S_LAT`/`S_LONG` exist (8.A.33, 8.A.34) the sighting's position is known
+outright, and the perpendicular distance can be measured rather than inferred
+from an angle or read off a code book. This is the most direct of the three
+sources, and where it coexists with a declination angle the two are independent
+measurements of the same quantity — so comparing them checks both.
+
+**The defect this fixes.** `compute_distance.R:23` computed
+`distHaversine(c(IS_LONG, IS_LAT), c(LONGITUDE, LATITUDE))` — the distance from
+the event position straight to the animal. That is a *radial* distance, not a
+perpendicular one. It equals the perpendicular distance only if the sighting was
+logged at the instant it came abeam, and exceeds it otherwise:
+
+```
+radial = sqrt(perpendicular^2 + along_track_offset^2)
+```
+
+The error is always in the same direction. The fixture carries a case where a
+whale 132 m off the track was logged 300 m before the aircraft drew level: the
+radial distance is 327.8 m, two and a half times the perpendicular distance the
+detection function is defined on. Inflated distances widen the fitted effective
+strip and bias density downwards.
+
+**What replaces it.** The track through the event position on its local bearing
+defines a great circle; the sighting is projected onto it.
+
+```
+delta_xt = asin(sin(delta_13) * sin(theta_13 - theta_12))
+delta_at = acos(cos(delta_13) / cos(delta_xt)) * sign(cos(theta_13 - theta_12))
+```
+
+`cross_track_distance()` returns both, in metres by default. The sign of
+`delta_xt` gives the side, which is a free cross-check against `ANGLEL`/`ANGLER`
+and the odd/even `STRIP` convention. `along` is returned rather than discarded so
+that the size of the correction is visible: values near zero mean the original
+method would have agreed.
+
+Four judgement calls:
+
+- **Bearings come from a centred difference over *distinct* positions.** A
+  sighting record repeats the position of the routine record it follows
+  (handbook 4.2), so consecutive differencing would ask for the bearing between
+  two identical points. `track_bearing()` collapses runs of identical positions
+  first, then takes the bearing from the previous distinct position to the next,
+  which is also less sensitive to a single jittery fix than a forward
+  difference. One-sided at the ends of a line.
+- **`gc_bearing()` returns `NA` for coincident positions.** `atan2(0, 0)` is
+  `0`, so the naive implementation reports a confident "due north" for a point
+  that has no bearing at all.
+- **Only census records define the track.** An aircraft circling a whale has a
+  bearing, but it is not the track-line's. `track_bearing()` uses `LEGTYPE == 2`
+  records by default, and the grouping defaults to `FILEID` + `LEGNO3` so that
+  the end of one line is never joined to the start of the next.
+- **Circling sightings still get no distance,** even though `S_LAT`/`S_LONG` may
+  be present and the geometry would return a number. Off the census line there
+  is nothing to be perpendicular to. The fixture contains exactly this case.
+
+`validate_narwc()` gained two checks: `exact_position_out_of_range`, and
+`exact_position_far_from_event` for positions more than 20 km from the record
+that logged them, which catches a dropped minus sign on `S_LONG` and coordinates
+supplied in degrees and decimal minutes.
+
+## Step 11e — `circling_distance()`
+
+**File:** `R/exact.R`
+**Replaces:** the commented-out block at `compute_distance.R:34-51`, which
+attempted this with `sf::st_distance` and `matrixStats::rowMins` and was
+abandoned.
+
+A group spotted from the census track is often circled for photographs,
+identification, and a proper count, and the sighting is logged during that
+circle rather than at the moment of detection. Those records are off effort and
+off the track-line, so none of the three sources above will give them a
+distance — but they are, in the ordinary case, **genuine on-effort detections**:
+the animal was seen from the track-line, which is why the aircraft left it.
+
+Dropping them is therefore not neutral. The detections lost are not a random
+sample of detections; they are disproportionately the close, conspicuous, or
+high-priority groups worth breaking off for. Removing them thins the near-zero
+end of the distance distribution, which is where a detection function is most
+sensitive, and biases the fitted curve towards a flatter shoulder.
+
+**The anchor.** Each circling sighting is tied back to the last census record
+before the circle began — the `LEGSTAGE == 3` break-off record where there is
+one (8.A.20), otherwise the last record still on the line. `anchor_event`
+reports which was used.
+
+**Break-off point, or the line through it.** The aircraft usually flies past a
+group before turning, so the break-off point is beyond the animal, not abeam of
+it. Both readings are returned: `radial` is the straight-line distance from the
+break-off point, `distance` is that position projected perpendicularly onto the
+census line, and `along` is how far back down the line the animal was abeam.
+`distance` is the one a detection function is defined on; `radial` is larger by
+exactly the margin `along` records. In the fixture the two are 250 m and 472 m.
+
+Three judgement calls:
+
+- **The bearing is the inbound heading, not a centred difference.** The record
+  after a break-off is the resume record, and the handbook only requires the
+  aircraft to resume "as close as possible" to where it broke off. A resume
+  point offset from the break-off would swing a centred bearing by an amount
+  that has nothing to do with the track that was flown, so the bearing is taken
+  from the previous distinct census position *to* the anchor — the direction the
+  aircraft was going when it made the detection.
+- **An exact position is required by default.** With `S_LAT`/`S_LONG` absent, the
+  only position on the record is the *aircraft's*, orbiting the animal at a
+  radius of a few hundred metres — the same magnitude as the distances being
+  measured. `position = "logged"` allows that fallback for anyone who wants it,
+  and `position_source` records per row which applied, but it is not the
+  default: a distance with error as large as itself is worse than no distance.
+- **These are a distinct source, not more of the same.** The position is fixed
+  minutes after detection, so the animal has moved, and the result estimates
+  where it was rather than measuring it. That error is not quantified. Circling
+  distances should be excluded from a detection function unless including them
+  is a deliberate and stated choice — which is what the `distance_source`
+  column and `detection_data(include_circling = )` are for.
+
+Note that the *spatial-model* side of this was already handled:
+`attach_circling_sightings()` has attributed circling sightings back to their
+segment since v1, under the CETAP same-species rule, and
+`segment_survey(circling = )` selects the mode. Those counts feed abundance
+whether or not the sighting carries a distance — the two questions are separate,
+and deliberately so.
+
+**Not yet done.** `sighting_distances()` still uses angles only. Unifying the
+sources behind one call, with a `distance_source` column recording which was
+used, is the next step — see [05-next-steps.md](05-next-steps.md).
+
 ## Step 12 — `segment_sightings()`
 
 **File:** `R/sightings.R`
@@ -415,6 +584,19 @@ Geometry is deliberately simple: every line runs due north along a constant
 meridian in 0.01-degree steps, so one step is exactly 1.1112 km and every
 expected distance can be checked by hand. Total on-effort distance is 92.2296 km
 across seven tracks.
+
+Four sightings also carry an exact position in `S_LAT`/`S_LONG`. They are not
+typed in but constructed with a destination-point formula, departing the meridian
+on bearing 90 or 270 — which leaves it at a right angle, so the perpendicular
+distance each one implies is exact rather than approximate. Three are placed at
+exactly the distance their own declination angle gives, so the two independent
+sources must agree to the last bit; one of those three is also displaced 300 m
+along the track, so the radial and perpendicular distances differ by a factor of
+two and a half. The fourth is on the circling excursion, placed relative to the
+break-off point rather than to the orbiting aircraft — 400 m back down line 2 and
+250 m to its right — so that `circling_distance()` must recover 250 m against a
+radial distance of 471.7 m, and `exact_distance()` must still return nothing,
+having no track-line there to be perpendicular to.
 
 
 ---

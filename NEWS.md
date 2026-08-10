@@ -41,6 +41,67 @@ carried through.
 Note that `seg_eff` is in kilometres while distances default to metres; see
 `?perp_distance` before passing both to `Distance::ds()`.
 
+## The other two right-angle distance sources
+
+Declination angles only exist from 2022. The archive's older data records
+right-angle distance two other ways, and both are now interpreted.
+
+* `narwc_strip_bins()` and `strip_distance()` decode `STRIP` (handbook 8.A.31),
+  which gives an *interval* rather than a point. Two code books are in use, and
+  which applies depends on the programme, the date, and the aircraft — code 13
+  is 1–2 nmi under CETAP and over 4 nmi under NLPSC, and code 5 differs by a
+  factor of two, so reading a code with the wrong book is silently wrong. The
+  book is chosen from the survey date unless named, and no date and no scheme is
+  an error rather than a guess. Every scheme's top bin is open, so `distend` is
+  `Inf` and truncation is required before fitting.
+* `exact_distance()` computes perpendicular distance from `S_LAT`/`S_LONG`
+  (8.A.33, 8.A.34), on the new `gc_bearing()`, `track_bearing()`, and
+  `cross_track_distance()`. It **projects the sighting onto the trackline**
+  rather than measuring straight to it, and returns the along-track offset so
+  the difference is visible. `along` near zero means the two would have agreed.
+* `validate_narwc()` gains `exact_position_out_of_range` and
+  `exact_position_far_from_event`, which catch a dropped minus sign on `S_LONG`
+  and coordinates given in degrees and decimal minutes.
+
+## Distances for sightings made while circling
+
+`circling_distance()` ties a sighting logged during a circle back to the
+`LEGSTAGE == 3` break-off record on the census line, and measures from there.
+
+These are usually genuine on-effort detections — the animal was seen from the
+track-line, which is why the aircraft left it — and giving them no distance drops
+them from the detection function altogether. The ones lost are not a random
+sample: they are disproportionately the close or conspicuous groups worth
+breaking off for, so removing them thins the near-zero end of the distance
+distribution, where a detection function is most sensitive.
+
+* The anchor is the break-off record, or the last record still on the line where
+  there is none; `anchor_event` reports which.
+* The bearing is the *inbound* heading, not a centred difference. A resume point
+  offset from the break-off would otherwise swing it for no good reason.
+* Both readings are returned. `radial` is the straight-line distance from the
+  break-off point; `distance` is that position projected perpendicularly onto the
+  census line, which is what a detection function is defined on; `along` is how
+  far back down the line the animal was abeam.
+* An exact position is required by default. Without `S_LAT`/`S_LONG` the only
+  position on the record is the *aircraft's*, orbiting the animal at a radius
+  comparable to the distance being measured. `position = "logged"` permits that
+  fallback, and `position_source` records where each position came from.
+* These are a weaker source than the other three, since the position is fixed
+  minutes after detection and the animal has moved. `detection_data()` will
+  exclude them by default.
+
+The *spatial-model* side of this needed no change: `attach_circling_sightings()`
+has attributed circling sightings back to their segment since v1, under the CETAP
+same-species rule, selected by `segment_survey(circling = )`. Those counts feed
+abundance whether or not the sighting carries a usable distance. Excluding
+circling sightings from a detection function while including them in a density
+surface is a normal and defensible combination, so the two stay separate
+arguments.
+
+None of these sources are wired into `sighting_distances()` or `segment_survey()`
+yet; unifying them behind a `distance_source` column is the next step.
+
 ## Vignettes
 
 * `segmenting-narwc-data` — the full walkthrough.
@@ -108,6 +169,12 @@ Each is documented in full, with file and line references, in
 * **`Area`, `Region.Label`, and the species filter are arguments,** not literals
   in the middle of a function.
 * **Nothing writes to disk** except `write_segments()`.
+* **Exact sighting positions are projected onto the trackline.**
+  `compute_distance.R` measured the great-circle distance from the event
+  position straight to the animal. That is a radial distance; it exceeds the
+  perpendicular distance a detection function is defined on by however far the
+  aircraft was from being abeam, always in the same direction, and so biases
+  density low.
 
 ## Written from scratch
 

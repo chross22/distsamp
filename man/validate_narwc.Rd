@@ -54,6 +54,14 @@ outside [-180, 180].}
 in a western North Atlantic dataset mean the sign convention was lost.}
 \item{\code{sighting_without_number}}{\code{SPECCODE} present but \code{NUMBER} missing.
 Handbook 8.A.24 requires \code{NUMBER} for all sightings.}
+\item{\code{exact_position_out_of_range}}{\code{S_LAT} or \code{S_LONG} outside the range
+a coordinate can take. Handbook 8.A.33 and 8.A.34 give the exact sighting
+position in decimal degrees.}
+\item{\code{exact_position_far_from_event}}{An exact sighting position more than
+20 km from the event position that recorded it. A sighting is made from
+the aircraft, so this is a coordinate problem — usually a dropped minus
+sign, or degrees and decimal minutes read as decimal degrees — rather
+than a distant animal.}
 \item{\code{angle_out_of_range}}{\code{ANGLEL} or \code{ANGLER} outside \verb{(0, 90]}. Handbook
 8.A.2 defines these as declination angles below the horizon, so a value at
 or below zero is at or above the horizon and one above 90 is behind the

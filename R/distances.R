@@ -150,17 +150,7 @@ sighting_distances <- function(dat, units = c("m", "km"),
   distance <- perp_distance(angle, alt, units = units)
 
   if (on_effort_only) {
-    eligible <- rep(TRUE, n)
-    if ("OnOff.Effort" %in% names(dat)) {
-      eligible <- eligible & !is.na(dat$OnOff.Effort) & dat$OnOff.Effort == 1
-    }
-    if ("LEGTYPE" %in% names(dat)) {
-      eligible <- eligible & !is.na(dat$LEGTYPE) & dat$LEGTYPE == 2
-    }
-    if ("LEGSTAGE" %in% names(dat)) {
-      eligible <- eligible & !is.na(dat$LEGSTAGE) & dat$LEGSTAGE == 2
-    }
-    distance[!eligible] <- NA_real_
+    distance[!on_effort_census_rows(dat)] <- NA_real_
   }
 
   dat$distance <- distance

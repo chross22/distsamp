@@ -337,6 +337,59 @@ belong to the detection-function work, which is out of scope for v1.
 
 ---
 
+## 15. Exact sighting distances were radial, not perpendicular
+
+**Where:** `compute_distance.R:23`
+**Severity:** high — biases every density estimate in the same direction
+
+```r
+mutate(distance = distHaversine(c(IS_LONG, IS_LAT), c(LONGITUDE, LATITUDE)))
+```
+
+This is the great-circle distance from the event position to the animal. Line
+transect estimators are defined on the **perpendicular** distance from the
+trackline, and the two are equal only if the sighting was logged at the instant
+it came abeam. Otherwise
+
+```
+radial = sqrt(perpendicular^2 + along_track_offset^2)
+```
+
+so the recorded distance is always too large, never too small. The bias is not
+subtle at survey scales: the fixture carries a whale 132 m off the track logged
+300 m before the aircraft drew level, for which the radial distance is 327.8 m —
+two and a half times the right answer. Systematically inflated distances widen
+the fitted effective strip half-width, and density is abundance divided by that
+width, so the error propagates straight into an underestimate.
+
+The same file contains an abandoned attempt at the circling case
+(`compute_distance.R:34-51`, commented out): project to UTM zone 19 with `sf`,
+then take `matrixStats::rowMins` of the distance from each circling right whale
+to every on-effort position on the line. That would have given the distance to
+the *nearest logged position*, which is a lower bound on the radial distance and
+still not a perpendicular one, and it is quadratic in the size of the line.
+`circling_distance()` does it by anchoring on the `LEGSTAGE == 3` break-off
+record and projecting onto the line; see step 11e of
+[02-implementation.md](02-implementation.md).
+
+Two lesser points about the same function. It computes nothing at all unless the
+day contains a right whale (`compute_distance.R:13`), so distances to every other
+species are left missing — defensible if right whales are the only target, but it
+is a filter buried inside a distance calculation rather than an argument. And it
+writes results back by rebuilding a six-condition logical index over the whole
+data frame inside a triple loop (`compute_distance.R:26-31`), one trackline at a
+time, which is why it is slow on a full season.
+
+**Fix:** `exact_distance()` projects the sighting onto the trackline using the
+local track bearing, returning the perpendicular distance, the side, and the
+along-track offset — the last so the size of the correction is visible rather
+than assumed away. Guarded by `test-exact.R`, "an along-track offset does not
+inflate the distance" and "the sighting logged before it came abeam keeps its
+true distance", which assert the `sqrt` relationship against the radial distance
+the original computed.
+
+---
+
 ## Not fixed, by decision
 
 **`add_effort_buffer()`** (`add_effort_buffer.R`, `add_effort_offset.R`) adds

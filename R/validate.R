@@ -31,6 +31,14 @@
 #'     in a western North Atlantic dataset mean the sign convention was lost.}
 #'   \item{`sighting_without_number`}{`SPECCODE` present but `NUMBER` missing.
 #'     Handbook 8.A.24 requires `NUMBER` for all sightings.}
+#'   \item{`exact_position_out_of_range`}{`S_LAT` or `S_LONG` outside the range
+#'     a coordinate can take. Handbook 8.A.33 and 8.A.34 give the exact sighting
+#'     position in decimal degrees.}
+#'   \item{`exact_position_far_from_event`}{An exact sighting position more than
+#'     20 km from the event position that recorded it. A sighting is made from
+#'     the aircraft, so this is a coordinate problem — usually a dropped minus
+#'     sign, or degrees and decimal minutes read as decimal degrees — rather
+#'     than a distant animal.}
 #'   \item{`angle_out_of_range`}{`ANGLEL` or `ANGLER` outside `(0, 90]`. Handbook
 #'     8.A.2 defines these as declination angles below the horizon, so a value at
 #'     or below zero is at or above the horizon and one above 90 is behind the
@@ -216,6 +224,38 @@ validate_narwc <- function(dat) {
       "sighting_without_number", "warning", "NUMBER",
       which(!is.na(dat$SPECCODE) & is.na(dat$NUMBER)),
       "SPECCODE present but NUMBER missing (handbook 8.A.24)."
+    )
+  }
+
+  # --- exact sighting positions ---------------------------------------------
+  if (all(c("S_LAT", "S_LONG", "LATITUDE", "LONGITUDE") %in% names(dat))) {
+    s_lat <- suppressWarnings(as.numeric(dat$S_LAT))
+    s_lon <- suppressWarnings(as.numeric(dat$S_LONG))
+
+    add(
+      "exact_position_out_of_range", "error", "S_LAT/S_LONG",
+      which((!is.na(s_lat) & abs(s_lat) > 90) |
+              (!is.na(s_lon) & abs(s_lon) > 180)),
+      paste0(
+        "Exact sighting latitude outside [-90, 90] or longitude outside ",
+        "[-180, 180]. Handbook 8.A.33 and 8.A.34 give these in decimal ",
+        "degrees; degrees and decimal minutes will fail this check."
+      )
+    )
+
+    # A sighting is seen from the aircraft, so it cannot be far from the
+    # position that logged it. Anything beyond a few km is a coordinate
+    # problem, not a whale.
+    away <- gc_distance(dat$LATITUDE, dat$LONGITUDE, s_lat, s_lon)
+    add(
+      "exact_position_far_from_event", "warning", "S_LAT/S_LONG",
+      which(!is.na(away) & away > EXACT_POSITION_MAX_KM),
+      paste0(
+        "Exact sighting position more than ", EXACT_POSITION_MAX_KM,
+        " km from the event position that recorded it. The usual causes are a ",
+        "dropped minus sign on S_LONG and coordinates in degrees and decimal ",
+        "minutes rather than decimal degrees."
+      )
     )
   }
 

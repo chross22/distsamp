@@ -153,6 +153,17 @@ actually flies rhumb lines:
 The haversine formulation, and the standard reference for why it is preferred
 over the law of cosines at short range. `"haversine"` is the package default.
 
+> **Veness, C. (2019)** *Calculating distance, bearing and more between
+> latitude/longitude points.* Movable Type Scripts.
+> <https://www.movable-type.co.uk/scripts/latlong.html>
+
+The cross-track and along-track great-circle formulae, in the form used by
+`cross_track_distance()`, together with the initial-bearing and
+destination-point formulae behind `gc_bearing()`. These are standard spherical
+trigonometry rather than a research result; this is simply the clearest
+statement of them in the form implemented, and is cited so the implementation
+can be checked against something.
+
 Becker's `fn.grcirclkm` — the `"becker"` method — has no separate published
 description that I could find; it appears in the `segchopr` code, reproduced at
 `original/ds_data_dmr.R:70-98`. As shown in
@@ -189,7 +200,8 @@ The input-format specification. Sections used, and where:
 | 8.A.21 | `LEGTYPE` | `?narwc_codes`, `?flag_effort`, `?flag_circling` |
 | 8.A.24 | `NUMBER` required for sightings | `?validate_narwc` |
 | 8.A.30 | `STRATUM` | `?narwc_codes` |
-| 8.A.31 | `STRIP` | carried through, not interpreted in v1 |
+| 8.A.31 | `STRIP`, both interval code books, and the Skymaster blind spot | `?narwc_strip_bins`, `?strip_distance`, `?sighting_distances` |
+| 8.A.33, 8.A.34 | `S_LAT`, `S_LONG`, the exact sighting position | `?exact_distance`, `?validate_narwc` |
 | 8.A.36 | `TAXCODE` | `?narwc_codes` |
 | 8.A.37 | `TIME` | `?validate_narwc` |
 | 8.A.38 | `VISIBLTY`, including the two encodings | `?visibility_ok` |

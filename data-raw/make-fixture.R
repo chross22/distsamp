@@ -23,6 +23,31 @@
 set.seed(20240401)
 
 KM_PER_DEG <- 60 * 1.852 # 111.12 km, as used by gc_distance()
+EARTH_R <- KM_PER_DEG / (pi / 180)
+
+# Position reached by travelling `d_km` from (lat, lon) on `bearing`. Exact
+# sighting positions are built with this rather than typed in, so the
+# perpendicular distance each one implies is exact by construction: leaving a
+# meridian on bearing 90 or 270 departs it at a right angle, so the cross-track
+# distance is d_km and the along-track offset is zero.
+destination <- function(lat, lon, bearing, d_km) {
+  d2r <- pi / 180
+  phi1 <- lat * d2r
+  lam1 <- lon * d2r
+  th <- bearing * d2r
+  delta <- d_km / EARTH_R
+  phi2 <- asin(sin(phi1) * cos(delta) + cos(phi1) * sin(delta) * cos(th))
+  lam2 <- lam1 + atan2(
+    sin(th) * sin(delta) * cos(phi1),
+    cos(delta) - sin(phi1) * sin(phi2)
+  )
+  c(lat = phi2 / d2r, lon = ((lam2 / d2r + 540) %% 360) - 180)
+}
+
+# Perpendicular distance implied by a declination angle at the survey altitude
+# (handbook 8.A.2), in km. Used to place exact positions that agree with the
+# angle already recorded on the same sighting.
+angle_km <- function(deg, alt = 229) (alt / tan(deg * pi / 180)) / 1000
 
 rows <- list()
 add <- function(...) {
@@ -35,7 +60,8 @@ rec <- function(fileid, eventno, date, time, lat, lon,
                 legtype = 2, legstage = 2, legno = NA,
                 beaufort = 2, visiblty = 5, alt = 229,
                 speccode = NA, idrel = NA, number = NA, sightno = NA,
-                strip = NA, anglel = NA, angler = NA) {
+                strip = NA, anglel = NA, angler = NA,
+                s_lat = NA, s_lon = NA) {
   d <- as.Date(date)
   add(
     FILEID = fileid,
@@ -63,6 +89,8 @@ rec <- function(fileid, eventno, date, time, lat, lon,
     STRIP = strip,
     ANGLEL = anglel,
     ANGLER = angler,
+    S_LAT = s_lat,
+    S_LONG = s_lon,
     STRATUM = "0",
     PLATFORM = 210
   )
@@ -104,7 +132,9 @@ fly_line <- function(fileid, date, eventno, time, legno, lat0, lon, n,
             speccode = sight$speccode[s], idrel = sight$idrel[s],
             number = sight$number[s], sightno = sight$sightno[s],
             strip = sight$strip[s],
-            anglel = sight$anglel[s], angler = sight$angler[s])
+            anglel = sight$anglel[s], angler = sight$angler[s],
+            s_lat = if (is.null(sight$s_lat)) NA else sight$s_lat[s],
+            s_lon = if (is.null(sight$s_lon)) NA else sight$s_lon[s])
       }
       # Groups seen together share one event number (handbook events 5, 11).
       eventno <- eventno + 1
@@ -117,10 +147,11 @@ fly_line <- function(fileid, date, eventno, time, legno, lat0, lon, n,
 # altitude these correspond to perpendicular distances of roughly:
 #   75 deg -> 61 m,  60 -> 132,  45 -> 229,  30 -> 397,  20 -> 629,  15 -> 855
 sighting <- function(speccode, number, idrel = 3, legstage = 2, sightno = 1,
-                     strip = 7, anglel = NA, angler = NA) {
+                     strip = 7, anglel = NA, angler = NA,
+                     s_lat = NA, s_lon = NA) {
   list(speccode = speccode, number = number, idrel = idrel,
        legstage = legstage, sightno = sightno, strip = strip,
-       anglel = anglel, angler = angler)
+       anglel = anglel, angler = angler, s_lat = s_lat, s_lon = s_lon)
 }
 
 ## ---------------------------------------------------------------------------
@@ -137,11 +168,24 @@ rec(fid, 3, d1, "120200", 42.95, -69.00, legtype = 1, legstage = NA,
 
 # Line 1: 21 positions, 22.224 km. Sightings of groups b, then c/d/e sharing an
 # event, then a pilot sighting (group f, LEGSTAGE 6).
+
+# Group b, at position 5, also carries an exact position: 229 m due east of the
+# event, which is exactly what its 45-degree declination angle implies. The two
+# independent distance sources agree to the last bit, by construction.
+b_pos <- destination(43.04, -69.00, 90, angle_km(45))
+
+# The first of the three at position 10 is logged 300 m before it came abeam,
+# 132 m to the left. Perpendicular distance and radial distance differ by more
+# than a factor of two here: the point of computing the former.
+c_abeam <- destination(43.09, -69.00, 0, 0.300)
+c_pos <- destination(c_abeam[["lat"]], c_abeam[["lon"]], 270, angle_km(60))
+
 st <- fly_line(
   fid, d1, eventno = 4, time = 120400, legno = 1,
   lat0 = 43.00, lon = -69.00, n = 21,
   sightings = list(
-    "5"  = sighting("RIWH", 1, sightno = 2, angler = 45),
+    "5"  = sighting("RIWH", 1, sightno = 2, angler = 45,
+                    s_lat = b_pos[["lat"]], s_lon = b_pos[["lon"]]),
     "10" = list(speccode = c("RIWH", "RIWH", "FIWH"),
                 number   = c(2, 1, 3),
                 idrel    = c(3, 3, 2),
@@ -149,7 +193,9 @@ st <- fly_line(
                 sightno  = c(3, 4, 5),
                 strip    = c(5, 5, 9),
                 anglel   = c(60, NA, NA),
-                angler   = c(NA, 30, 20)),
+                angler   = c(NA, 30, 20),
+                s_lat    = c(c_pos[["lat"]], NA, NA),
+                s_lon    = c(c_pos[["lon"]], NA, NA)),
     "16" = sighting("FIWH", 1, legstage = 6, sightno = 6, angler = 40)
   )
 )
@@ -186,10 +232,22 @@ for (i in 1:5) {
   lat <- 43.32 + c(0.004, 0.006, 0.003, -0.001, 0.001)[i]
   lon <- -69.10 + c(0.003, -0.002, -0.005, -0.003, 0.001)[i]
   spec <- if (i == 3) "RIWH" else NA
+  # The circling sighting carries an exact position, placed relative to the
+  # break-off point at (43.32, -69.10) rather than to the orbiting aircraft:
+  # 400 m back down the line and 250 m to its right, which is the geometry
+  # circling_distance() has to recover. It must still get no distance from
+  # exact_distance(), which has no track-line here to be perpendicular to.
+  s <- if (i == 3) {
+    abeam <- destination(43.32, -69.10, 180, 0.400)
+    destination(abeam[["lat"]], abeam[["lon"]], 90, 0.250)
+  } else {
+    c(lat = NA, lon = NA)
+  }
   rec(fid, ev, d1, bump_time(circ_t, (i - 1) * 40), lat, lon,
       legtype = 4, legstage = NA, legno = 2,
       speccode = spec, idrel = if (i == 3) 3 else NA,
-      number = if (i == 3) 1 else NA, sightno = if (i == 3) 10 else NA)
+      number = if (i == 3) 1 else NA, sightno = if (i == 3) 10 else NA,
+      s_lat = s[["lat"]], s_lon = s[["lon"]])
   ev <- ev + 1
 }
 
@@ -215,11 +273,17 @@ d2 <- "2024-04-02"
 
 # Line 3: 31 positions, 33.336 km. Long enough for several segments. Includes a
 # sighting found afterwards in a vertical photograph (LEGSTAGE 7).
+
+# Group at position 8 sits 160 m to the left, agreeing with its 55-degree
+# angle. On a different day and file, so it exercises the line grouping too.
+h_pos <- destination(43.07, -68.80, 270, angle_km(55))
+
 st <- fly_line(
   fid, d2, eventno = 1, time = 133000, legno = 3,
   lat0 = 43.00, lon = -68.80, n = 31,
   sightings = list(
-    "8"  = sighting("RIWH", 4, sightno = 1, strip = 5, anglel = 55),
+    "8"  = sighting("RIWH", 4, sightno = 1, strip = 5, anglel = 55,
+                    s_lat = h_pos[["lat"]], s_lon = h_pos[["lon"]]),
     "20" = sighting("SEWH", 2, idrel = 2, sightno = 2, strip = 11, angler = 25),
     "26" = sighting("LOTU", 1, legstage = 7, sightno = 3, strip = NA)
   )
@@ -271,3 +335,4 @@ cat("dates:", paste(unique(paste(out$YEAR, out$MONTH, out$DAY, sep = "-")),
 cat("species:", paste(sort(unique(stats::na.omit(out$SPECCODE))), collapse = ", "), "\n")
 cat("declination angles recorded:",
     sum(!is.na(out$ANGLEL) | !is.na(out$ANGLER)), "\n")
+cat("exact sighting positions:", sum(!is.na(out$S_LAT)), "\n")
