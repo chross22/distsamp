@@ -205,16 +205,54 @@ narwc_schema <- function() {
       LAT       = "LATITUDE",
       LON       = "LONGITUDE",
       LONG      = "LONGITUDE",
+      LATITUDE_DD  = "LATITUDE",
+      LONGITUDE_DD = "LONGITUDE",
       LEGTYPE_BK = "LEGTYPE",
       VISIBILITY = "VISIBLTY",
       VISIBLITY  = "VISIBLTY",
       SPECIES    = "SPECCODE",
+      SPEC_CODE  = "SPECCODE",
       EVENT      = "EVENTNO",
+      EVENT_NO   = "EVENTNO",
+      EVENTNUM   = "EVENTNO",
       YR         = "YEAR",
-      MO         = "MONTH"
+      MO         = "MONTH",
+      # Time and date arrive under whichever zone the programme records in.
+      # `TIME` wins if present; otherwise UTC before local, so a multi-source
+      # dataset lands on one clock. `read_narwc()` reports which was used.
+      TIME_UTC   = "TIME",
+      GMT        = "TIME",
+      TIME_GMT   = "TIME",
+      GMT_TIME   = "TIME",
+      TIME_LOC   = "TIME",
+      TIME_LOCAL = "TIME",
+      TIMEUTC    = "TIME",
+      TIMELOC    = "TIME",
+      DATE_UTC   = "DATE",
+      DATE_LOC   = "DATE",
+      DATE_LOCAL = "DATE",
+      SIGHT_NO   = "SIGHTNO",
+      FIELD_SIGHTNO = "SIGHTNO",
+      NUM        = "NUMBER",
+      GROUPSIZE  = "NUMBER",
+      ALTITUDE   = "ALT",
+      SEASTATE   = "BEAUFORT",
+      SEA_STATE  = "BEAUFORT"
     )
   )
 }
+
+# When more than one input column maps to the same canonical name, this is the
+# order they are preferred in. Anything not named here comes after these, in
+# the order the alias table lists it.
+# A list, not c(): `c(TIME = c("a", "b"))` names the elements TIME1 and TIME2,
+# so nothing would ever match on the name.
+narwc_alias_priority <- list(
+  # GMT and UTC are the same clock, so they rank together, ahead of local.
+  TIME = c("TIME_UTC", "TIMEUTC", "GMT", "TIME_GMT", "GMT_TIME",
+           "TIME_LOC", "TIMELOC", "TIME_LOCAL"),
+  DATE = c("DATE_UTC", "DATE_LOC", "DATE_LOCAL")
+)
 
 # Columns that are numeric in the NARWC schema. Everything else recognised is
 # read as character.

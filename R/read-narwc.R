@@ -4,15 +4,43 @@
 #' already-loaded data frame, into the column names and types the rest of the
 #' package expects.
 #'
-#' The function does three things and nothing else: it renames known alternative
-#' spellings onto the internal names ([narwc_schema()]`$aliases`), coerces the
-#' numeric NARWC variables to numeric, and turns the database's missing-value
-#' placeholders (`"."`, `""`) into `NA`. It deliberately does not filter, repair,
-#' or reject records — use [validate_narwc()] to find problems and
+#' It resolves column names onto the handbook's, coerces the numeric NARWC
+#' variables, turns the database's missing-value placeholders (`"."`, `""`) into
+#' `NA`, and drops records with no position. Beyond that it does not filter,
+#' repair, or reject anything — use [validate_narwc()] to find problems and
 #' [flag_effort()] to decide what counts as effort.
 #'
 #' A `DATE` column of class `Date` is derived from `YEAR`, `MONTH`, and `DAY`
 #' when all three are present.
+#'
+#' @section Column names do not have to match exactly:
+#' Real extracts spell things their own way. Matching ignores case and
+#' separators, so `Event`, `event_no`, and `EventNo` all reach `EVENTNO` without
+#' anyone editing a spreadsheet first, and the alias table in
+#' [narwc_schema()]`$aliases` covers the rest.
+#'
+#' **This is not fuzzy matching.** Nothing is guessed by edit distance —
+#' `EVENTN0` with a zero stays `EVENTN0` — and nothing is ever renamed onto a
+#' canonical column that is already present, so a correctly named column always
+#' wins. Matches that took an inference are reported; exact entries in the alias
+#' table are not, since announcing `LAT_DD` on every read would bury the ones
+#' worth a second look.
+#'
+#' @section Where `TIME` comes from:
+#' Programmes record the clock they record. `TIME` is taken from the first of
+#' `TIME`, then a UTC column (`TIME_UTC`, `GMT`, `TIME_GMT`), then a local one
+#' (`TIME_LOC`, `TIME_LOCAL`) — GMT and UTC being the same clock. A file
+#' carrying both zones lands on UTC. If yours is consistent it does not much
+#' matter which; if it is not, decide before segmenting, because effort is
+#' accumulated in record order.
+#'
+#' @section Records with no position:
+#' Dropped by default, and reported. A record with no `LATITUDE` or `LONGITUDE`
+#' contributes no effort and cannot place a sighting — but left in, it does not
+#' announce itself: [gc_distance()] returns `NA`, which
+#' [point_to_point_effort()] turns into a zero. Losing it visibly is better than
+#' counting it as zero distance flown. `drop_missing_position = FALSE` keeps
+#' them.
 #'
 #' @section Columns that are not in the handbook:
 #' Survey programmes add their own derived columns, and a processed "ready for
@@ -26,7 +54,9 @@
 #' \describe{
 #'   \item{`profile = "ccs"`}{Keeps the columns that programme is known to add.
 #'     See [narwc_profiles()] for what is registered.}
-#'   \item{`extra_columns = c(...)`}{Keeps exactly what you name.}
+#'   \item{`extra_columns = c(...)`}{Keeps exactly what you name. Glob patterns
+#'     work, so `"Trk*"` keeps a family whose exact names differ between
+#'     extracts.}
 #'   \item{`extra_columns = NULL`}{Keeps every column in the input.}
 #' }
 #'
@@ -42,7 +72,10 @@
 #' @param profile Survey-programme profile whose extra columns should be kept,
 #'   for example `"ccs"`. `NULL` (default) keeps only the handbook columns. See
 #'   [narwc_profiles()].
-#' @param quiet Suppress the message naming dropped columns. Default `FALSE`.
+#' @param drop_missing_position Drop records with no `LATITUDE` or `LONGITUDE`.
+#'   Default `TRUE`; see below.
+#' @param quiet Suppress the messages naming matched columns, dropped columns,
+#'   and dropped records. Default `FALSE`.
 #' @param ... Passed to [utils::read.csv()] when `x` is a path.
 #'
 #' @return A tibble with the recognised NARWC columns, standardised names and
@@ -69,7 +102,7 @@
 #'
 #' @export
 read_narwc <- function(x, extra_columns = character(), profile = NULL,
-                       quiet = FALSE, ...) {
+                       drop_missing_position = TRUE, quiet = FALSE, ...) {
   dat <- if (is.data.frame(x)) {
     x
   } else if (is.character(x) && length(x) == 1L) {
@@ -84,14 +117,17 @@ read_narwc <- function(x, extra_columns = character(), profile = NULL,
   dat <- tibble::as_tibble(dat)
   schema <- narwc_schema()
 
-  # 1. Rename known aliases onto internal names, but never clobber a column
-  #    that is already correctly named.
+  # 1. Resolve input columns onto the canonical names.
   aliases <- schema$aliases
-  present <- intersect(names(aliases), names(dat))
-  for (from in present) {
-    to <- aliases[[from]]
-    if (!to %in% names(dat)) {
-      names(dat)[names(dat) == from] <- to
+  resolved <- resolve_columns(names(dat), schema)
+  if (length(resolved$renames)) {
+    names(dat)[match(names(resolved$renames), names(dat))] <-
+      unname(resolved$renames)
+    # Only the inferred matches are worth saying out loud. An exact entry in
+    # the alias table is documented behaviour, and announcing `LAT_DD` every
+    # time would bury the ones that deserve a second look.
+    if (!quiet && any(resolved$inferred)) {
+      report_renamed_columns(resolved$renames[resolved$inferred])
     }
   }
 
@@ -101,7 +137,8 @@ read_narwc <- function(x, extra_columns = character(), profile = NULL,
     extra_columns <- unique(c(extra_columns, narwc_profiles(profile)$column))
   }
   if (!is.null(extra_columns)) {
-    keep <- c(schema$required, schema$optional, extra_columns)
+    keep <- c(schema$required, schema$optional,
+              expand_column_globs(extra_columns, names(dat)))
     dropped <- setdiff(names(dat), keep)
     dat <- dat[, intersect(keep, names(dat)), drop = FALSE]
 
@@ -134,8 +171,113 @@ read_narwc <- function(x, extra_columns = character(), profile = NULL,
     dat$DATE <- as.Date(dat$DATE)
   }
 
+  # 6. A record with no position cannot contribute effort or place a sighting.
+  #    Left in, it silently contributes zero distance, which is worse than
+  #    losing it visibly.
+  if (drop_missing_position && all(c("LATITUDE", "LONGITUDE") %in% names(dat))) {
+    gone <- is.na(dat$LATITUDE) | is.na(dat$LONGITUDE)
+    if (any(gone)) {
+      dat <- dat[!gone, , drop = FALSE]
+      if (!quiet) {
+        rlang::inform(paste0(
+          "Dropped ", sum(gone), " record", if (sum(gone) > 1) "s" else "",
+          " with no LATITUDE or LONGITUDE. Such a record contributes no ",
+          "effort and cannot place a sighting; left in, it would count as ",
+          "zero distance rather than as missing. Keep them with ",
+          "`drop_missing_position = FALSE`."
+        ))
+      }
+    }
+  }
+
   class(dat) <- unique(c("distsamp_narwc", class(dat)))
   dat
+}
+
+# Map the input's column names onto the canonical ones.
+#
+# Three passes, most confident first: an exact canonical name is left alone; a
+# name that matches one after normalising case and separators is renamed; and
+# an alias is applied, normalised the same way. `Event`, `event_no` and
+# `EventNo` all reach `EVENTNO` without anyone editing a spreadsheet.
+#
+# Normalising is not fuzzy matching. Nothing is guessed by edit distance, and
+# nothing is renamed onto a canonical column that is already present - the
+# real one always wins. Every rename is reported, because a column name is the
+# one piece of provenance a reader has.
+resolve_columns <- function(nms, schema) {
+  canonical <- c(schema$required, schema$optional)
+  norm <- function(x) toupper(gsub("[^A-Za-z0-9]", "", x))
+
+  input_norm <- norm(nms)
+  taken <- nms[nms %in% canonical]
+  renames <- character(0)
+
+  # Target, and whether reaching it took an inference. An exact alias is a
+  # documented mapping; anything found only after normalising case or
+  # separators is a judgement about what the author meant.
+  target_of <- function(i) {
+    if (nms[i] %in% canonical) return(c(NA_character_, "FALSE"))
+
+    exact_alias <- unname(schema$aliases[match(nms[i], names(schema$aliases))])
+    if (!is.na(exact_alias)) return(c(exact_alias, "FALSE"))
+
+    hit <- canonical[match(input_norm[i], norm(canonical))]
+    if (!is.na(hit)) return(c(hit, "TRUE"))
+
+    alias_hit <- unname(schema$aliases[match(input_norm[i],
+                                             norm(names(schema$aliases)))])
+    if (!is.na(alias_hit)) return(c(alias_hit, "TRUE"))
+    c(NA_character_, "FALSE")
+  }
+
+  # Preferred order among several inputs claiming the same canonical name.
+  priority <- function(nm, target) {
+    order_for <- narwc_alias_priority[[target]]
+    if (is.null(order_for)) return(1)
+    m <- match(norm(nm), norm(order_for))
+    if (is.na(m)) length(order_for) + 1L else m
+  }
+
+  found <- vapply(seq_along(nms), target_of, character(2))
+  wants <- found[1, ]
+  guessed <- found[2, ] == "TRUE"
+  inferred <- logical(0)
+
+  for (target in unique(stats::na.omit(wants))) {
+    if (target %in% taken) next
+    claimants <- which(wants == target)
+    if (length(claimants) > 1L) {
+      claimants <- claimants[order(vapply(
+        claimants, function(i) priority(nms[i], target), numeric(1)
+      ))]
+    }
+    pick <- claimants[1]
+    renames[nms[pick]] <- target
+    inferred <- c(inferred, guessed[pick])
+    taken <- c(taken, target)
+  }
+  list(renames = renames, inferred = inferred)
+}
+
+report_renamed_columns <- function(renames) {
+  rlang::inform(paste0(
+    "`read_narwc()` matched ", length(renames), " column",
+    if (length(renames) > 1) "s" else "", " onto handbook names:\n  ",
+    paste(names(renames), "->", unname(renames), collapse = "\n  "),
+    "\nMatching ignores case and separators. Check these are what you meant."
+  ))
+}
+
+# Glob patterns in `extra_columns`, so `Trk*` keeps a family of columns whose
+# exact names differ between extracts.
+expand_column_globs <- function(cols, nms) {
+  if (!length(cols)) return(cols)
+  out <- unlist(lapply(cols, function(p) {
+    if (!grepl("[*?]", p)) return(p)
+    nms[grepl(utils::glob2rx(p), nms)]
+  }))
+  unique(out)
 }
 
 # Tell the caller which columns were discarded, and whether they look like a

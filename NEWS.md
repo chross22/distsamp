@@ -193,6 +193,51 @@ CCS is the only profile registered so far, and is an exception rather than a
 representative case. Adding one needs a data dictionary, not just a column list;
 entries whose meaning was inferred from the name are marked `unconfirmed`.
 
+## Reading real extracts
+
+Found by testing against real data rather than the fixture.
+
+* **Column names no longer have to match exactly.** Matching ignores case and
+  separators, so `Event`, `event_no`, and `EventNo` all reach `EVENTNO`. The
+  alias table gained roughly twenty entries — `TIME_UTC`, `GMT`, `TIME_LOC`,
+  `Field_SIGHTNO`, `Sea_State`, `Event_No` and others.
+
+  It is **not** fuzzy matching: nothing is guessed by edit distance, nothing is
+  renamed onto a canonical column that is already present, and inferred matches
+  are reported. Exact alias-table entries stay silent, since announcing `LAT_DD`
+  on every read would bury the ones worth checking.
+
+* **`TIME` is taken from whichever clock the file records** — `TIME`, then a UTC
+  column (`TIME_UTC`, `GMT`, `TIME_GMT`), then a local one. A file carrying both
+  lands on UTC.
+
+* **Records with no position are dropped**, and reported. Left in they do not
+  announce themselves: `gc_distance()` returns `NA` and
+  `point_to_point_effort()` turns that into a zero, so the record silently
+  counts as zero distance flown. `drop_missing_position = FALSE` keeps them.
+
+* **`extra_columns` takes glob patterns**, so `"Trk*"` keeps a family of columns
+  whose exact names differ between extracts.
+
+## Reading from cloud storage
+
+* `narwc_cloud_roots()` — where OneDrive and Google Drive sync to on this
+  platform. Only documented locations are checked; nothing is searched for.
+* `narwc_fetch()` — resolves a Google Drive id or URL, or a path within an
+  authenticated OneDrive or SharePoint drive, to a local file path, so it
+  composes with `read_narwc()`. A local path is returned unchanged, so wrapping
+  one is safe.
+
+**`distsamp` never handles credentials.** You authenticate in your own session —
+`googledrive::drive_auth()`, or `Microsoft365R::get_business_onedrive()` — and
+pass the result. No argument accepts a token, and nothing is stored or cached.
+That is also why OneDrive takes a drive object rather than a URL: resolving a
+SharePoint link means knowing whose tenant it is, and that is not something to
+guess at.
+
+Usually none of this is needed — both clients sync to a local folder, and a file
+inside one is an ordinary path `read_narwc()` already reads.
+
 ## Survey lines, sequence checks, and a quadratic term removed
 
 * `line_effort()` and `reflight_summary()` — effort per survey line rather than

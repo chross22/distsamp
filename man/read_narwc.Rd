@@ -4,7 +4,14 @@
 \alias{read_narwc}
 \title{Read NARWC-format survey data}
 \usage{
-read_narwc(x, extra_columns = character(), profile = NULL, quiet = FALSE, ...)
+read_narwc(
+  x,
+  extra_columns = character(),
+  profile = NULL,
+  drop_missing_position = TRUE,
+  quiet = FALSE,
+  ...
+)
 }
 \arguments{
 \item{x}{A path to a CSV file, or a data frame.}
@@ -17,7 +24,11 @@ input.}
 for example \code{"ccs"}. \code{NULL} (default) keeps only the handbook columns. See
 \code{\link[=narwc_profiles]{narwc_profiles()}}.}
 
-\item{quiet}{Suppress the message naming dropped columns. Default \code{FALSE}.}
+\item{drop_missing_position}{Drop records with no \code{LATITUDE} or \code{LONGITUDE}.
+Default \code{TRUE}; see below.}
+
+\item{quiet}{Suppress the messages naming matched columns, dropped columns,
+and dropped records. Default \code{FALSE}.}
 
 \item{...}{Passed to \code{\link[utils:read.csv]{utils::read.csv()}} when \code{x} is a path.}
 }
@@ -33,16 +44,50 @@ already-loaded data frame, into the column names and types the rest of the
 package expects.
 }
 \details{
-The function does three things and nothing else: it renames known alternative
-spellings onto the internal names (\code{\link[=narwc_schema]{narwc_schema()}}\verb{$aliases}), coerces the
-numeric NARWC variables to numeric, and turns the database's missing-value
-placeholders (\code{"."}, \code{""}) into \code{NA}. It deliberately does not filter, repair,
-or reject records — use \code{\link[=validate_narwc]{validate_narwc()}} to find problems and
+It resolves column names onto the handbook's, coerces the numeric NARWC
+variables, turns the database's missing-value placeholders (\code{"."}, \code{""}) into
+\code{NA}, and drops records with no position. Beyond that it does not filter,
+repair, or reject anything — use \code{\link[=validate_narwc]{validate_narwc()}} to find problems and
 \code{\link[=flag_effort]{flag_effort()}} to decide what counts as effort.
 
 A \code{DATE} column of class \code{Date} is derived from \code{YEAR}, \code{MONTH}, and \code{DAY}
 when all three are present.
 }
+\section{Column names do not have to match exactly}{
+
+Real extracts spell things their own way. Matching ignores case and
+separators, so \code{Event}, \code{event_no}, and \code{EventNo} all reach \code{EVENTNO} without
+anyone editing a spreadsheet first, and the alias table in
+\code{\link[=narwc_schema]{narwc_schema()}}\verb{$aliases} covers the rest.
+
+\strong{This is not fuzzy matching.} Nothing is guessed by edit distance —
+\code{EVENTN0} with a zero stays \code{EVENTN0} — and nothing is ever renamed onto a
+canonical column that is already present, so a correctly named column always
+wins. Matches that took an inference are reported; exact entries in the alias
+table are not, since announcing \code{LAT_DD} on every read would bury the ones
+worth a second look.
+}
+
+\section{Where \code{TIME} comes from}{
+
+Programmes record the clock they record. \code{TIME} is taken from the first of
+\code{TIME}, then a UTC column (\code{TIME_UTC}, \code{GMT}, \code{TIME_GMT}), then a local one
+(\code{TIME_LOC}, \code{TIME_LOCAL}) — GMT and UTC being the same clock. A file
+carrying both zones lands on UTC. If yours is consistent it does not much
+matter which; if it is not, decide before segmenting, because effort is
+accumulated in record order.
+}
+
+\section{Records with no position}{
+
+Dropped by default, and reported. A record with no \code{LATITUDE} or \code{LONGITUDE}
+contributes no effort and cannot place a sighting — but left in, it does not
+announce itself: \code{\link[=gc_distance]{gc_distance()}} returns \code{NA}, which
+\code{\link[=point_to_point_effort]{point_to_point_effort()}} turns into a zero. Losing it visibly is better than
+counting it as zero distance flown. \code{drop_missing_position = FALSE} keeps
+them.
+}
+
 \section{Columns that are not in the handbook}{
 
 Survey programmes add their own derived columns, and a processed "ready for
@@ -56,7 +101,9 @@ Three ways to keep them:
 \describe{
 \item{\code{profile = "ccs"}}{Keeps the columns that programme is known to add.
 See \code{\link[=narwc_profiles]{narwc_profiles()}} for what is registered.}
-\item{\code{extra_columns = c(...)}}{Keeps exactly what you name.}
+\item{\code{extra_columns = c(...)}}{Keeps exactly what you name. Glob patterns
+work, so \code{"Trk*"} keeps a family whose exact names differ between
+extracts.}
 \item{\code{extra_columns = NULL}}{Keeps every column in the input.}
 }
 

@@ -31,6 +31,8 @@ Imports:
     utils,
     withr
 Suggests:
+    googledrive,
+    Microsoft365R,
     rnaturalearth,
     rnaturalearthdata,
     ggplot2,
