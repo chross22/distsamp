@@ -26,6 +26,24 @@
 #'     `Distance::ds()` is called. See the note on `g(0)` below.}
 #' }
 #'
+#' @section Coastlines, and why the default is none:
+#' `coastline = TRUE` draws Natural Earth land under the track. That is enough
+#' to orient a shelf-scale survey, and **not** enough for a bay. Natural Earth's
+#' medium scale is 1:50,000,000; against a survey whose lines are a few
+#' kilometres apart, its shoreline is wrong by more than the thing you are
+#' looking at, and a segmentation that hugs the coast will appear to run over
+#' land.
+#'
+#' So: use it to get your bearings, and pass your own `sf` object for anything
+#' anyone else will see.
+#'
+#' ```r
+#' plot(segs, coastline = sf::st_read("gshhg_cape_cod.shp"))
+#' ```
+#'
+#' `scale = "large"` (1:10m) is better and needs `rnaturalearthhires`, which is
+#' not on CRAN — install it from the rOpenSci r-universe.
+#'
 #' @section On reading the distance histogram:
 #' A dip in the first bin is not necessarily a sampling artefact — an aircraft
 #' cannot see the water directly beneath it, and for the Skymaster the handbook
@@ -39,6 +57,11 @@
 #'   `"distances"`.
 #' @param species Optional character vector of `SPECCODE` values to show, for
 #'   the views that draw sightings. `NULL` (default) shows all.
+#' @param coastline Land to draw under the map views. `FALSE` (default) draws
+#'   none. `TRUE` fetches Natural Earth countries through `rnaturalearth`; a
+#'   scale name — `"small"`, `"medium"`, `"large"` — picks the resolution; or
+#'   pass your own `sf` object. Ignored by the `"effort"` and `"distances"`
+#'   views. See the note on resolution below.
 #' @param ... Ignored, for compatibility with [plot()].
 #'
 #' @return A `ggplot` object.
@@ -72,13 +95,13 @@
 #' @export
 plot.distsamp_segments <- function(x, what = c("segments", "tracks", "effort",
                                                "distances"),
-                                   species = NULL, ...) {
+                                   species = NULL, coastline = FALSE, ...) {
   what <- match.arg(what)
   check_ggplot2()
 
   switch(what,
-    segments  = plot_segments_map(x, species),
-    tracks    = plot_tracks_map(x),
+    segments  = plot_segments_map(x, species, coastline),
+    tracks    = plot_tracks_map(x, coastline),
     effort    = plot_effort_hist(x),
     distances = plot_distance_hist(x, species)
   )
@@ -109,12 +132,14 @@ sightings_with_position <- function(x, species = NULL) {
   if (!nrow(out)) NULL else out
 }
 
-plot_segments_map <- function(x, species = NULL) {
+plot_segments_map <- function(x, species = NULL, coastline = FALSE) {
   segs <- x$segments
   pts <- x$points
   sight <- sightings_with_position(x, species)
+  land <- coastline_layer(coastline)
 
   p <- ggplot2::ggplot() +
+    land +
     ggplot2::geom_point(
       data = pts,
       ggplot2::aes(x = .data$LONGITUDE, y = .data$LATITUDE),
@@ -138,7 +163,7 @@ plot_segments_map <- function(x, species = NULL) {
   }
 
   p +
-    ggplot2::coord_quickmap() +
+    map_coord(coastline, pts$LONGITUDE, pts$LATITUDE) +
     ggplot2::labs(
       x = "Longitude", y = "Latitude",
       title = "Segment midpoints and sightings",
@@ -150,7 +175,7 @@ plot_segments_map <- function(x, species = NULL) {
     ggplot2::theme_minimal()
 }
 
-plot_tracks_map <- function(x) {
+plot_tracks_map <- function(x, coastline = FALSE) {
   pts <- x$points
   pts$.track <- factor(pts$new_trackno)
 
@@ -158,9 +183,10 @@ plot_tracks_map <- function(x) {
     pts,
     ggplot2::aes(x = .data$LONGITUDE, y = .data$LATITUDE, colour = .data$.track)
   ) +
+    coastline_layer(coastline) +
     ggplot2::geom_path(ggplot2::aes(group = .data$.track), linewidth = 0.4) +
     ggplot2::geom_point(size = 0.7) +
-    ggplot2::coord_quickmap() +
+    map_coord(coastline, pts$LONGITUDE, pts$LATITUDE) +
     ggplot2::labs(
       x = "Longitude", y = "Latitude", colour = "Track",
       title = "Continuous-effort tracks",
@@ -229,4 +255,82 @@ plot_distance_hist <- function(x, species = NULL) {
       )
     ) +
     ggplot2::theme_minimal()
+}
+
+
+# The land layer, or nothing. Drawn before the survey so the track sits on top.
+coastline_layer <- function(coastline) {
+  land <- resolve_coastline(coastline)
+  if (is.null(land)) {
+    return(NULL)
+  }
+  ggplot2::geom_sf(
+    data = land, fill = "grey88", colour = "grey65", linewidth = 0.2,
+    inherit.aes = FALSE
+  )
+}
+
+# coord_sf() once there is an sf layer to reconcile, coord_quickmap() otherwise.
+# The limits come from the survey rather than the land, or a world coastline
+# would zoom the plot out to the world.
+map_coord <- function(coastline, lon, lat) {
+  if (is.null(resolve_coastline(coastline))) {
+    return(ggplot2::coord_quickmap())
+  }
+  pad <- function(r) {
+    d <- diff(r)
+    r + c(-1, 1) * max(d * 0.08, 0.05)
+  }
+  ggplot2::coord_sf(
+    xlim = pad(range(lon, na.rm = TRUE)),
+    ylim = pad(range(lat, na.rm = TRUE)),
+    expand = FALSE
+  )
+}
+
+# NULL for no coastline, otherwise an sf object.
+resolve_coastline <- function(coastline) {
+  if (isFALSE(coastline) || is.null(coastline)) {
+    return(NULL)
+  }
+  if (inherits(coastline, "sf")) {
+    return(coastline)
+  }
+  check_sf()
+
+  scale <- if (isTRUE(coastline)) "medium" else coastline
+  if (!is.character(scale) || length(scale) != 1L ||
+      !scale %in% c("small", "medium", "large")) {
+    rlang::abort(paste0(
+      "`coastline` must be FALSE, TRUE, one of \"small\", \"medium\", ",
+      "\"large\", or an `sf` object to draw."
+    ))
+  }
+  if (!requireNamespace("rnaturalearth", quietly = TRUE)) {
+    rlang::abort(paste0(
+      "`coastline = \"", scale, "\"` needs the `rnaturalearth` package. ",
+      "Install it, or pass an `sf` object of your own to `coastline` - which ",
+      "is the better option for anything at bay scale."
+    ))
+  }
+
+  land <- try(
+    rnaturalearth::ne_countries(scale = scale, returnclass = "sf"),
+    silent = TRUE
+  )
+  if (inherits(land, "try-error")) {
+    rlang::abort(paste0(
+      "Natural Earth data at scale \"", scale, "\" is not available: ",
+      sub("\n.*", "", conditionMessage(attr(land, "condition"))),
+      if (scale == "large") {
+        paste0(
+          "\nScale \"large\" needs `rnaturalearthhires`, which is not on ",
+          "CRAN; install it from https://ropensci.r-universe.dev."
+        )
+      } else {
+        ""
+      }
+    ))
+  }
+  land
 }

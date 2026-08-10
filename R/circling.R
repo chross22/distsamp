@@ -179,35 +179,57 @@ attach_circling_sightings <- function(chopped, dat,
     .groups = "drop"
   )
 
-  keep <- vector("list", nrow(cand))
-  for (i in seq_len(nrow(cand))) {
-    same_day <- bounds[bounds$DATE == cand$DATE[i], , drop = FALSE]
-    before <- same_day[same_day$last_event <= cand$EVENTNO[i], , drop = FALSE]
-    if (!nrow(before)) next
-    target <- before[which.max(before$last_event), , drop = FALSE]
+  # Each candidate attaches to the segment that was in progress immediately
+  # before it: the one on the same day with the largest `last_event` not past
+  # the candidate's own.
+  #
+  # Done as a rolling lookup per day rather than a scan per candidate. Scanning
+  # `bounds` and `chopped` once for every circling sighting made this
+  # O(candidates x records), which is invisible when circling is rare and
+  # quadratic when it is not - and on right whale surveys it is not.
+  target <- rep(NA_integer_, nrow(cand))
+  cand_day <- as.character(cand$DATE)
+  bound_day <- as.character(bounds$DATE)
 
-    if (mode == "same_species") {
-      in_seg <- chopped$seg_id == target$seg_id &
-        !is.na(chopped$SPECCODE) & chopped$SPECCODE == cand$SPECCODE[i]
-      if (!any(in_seg)) next
-    }
-
-    row <- cand[i, , drop = FALSE]
-    row$seg_id <- target$seg_id
-    row$seg_no <- target$seg_no
-    row$seg_eff <- target$seg_eff
-    row$new_trackno <- target$new_trackno
-    row$events <- paste(target$first_event, target$last_event, sep = "_")
-    row$case <- "circling"
-    # Attaching a record must not change how long the segment is.
-    row$pt2pt.effort <- 0
-    keep[[i]] <- row
+  for (day in unique(cand_day)) {
+    b <- which(bound_day == day)
+    if (!length(b)) next
+    ord <- b[order(bounds$last_event[b])]
+    i <- which(cand_day == day)
+    pos <- findInterval(cand$EVENTNO[i], bounds$last_event[ord])
+    hit <- pos >= 1L
+    target[i[hit]] <- ord[pos[hit]]
   }
 
-  extra <- dplyr::bind_rows(keep)
-  if (is_empty_df(extra)) {
+  sel <- !is.na(target)
+
+  if (mode == "same_species") {
+    # Handbook 4.2 / the CETAP rule: a circling sighting joins the segment only
+    # if that segment already holds one of the same species. Membership is
+    # tested against a set built once, in a single vectorised call - `%in%`
+    # rebuilds its hash on every call, so testing it inside the loop would have
+    # left the quadratic term in place.
+    seen <- !is.na(chopped$SPECCODE) & chopped$SPECCODE != ""
+    seg_species <- unique(paste(chopped$seg_id[seen], chopped$SPECCODE[seen],
+                                sep = "\r"))
+    key <- paste(bounds$seg_id[target], cand$SPECCODE, sep = "\r")
+    sel <- sel & key %in% seg_species
+  }
+
+  if (!any(sel)) {
     return(chopped)
   }
+
+  extra <- cand[sel, , drop = FALSE]
+  at <- target[sel]
+  extra$seg_id <- bounds$seg_id[at]
+  extra$seg_no <- bounds$seg_no[at]
+  extra$seg_eff <- bounds$seg_eff[at]
+  extra$new_trackno <- bounds$new_trackno[at]
+  extra$events <- paste(bounds$first_event[at], bounds$last_event[at], sep = "_")
+  extra$case <- "circling"
+  # Attaching a record must not change how long the segment is.
+  extra$pt2pt.effort <- 0
 
   out <- dplyr::bind_rows(chopped, extra[, intersect(names(chopped), names(extra))])
   dplyr::arrange(out, .data$DATE, .data$seg_id, .data$EVENTNO)

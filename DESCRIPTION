@@ -31,6 +31,8 @@ Imports:
     utils,
     withr
 Suggests:
+    rnaturalearth,
+    rnaturalearthdata,
     ggplot2,
     knitr,
     rmarkdown,

@@ -47,8 +47,14 @@ test_that("a missing file is reported clearly", {
   expect_error(read_narwc("no/such/file.csv"), "not found")
 })
 
-test_that("the bundled fixture is clean", {
-  expect_equal(nrow(validate_narwc(example_data())), 0)
+test_that("the bundled fixture raises nothing above a note", {
+  issues <- validate_narwc(example_data())
+  expect_setequal(issues$severity, "note")
+
+  # The one note is the line abandoned when the sea state rose, which has no
+  # end-line record. That is a property of the fixture, not a defect in it.
+  expect_equal(issues$check, "legstage_line_not_closed")
+  expect_equal(issues$n, 1L)
 })
 
 test_that("a missing required column is an error-level finding", {

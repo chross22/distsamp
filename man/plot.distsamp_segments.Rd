@@ -8,6 +8,7 @@
   x,
   what = c("segments", "tracks", "effort", "distances"),
   species = NULL,
+  coastline = FALSE,
   ...
 )
 }
@@ -19,6 +20,12 @@
 
 \item{species}{Optional character vector of \code{SPECCODE} values to show, for
 the views that draw sightings. \code{NULL} (default) shows all.}
+
+\item{coastline}{Land to draw under the map views. \code{FALSE} (default) draws
+none. \code{TRUE} fetches Natural Earth countries through \code{rnaturalearth}; a
+scale name — \code{"small"}, \code{"medium"}, \code{"large"} — picks the resolution; or
+pass your own \code{sf} object. Ignored by the \code{"effort"} and \code{"distances"}
+views. See the note on resolution below.}
 
 \item{...}{Ignored, for compatibility with \code{\link[=plot]{plot()}}.}
 }
@@ -52,6 +59,25 @@ tail that falls away. A spike at zero, a peak away from zero, or a long
 flat tail all mean something, and all of them matter before
 \code{Distance::ds()} is called. See the note on \code{g(0)} below.}
 }
+}
+
+\section{Coastlines, and why the default is none}{
+
+\code{coastline = TRUE} draws Natural Earth land under the track. That is enough
+to orient a shelf-scale survey, and \strong{not} enough for a bay. Natural Earth's
+medium scale is 1:50,000,000; against a survey whose lines are a few
+kilometres apart, its shoreline is wrong by more than the thing you are
+looking at, and a segmentation that hugs the coast will appear to run over
+land.
+
+So: use it to get your bearings, and pass your own \code{sf} object for anything
+anyone else will see.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{plot(segs, coastline = sf::st_read("gshhg_cape_cod.shp"))
+}\if{html}{\out{</div>}}
+
+\code{scale = "large"} (1:10m) is better and needs \code{rnaturalearthhires}, which is
+not on CRAN — install it from the rOpenSci r-universe.
 }
 
 \section{On reading the distance histogram}{

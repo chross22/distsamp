@@ -18,6 +18,17 @@
 #'   \item{`sighting_at_boundary`}{A sighting recorded at a `LEGSTAGE` of 1, 3,
 #'     4, or 5. Handbook 8.A.20 and 4.2: sightings should not occur at
 #'     begin-line, break-off, resume, or end-line events.}
+#'   \item{`legstage_sequence`}{`LEGSTAGE` does not follow a logical order
+#'     within a line occupation. Handbook 8.A.20: a line begins (1), continues
+#'     (2), may break off to circle (3) and resume (4), and ends (5). A line
+#'     must begin with 1, nothing may follow an end-line, and a resume cannot
+#'     appear without a break-off before it.}
+#'   \item{`legstage_break_off_unresumed`}{A line ends at a break-off (3) with
+#'     no resume and no end-line: the aircraft left the census line and the
+#'     record never brings it back.}
+#'   \item{`legstage_line_not_closed`}{A line has no end-line (5). A note
+#'     rather than a warning, because a line abandoned for weather or re-flown
+#'     later legitimately has none.}
 #'   \item{`eventno_not_increasing`}{`EVENTNO` does not increase through a
 #'     `FILEID`. Repeated values are allowed — the handbook (4.2) assigns one
 #'     event several sightings — but decreases indicate mis-sorted records.}
@@ -231,6 +242,34 @@ validate_narwc <- function(dat) {
     )
   }
 
+  # --- LEGSTAGE sequence ----------------------------------------------------
+  seq_check <- legstage_sequence_check(dat)
+  add(
+    "legstage_sequence", "warning", "LEGSTAGE", seq_check$bad,
+    paste0(
+      "LEGSTAGE does not follow a logical sequence within a line occupation. ",
+      "Handbook 8.A.20: a line begins (1), continues (2), may break off to ",
+      "circle (3) and resume (4), and ends (5). A line must begin with 1, ",
+      "nothing may follow an end-line, and a break-off must be resumed."
+    )
+  )
+  add(
+    "legstage_break_off_unresumed", "warning", "LEGSTAGE", seq_check$dangling,
+    paste0(
+      "A line occupation ends at LEGSTAGE 3, a break off to circle, with no ",
+      "resume (4) and no end-line (5). The aircraft left the census line and ",
+      "the record never brings it back."
+    )
+  )
+  add(
+    "legstage_line_not_closed", "note", "LEGSTAGE", seq_check$open,
+    paste0(
+      "A line occupation has no end-line (LEGSTAGE 5). This is normal for a ",
+      "line abandoned mid-flight - for weather, or to re-fly it later - and a ",
+      "problem only if the line was flown to completion."
+    )
+  )
+
   # --- columns from outside the handbook ------------------------------------
   unknown <- unrecognised_columns(names(dat))
   if (length(unknown)) {
@@ -331,4 +370,91 @@ validate_narwc <- function(dat) {
     ))
   }
   dplyr::bind_rows(out)
+}
+
+
+# --- LEGSTAGE sequence ------------------------------------------------------
+#
+# Handbook 8.A.20 gives LEGSTAGE as the stage of a survey line, and the stages
+# describe a progression rather than a set of independent labels: a line begins
+# (1), continues (2), may break off to circle (3) and resume (4), and ends (5).
+# Codes 6 and 7 mark a kind of sighting rather than a stage of the line, so they
+# take no part in the sequence.
+#
+# The permitted transitions, [from, to]:
+#
+#        to:  1   2   3   4   5
+#   from 1        x   x       x
+#   from 2        x   x       x
+#   from 3                x
+#   from 4        x   x       x
+#   from 5
+#
+# Nothing may follow an end-line, a break-off must be resumed, and a resume
+# cannot appear without a break-off before it - each falls out of the table
+# rather than being special-cased.
+legstage_allowed <- local({
+  m <- matrix(FALSE, nrow = 5, ncol = 5)
+  m[1, c(2, 3, 5)] <- TRUE
+  m[2, c(2, 3, 5)] <- TRUE
+  m[3, 4] <- TRUE
+  m[4, c(2, 3, 5)] <- TRUE
+  m
+})
+
+# Rows whose LEGSTAGE cannot follow the one before it within the same line
+# occupation, plus lines that never close.
+#
+# Occupations come from LEGNO3 where it exists. Without it they are derived the
+# way make_leg_id() does, because grouping on LEGNO alone would merge a line
+# flown, abandoned, and re-flown the same day into one sequence - and its second
+# "begin line" would then look like a violation when it is the correct record of
+# a second occupation.
+#
+# Assumes survey order, as the rest of the package does. Records out of order
+# are reported separately by `eventno_not_increasing`.
+legstage_sequence_check <- function(dat) {
+  empty <- list(bad = integer(0), open = integer(0), dangling = integer(0))
+  if (!all(c("LEGSTAGE", "LEGNO") %in% names(dat)) || is_empty_df(dat)) {
+    return(empty)
+  }
+
+  stage <- suppressWarnings(as.integer(dat$LEGSTAGE))
+  on_census <- if ("LEGTYPE" %in% names(dat)) {
+    is.na(dat$LEGTYPE) | dat$LEGTYPE == 2
+  } else {
+    rep(TRUE, nrow(dat))
+  }
+
+  # Structural stages only, on the census line. A circling record carries no
+  # LEGSTAGE and so drops out here, which is what lets 3 -> 4 stay adjacent
+  # across the excursion between them.
+  keep <- which(!is.na(stage) & stage >= 1L & stage <= 5L & on_census)
+  if (length(keep) < 1L) {
+    return(empty)
+  }
+
+  occupation <- if ("LEGNO3" %in% names(dat)) {
+    as.character(dat$LEGNO3)
+  } else {
+    legno <- as.character(dat$LEGNO)
+    paste(legno, rle_id(legno), sep = "_")
+  }
+  day <- if ("DATE" %in% names(dat)) as.character(dat$DATE) else ""
+  key <- paste(day, occupation)[keep]
+  stage <- stage[keep]
+
+  n <- length(stage)
+  first <- c(TRUE, key[-1] != key[-n])
+  last <- c(key[-1] != key[-n], TRUE)
+
+  prev <- c(1L, stage[-n])
+  prev[first] <- 1L # never used, but must index the matrix
+  ok <- legstage_allowed[cbind(prev, stage)]
+
+  list(
+    bad = keep[(!first & !ok) | (first & stage != 1L)],
+    open = keep[last & stage != 5L & stage != 3L],
+    dangling = keep[last & stage == 3L]
+  )
 }

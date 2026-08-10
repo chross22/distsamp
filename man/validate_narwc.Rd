@@ -41,6 +41,17 @@ recorded only during census tracks (\code{LEGTYPE == 2}), except for code 7.}
 \item{\code{sighting_at_boundary}}{A sighting recorded at a \code{LEGSTAGE} of 1, 3,
 4, or 5. Handbook 8.A.20 and 4.2: sightings should not occur at
 begin-line, break-off, resume, or end-line events.}
+\item{\code{legstage_sequence}}{\code{LEGSTAGE} does not follow a logical order
+within a line occupation. Handbook 8.A.20: a line begins (1), continues
+(2), may break off to circle (3) and resume (4), and ends (5). A line
+must begin with 1, nothing may follow an end-line, and a resume cannot
+appear without a break-off before it.}
+\item{\code{legstage_break_off_unresumed}}{A line ends at a break-off (3) with
+no resume and no end-line: the aircraft left the census line and the
+record never brings it back.}
+\item{\code{legstage_line_not_closed}}{A line has no end-line (5). A note
+rather than a warning, because a line abandoned for weather or re-flown
+later legitimately has none.}
 \item{\code{eventno_not_increasing}}{\code{EVENTNO} does not increase through a
 \code{FILEID}. Repeated values are allowed — the handbook (4.2) assigns one
 event several sightings — but decreases indicate mis-sorted records.}

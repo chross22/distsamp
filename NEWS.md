@@ -193,6 +193,42 @@ CCS is the only profile registered so far, and is an exception rather than a
 representative case. Adding one needs a data dictionary, not just a column list;
 entries whose meaning was inferred from the name are marked `unconfirmed`.
 
+## Survey lines, sequence checks, and a quadratic term removed
+
+* `line_effort()` and `reflight_summary()` — effort per survey line rather than
+  per continuous track, which is what `segs$tracks` cannot tell you. A line
+  started, abandoned, and flown again is two *occupations* of one line;
+  `combine = "line"` sums them.
+
+  Two defects came with the port from `ds_data_dmr.R`. It reduced on the
+  occupation id rather than the line id, so it never combined re-flights — the
+  one thing that table existed to do. And its "% of lines reflown" measured the
+  share of *occupations* that were repeats, which is a different number; the
+  original carried the comment "ask dan about this". Both rates are now
+  reported, `prop_lines_reflown` and `prop_occupations_repeat`, named for what
+  they measure.
+
+* `validate_narwc()` gains `legstage_sequence`, `legstage_break_off_unresumed`,
+  and `legstage_line_not_closed`. Handbook 8.A.20 gives `LEGSTAGE` as a
+  progression — a line begins (1), continues (2), may break off to circle (3)
+  and resume (4), and ends (5) — and only the code book was being checked.
+  Nothing may follow an end-line, a break-off must be resumed, and a line must
+  begin with 1. The last check is a note rather than a warning because a line
+  abandoned for weather legitimately has no end-line; the fixture contains one.
+
+* **`attach_circling_sightings()` was quadratic.** It scanned the segment table
+  and then the whole point table once per circling sighting to apply the
+  same-species rule. At a low circling rate that is invisible; with every
+  sighting circled, doubling the data multiplied the time by 2.6 then 2.9, on
+  its way to 4. Right whale surveys circle often, so this was a real path.
+  Replaced with a rolling lookup per day and a membership set built once: 7.5x
+  faster at 100k records, and linear.
+
+* Profiled end to end on synthetic seasons up to 242k records — about twenty
+  seconds, linear throughout. `data-raw/make-season.R` generates them, and
+  `docs/04-verification.md` records the numbers so a future change can be
+  checked against them.
+
 ## Diagnostic plots
 
 `plot()` methods on `distsamp_segments`, behind `Suggests` on `ggplot2`. Each
@@ -209,8 +245,13 @@ returns an ordinary `ggplot` object.
   rather than an absence of animals, and that a smooth curve says nothing about
   `g(0)`.
 
-`species` filters the views that draw sightings. Coastlines and basemaps are
-still out of scope; `segments_as_sf()` is the handoff for a real map.
+`species` filters the views that draw sightings.
+
+`coastline = TRUE` draws Natural Earth land under the map views, and `coastline`
+also takes your own `sf` object — which is the right answer at bay scale, since
+Natural Earth's medium coastline is 1:50m and coarse enough to put a shore-hugging
+survey apparently on land. Tile basemaps remain out of scope: they need a tile
+source and network access, which a diagnostic plot should not.
 
 ## Vignettes
 

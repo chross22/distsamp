@@ -144,9 +144,11 @@ is still missing:
 - ~~**Exact sighting positions.**~~ Done — `exact_distance()`, which projects
   onto the trackline rather than measuring radially as
   `original/compute_distance.R` did.
-- **Truncation and binning.** `Distance::ds()` wants a truncation distance, and
-  `STRIP`-derived distances are intervals rather than points, so binned fitting
-  is needed for older data.
+- ~~**Truncation and binning.**~~ Moved to
+  [`dsfit`](https://github.com/chross22/dsfit), and built there: truncation is
+  one value per sweep rather than a column, and binned fitting goes through
+  `mrds`'s binned likelihood with guards on bins that do not tile or do not
+  reach the truncation. Fitting-side, so it belongs to the middle layer.
 - The multi-year fitting from `original/detectionFunctionMultipleYears.R`. Not
   a wrapper around `Distance::ds()` — see the design note below.
 
@@ -173,33 +175,37 @@ coloured by `new_trackno`, segment lengths against the target, and the
 distribution of perpendicular distances. They return `ggplot` objects rather
 than writing PNGs to a directory.
 
-Still missing, and deliberately: **coastlines and basemaps**.
-`original/map_utils.R` contains a substantial reimplementation of
-`ggspatial::annotation_map_tile` worth preserving, but it needs `sf` and a tile
-source, and the diagnostic plots do not. `segments_as_sf()` is the handoff for
-anyone who wants a real map.
+Coastlines are now available too: `plot(segs, coastline = TRUE)` draws Natural
+Earth land under the track, and `coastline` also accepts your own `sf` object,
+which is the right answer at bay scale — Natural Earth's medium coastline is
+1:50m, coarse enough that a survey hugging the shore appears to run over land.
+
+Still missing, and deliberately: **tile basemaps**. `original/map_utils.R`
+contains a substantial reimplementation of `ggspatial::annotation_map_tile`
+worth preserving, but it needs a tile source and network access, which a
+diagnostic plot should not. `segments_as_sf()` remains the handoff for anyone
+building a publication map.
 
 ## 6. Smaller items
 
-- **Effort summaries per survey line.** `ds_data_dmr.R` produced
-  `effort_summary` and `effort_summary_reduced` — effort per `FILEID` x `LEGNO`,
-  and per `LEGNO` with re-flights combined — plus the percentage of lines
-  re-flown. `segs$tracks` covers most of this but is keyed on continuous tracks,
-  not on survey lines.
-- **A `Distance`-shaped export.** A `flatfile` writer producing
-  `Region.Label` / `Area` / `Sample.Label` / `Effort` / `distance` / `size`, with
-  area and region as arguments rather than the hard-coded 5,811 km² of
-  `ds_data_dmr.R:248`.
-- **`LEGSTAGE` sequence validation.** The handbook (8.A.20) requires that stages
-  occur in logical order — `1` cannot follow `2`, `2` cannot follow `5` or a
-  blank, `5` cannot follow a blank. `validate_narwc()` checks the code book but
-  not the sequence. The fixture originally contained exactly this kind of
-  violation (an "end line" immediately before a "break off to circle"), and
-  nothing caught it.
-- **Performance on a full season.** The cutter is linear now, but
-  `attach_circling_sightings()` loops over candidate sightings and
-  `segment_midpoints()` splits by segment. Neither has been profiled on hundreds
-  of thousands of records.
+- ~~**Effort summaries per survey line.**~~ **Done.** `line_effort()` and
+  `reflight_summary()`. Two defects came with the port: the original reduced on
+  the *occupation* id rather than the line id, so it did not combine re-flights
+  at all — the one thing it existed to do — and its re-flight percentage
+  measured the share of occupations that were repeats rather than the share of
+  lines re-flown. Both rates are now reported, named for what they measure.
+- ~~**A `Distance`-shaped export.**~~ **Done** — `detection_data()`.
+- ~~**`LEGSTAGE` sequence validation.**~~ **Done.** `legstage_sequence`,
+  `legstage_break_off_unresumed`, and `legstage_line_not_closed`. The last is a
+  note rather than a warning because a line abandoned for weather legitimately
+  has no end-line — the fixture contains one.
+- ~~**Performance on a full season.**~~ **Done.** Profiled on synthetic seasons
+  up to 242k records: linear throughout, about 20 seconds for a quarter of a
+  million records. One genuine quadratic term in
+  `attach_circling_sightings()` was found and removed — it only surfaced at high
+  circling rates, which right whale surveys have. Numbers and method in
+  [04-verification.md](04-verification.md); the generator is
+  `data-raw/make-season.R`.
 
 
 ---
@@ -279,15 +285,16 @@ more of the same. Step 11e of
    top bins are dropped. `include_circling` defaults to `FALSE`, and does not
    touch the segment counts — the density-surface side stays on
    `segment_survey(circling = )`.
-3. **Left truncation** for the Skymaster blind spot, as `ds(left = ...)` rather
-   than by shifting bins, which is the statistically correct treatment. Note the
-   interaction recorded in [07-fitting-architecture.md](07-fitting-architecture.md):
-   a gamma key function and a left truncation model the same phenomenon, so
-   doing both counts the blind spot twice.
-4. **A `g(0)` correction slot** at the abundance step — supplied by the analyst,
-   not estimated, with its standard error propagated and its components named
-   separately. Section 5 of
-   [07-fitting-architecture.md](07-fitting-architecture.md).
+3. ~~**Left truncation** for the Skymaster blind spot~~ and
+   ~~**a `g(0)` correction slot**~~ — **moved to
+   [`dsfit`](https://github.com/chross22/dsfit).** Both are fitting-side, and
+   [07-fitting-architecture.md](07-fitting-architecture.md) puts fitting in the
+   middle layer. Left truncation is built there, as `sweep_models(left = )`,
+   which also warns when it is combined with a gamma key — the two model the
+   same phenomenon, so doing both counts the blind spot twice. The `g(0)` slot
+   is the top of `dsfit`'s own remaining list. Tracked in
+   [dsfit's docs/01-plan.md](https://github.com/chross22/dsfit/blob/main/docs/01-plan.md),
+   and not here, so that one list owns each item.
 
 ### Deliberately out of scope, and must be said
 

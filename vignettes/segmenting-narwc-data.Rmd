@@ -144,9 +144,16 @@ what matters. It never modifies the data.
 validate_narwc(dat)
 ```
 
-Nothing to report here. On real data you will typically see codes outside the
-handbook's code book, sightings recorded at line-boundary events, and gaps in
-required fields. Each finding names the rows involved:
+One note, and it is the right one: the fixture contains a survey line abandoned
+when the sea state rose, so that line has no end-line record. A line legitimately
+ends without one when it is abandoned or re-flown later, which is why this is a
+note rather than a warning — but on a line that was flown to completion, a
+missing end-line means the record is incomplete.
+
+Nothing above a note here. On real data you will typically see codes outside the
+handbook's code book, sightings recorded at line-boundary events, `LEGSTAGE`
+sequences that do not close, and gaps in required fields. Each finding names the
+rows involved:
 
 ```{r}
 broken <- dat

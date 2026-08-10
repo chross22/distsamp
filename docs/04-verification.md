@@ -151,6 +151,55 @@ Reference values for the bundled example, useful for spotting a regression:
 | Exported functions | 24 |
 | Tests | 189 |
 
+## Performance on a full season
+
+Everything above runs on a 113-record fixture, which says nothing about how the
+pipeline behaves on a season. `data-raw/make-season.R` generates a synthetic one
+of any size — days x lines x points, with sightings and circling excursions at
+chosen rates — so these numbers can be reproduced and re-checked after a change.
+
+Measured on an M-series Mac, R 4.6.1, `segment_survey(seg_length = 5)`, with 1%
+of records a sighting and 15% of those circled:
+
+| records | segments | time | per record | vs previous |
+|---|---|---|---|---|
+| 60,430 | 6,701 | 5.17 s | 85.5 us | — |
+| 120,945 | 13,392 | 10.59 s | 87.6 us | x2.05 |
+| 241,745 | 26,806 | 21.61 s | 89.4 us | x2.04 |
+
+**Linear.** Doubling the data doubles the time, and the per-record cost is flat.
+A quarter of a million records — comfortably a full season — takes about twenty
+seconds.
+
+By stage, at 121k records: `segment_midpoints()` 4.75 s, `cut_segments()`
+2.16 s, `attach_circling_sightings()` 0.69 s, `segment_sightings()` 0.25 s. All
+scale between x1.91 and x2.19 on doubling.
+
+### One quadratic term, found and removed
+
+`attach_circling_sightings()` was the exception. It looped over circling
+sightings and, for each, scanned the whole segment table and then the whole
+point table to apply the same-species rule — `O(candidates x records)`. At a
+realistic circling rate that is invisible, which is why the totals above look
+linear either way. Raising the rate until every sighting is circled brings it
+out:
+
+| records | candidates | before | after |
+|---|---|---|---|
+| 25,060 | 1,012 | 0.39 s | 0.100 s |
+| 49,785 | 1,957 | 1.03 s (x2.62) | 0.203 s (x2.03) |
+| 100,030 | 4,006 | 2.99 s (x2.89) | 0.401 s (x1.98) |
+
+The ratios are the point: 2.62 and 2.89 are on their way to 4, which is what a
+quadratic looks like before it hurts. After the rewrite they sit at 2.
+
+This mattered because right whale surveys circle often — the rate that exposes
+the problem is not a pathological one. The fix replaces the per-candidate scans
+with a rolling lookup per day and a membership test built once, and is guarded
+by `test-attach-circling.R`, which checks that each sighting still joins the
+segment in progress before the break-off, never crosses a day boundary, and
+applies the same-species rule per segment rather than per day.
+
 ## Cross-check against `original/`
 
 A direct numerical diff against the original scripts was **not** run, for a
