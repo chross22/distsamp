@@ -17,3 +17,12 @@ jobs:
     with:
       # sf is only in Suggests, but the vignette and the spatial tests use it.
       apt-packages: 'libgdal-dev libgeos-dev libproj-dev libudunits2-dev'
+      # narwcr is a strong dependency and lives on GitHub, not CRAN. pak
+      # resolves it from the Remotes field, but naming it here means a failure
+      # to install shows up as an install error rather than a check error.
+      extra-packages: 'any::rcmdcheck, github::chross22/narwcr'
+      # Dropped --as-cran. Its incoming-feasibility check warns that narwcr is
+      # not in a package repository, which is true and will stay true: this
+      # package cannot be submitted to CRAN while it depends on a GitHub-only
+      # one. Every other warning still fails the check, so the bar is unchanged.
+      check-args: 'c("--no-manual")'
