@@ -67,9 +67,14 @@ jobs:
           r-version: release
           use-public-rspm: true
 
-      - uses: r-lib/actions/setup-r-dependencies@v2
-        with:
-          packages: any::jsonlite
+      # Deliberately not setup-r-dependencies: that resolves the calling
+      # package's own dependencies (local::.), which fails whenever those are
+      # not all on CRAN - derivoce needs rnaturalearthhires from r-universe.
+      # The citation check reads files and queries APIs; it neither loads nor
+      # installs the package, so its dependencies are irrelevant here.
+      - name: Install jsonlite
+        run: install.packages("jsonlite", repos = "https://cloud.r-project.org")
+        shell: Rscript {0}
 
       - name: Check citations
         id: check
