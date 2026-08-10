@@ -2,17 +2,22 @@ Package: distsamp
 Title: Segment Aerial Line-Transect Survey Data for Distance Sampling
 Version: 0.1.0
 Authors@R:
-    person("Camille", "Ross", , "camille.ross@maine.edu", role = c("aut", "cre"))
+    person("Camille", "Ross", email = "camille.ross@maine.edu", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-1428-2294"))
 Description: Turns marine mammal aerial line-transect survey data recorded in the
     North Atlantic Right Whale Consortium (NARWC) sightings database format into
-    effort segments suitable for distance sampling and density surface modeling.
-    Provides NARWC schema validation, on-effort determination, great-circle effort
-    accumulation, splitting of survey lines at breaks in effort, and chopping of
-    continuous tracklines into segments of a target length following the approach
-    of Becker et al. (2010) <doi:10.3354/meps08696>, within the segmented
-    line-transect framework of Hedley and Buckland (2004)
+    effort segments and detection distances, ready for distance sampling and
+    density surface modeling. Determines on-effort records from the handbook code
+    books, accumulates great-circle effort, splits survey lines at breaks in
+    effort, and chops continuous tracklines into segments of a target length
+    following the approach of Becker et al. (2010) <doi:10.3354/meps08696>,
+    within the segmented line-transect framework of Hedley and Buckland (2004)
     <doi:10.1198/1085711043578> and Miller et al. (2013)
-    <doi:10.1111/2041-210X.12105>.
+    <doi:10.1111/2041-210X.12105>. Resolves right-angle distances from every
+    source the archive records, whether declination angles, the two 'STRIP'
+    interval code books, exact sighting positions, or a break-off to circle,
+    recording which supplied each detection; and assembles them into the
+    flatfile that 'Distance' accepts.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

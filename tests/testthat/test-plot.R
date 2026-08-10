@@ -53,6 +53,8 @@ test_that("the distance view says what to do when there are no distances", {
   bare <- example_data()
   bare$ANGLEL <- NULL
   bare$ANGLER <- NULL
+  bare$S_LAT <- NULL
+  bare$S_LONG <- NULL
   segs <- segment_survey(bare, seg_length = 5, seed = 1)
   expect_error(plot(segs, what = "distances"), "sighting_distances")
 })

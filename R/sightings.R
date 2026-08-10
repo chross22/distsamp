@@ -177,7 +177,10 @@ build_detections <- function(sight) {
     SPECCODE = sight$SPECCODE,
     size = sight$.n_animals,
     distance = as.numeric(pick("distance", NA_real_)),
+    distbegin = as.numeric(pick("distbegin", NA_real_)),
+    distend = as.numeric(pick("distend", NA_real_)),
     side = as.character(pick("side", NA_character_)),
+    distance_source = as.character(pick("distance_source", NA_character_)),
     EVENTNO = as.numeric(pick("EVENTNO", NA_real_)),
     SIGHTNO = as.numeric(pick("SIGHTNO", NA_real_)),
     circling = as.integer(pick("CIRCLE", NA_integer_))

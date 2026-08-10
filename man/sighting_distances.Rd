@@ -4,47 +4,120 @@
 \alias{sighting_distances}
 \title{Perpendicular distances for a survey data frame}
 \usage{
-sighting_distances(dat, units = c("m", "km"), on_effort_only = TRUE)
+sighting_distances(
+  dat,
+  sources = c("angle", "exact", "strip"),
+  units = c("m", "km", "nmi"),
+  on_effort_only = TRUE,
+  strip_scheme = "auto",
+  strip_platform = "skymaster",
+  strip_left_truncation = FALSE,
+  by = NULL
+)
 }
 \arguments{
-\item{dat}{A data frame of NARWC survey data with \code{ANGLEL}, \code{ANGLER}, and
-\code{ALT}. Data without any angle column is returned unchanged apart from the
-new columns, which will be all \code{NA}.}
+\item{dat}{A data frame of NARWC survey data. Columns that are absent simply
+make their source unavailable; nothing errors.}
 
-\item{units}{\code{"m"} (default) or \code{"km"}; see \code{\link[=perp_distance]{perp_distance()}}.}
+\item{sources}{Precedence order over \code{"angle"}, \code{"exact"}, \code{"strip"}, and
+\code{"circling"}. Defaults to \code{c("angle", "exact", "strip")}.}
 
-\item{on_effort_only}{Restrict distances to records that are on effort, on a
-census line, and at \code{LEGSTAGE == 2}. Default \code{TRUE}.}
+\item{units}{\code{"m"} (default), \code{"km"}, or \code{"nmi"}.}
+
+\item{on_effort_only}{Restrict to on-effort census records. Default \code{TRUE}.}
+
+\item{strip_scheme, strip_platform, strip_left_truncation}{Passed to
+\code{\link[=strip_distance]{strip_distance()}}. The scheme defaults to \code{"auto"}, which chooses the code
+book from \code{DATE}.}
+
+\item{by}{Grouping columns identifying one occupation of a survey line, for
+the sources that need a track bearing. See \code{\link[=track_bearing]{track_bearing()}}.}
 }
 \value{
-\code{dat} with two columns added:
+\code{dat} with five columns added:
 \describe{
-\item{\code{distance}}{Perpendicular distance from the track-line.}
-\item{\code{side}}{\code{"left"}, \code{"right"}, \code{"both"}, or \code{NA}.}
+\item{\code{distance}}{Point distance from the track-line, or \code{NA} for a row
+whose source gives an interval.}
+\item{\code{distbegin},\code{distend}}{Interval bounds, for \code{"strip"} rows.}
+\item{\code{side}}{\code{"left"}, \code{"right"}, \code{"both"}, \code{"on-track"}, or \code{NA}.}
+\item{\code{distance_source}}{Which source supplied the row.}
 }
 }
 \description{
-Computes the perpendicular distance to each sighting from the \code{ANGLEL} and
-\code{ANGLER} declination angles and the aircraft altitude, and records which side
-of the track-line the sighting was on.
+Resolves a right-angle distance for each sighting from whichever of the
+archive's sources is available, and records which one was used.
 }
-\details{
-A sighting is on one side of the track, so exactly one of \code{ANGLEL} and
-\code{ANGLER} should be populated on a given record. Records with both populated
-are ambiguous: they get \code{NA} distance and a \code{side} of \code{"both"}, and are
-reported by \code{\link[=validate_narwc]{validate_narwc()}}.
+\section{Four sources, one column}{
 
-Handbook 8.A.31 restricts right-angle distance measurements to on-effort
-sightings during census lines. By default this function honours that, leaving
-distances \code{NA} elsewhere — some teams record angles during transits and
-circling for practice, and those must not enter a detection function.
+The NARWC archive records right-angle distance four different ways, because
+the protocol changed and because some sightings are made off the track-line.
+Each has its own function; this assembles them.\tabular{lll}{
+   source \tab from \tab gives \cr
+   \code{"angle"} \tab \code{ANGLEL}/\code{ANGLER} and \code{ALT} (8.A.2), 2022 onwards \tab a point distance \cr
+   \code{"exact"} \tab \code{S_LAT}/\code{S_LONG} (8.A.33, 8.A.34) projected onto the track \tab a point distance \cr
+   \code{"strip"} \tab \code{STRIP} code books (8.A.31), before 2022 \tab an \strong{interval} \cr
+   \code{"circling"} \tab the break-off record on the census line \tab a point distance, weakly \cr
 }
+
+
+\code{sources} is a precedence order, not a set: the first one that yields a
+distance for a record wins, and \code{distance_source} records which that was.
+}
+
+\section{Why the provenance column is not optional}{
+
+Mixing sources in one detection function is a decision, and it should be a
+conscious one rather than something discovered afterwards. Point and interval
+distances cannot share a likelihood — \code{STRIP} rows must be fitted binned —
+and circling distances are estimated minutes after the detection they
+describe. Without \code{distance_source} none of that is visible in the table a
+model gets fitted to, and a reviewer will ask.
+
+Where a record carries both an angle and an exact position, the two are
+independent measurements of the same quantity. The default order prefers the
+angle, because it is taken at the moment the sighting is abeam and so measures
+the perpendicular distance directly, with no projection and no position error.
+Passing \code{sources = c("exact", "angle", "strip")} reverses that. Comparing the
+two is a genuine check on both, and \code{\link[=exact_distance]{exact_distance()}} returns its own columns
+for exactly that purpose.
+}
+
+\section{Circling is opt-in}{
+
+\code{"circling"} is not in the default order. Those sightings are usually real
+on-effort detections and dropping them thins the near-zero end of the distance
+distribution — but the position is fixed after the animal has moved, so they
+are a weaker source. Ask for them deliberately, and see
+\code{\link[=circling_distance]{circling_distance()}}.
+}
+
+\section{Restricted to census records}{
+
+Handbook 8.A.31 restricts right-angle distance measurement to on-effort
+sightings during census lines, and notes that some teams record angles during
+transits and circling for practice. Those must not enter a detection function,
+so by default distances are left \code{NA} elsewhere. \code{"circling"} is exempt, since
+those records are off effort by definition.
+}
+
 \examples{
 path <- system.file("extdata", "narwc-example.csv", package = "distsamp")
-dat <- sighting_distances(read_narwc(path))
-subset(dat, !is.na(distance), c("SPECCODE", "ANGLEL", "ANGLER", "side", "distance"))
+dat <- flag_effort(make_leg_id(read_narwc(path)))
+
+out <- sighting_distances(dat)
+cols <- c("SPECCODE", "distance", "distbegin", "distend", "side",
+          "distance_source")
+subset(out, !is.na(distance_source), cols)
+
+# Counts by source - what a methods section has to state
+table(out$distance_source, useNA = "no")
+
+# Prefer the exact position where both it and an angle exist
+rev_out <- sighting_distances(dat, sources = c("exact", "angle", "strip"))
+table(rev_out$distance_source, useNA = "no")
 
 }
 \seealso{
-\code{\link[=perp_distance]{perp_distance()}}, \code{\link[=segment_survey]{segment_survey()}}
+\code{\link[=perp_distance]{perp_distance()}}, \code{\link[=exact_distance]{exact_distance()}}, \code{\link[=strip_distance]{strip_distance()}},
+\code{\link[=circling_distance]{circling_distance()}}, \code{\link[=detection_data]{detection_data()}}, \code{\link[=segment_survey]{segment_survey()}}
 }

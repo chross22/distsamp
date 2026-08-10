@@ -15,6 +15,7 @@ segment_survey(
   dist_method = c("haversine", "becker", "kenney", "eab", "rdk"),
   circling = c("same_species", "all", "none"),
   distance_units = c("m", "km"),
+  distance_sources = c("angle", "exact", "strip"),
   effort_args = list(),
   sighting_args = list()
 )
@@ -46,6 +47,12 @@ census track: \code{"same_species"} (default), \code{"all"}, or \code{"none"}. S
 \item{distance_units}{Units for perpendicular sighting distances computed
 from \code{ANGLEL}/\code{ANGLER}: \code{"m"} (default) or \code{"km"}. Note that \code{seg_eff} is
 always in km — see \code{\link[=perp_distance]{perp_distance()}}.}
+
+\item{distance_sources}{Precedence order over the right-angle distance
+sources, passed to \code{\link[=sighting_distances]{sighting_distances()}}. Defaults to
+\code{c("angle", "exact", "strip")}; \code{"circling"} is available but not on by
+default. Each detection records which source supplied it, in
+\code{distance_source}.}
 
 \item{effort_args}{Named list of arguments for \code{\link[=flag_effort]{flag_effort()}}, used only
 when \code{dat} has no \code{OnOff.Effort} column.}

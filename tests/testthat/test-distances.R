@@ -150,6 +150,10 @@ test_that("segmentation is unaffected by the presence of angles", {
   without <- with_angles
   without$ANGLEL <- NULL
   without$ANGLER <- NULL
+  # Exact positions are a distance source too now, so strip them as well or
+  # this stops testing what it says it tests.
+  without$S_LAT <- NULL
+  without$S_LONG <- NULL
 
   a <- segment_survey(with_angles, seg_length = 5, seed = 1)
   b <- segment_survey(without, seg_length = 5, seed = 1)

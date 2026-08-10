@@ -40,6 +40,11 @@
 #' @param dist_method Great-circle distance method: `"haversine"` (default),
 #'   `"becker"`, or `"kenney"`. See [gc_distance()] and [dist_methods()].
 #'   Becker and Kenney are the same formula and give identical results.
+#' @param distance_sources Precedence order over the right-angle distance
+#'   sources, passed to [sighting_distances()]. Defaults to
+#'   `c("angle", "exact", "strip")`; `"circling"` is available but not on by
+#'   default. Each detection records which source supplied it, in
+#'   `distance_source`.
 #' @param distance_units Units for perpendicular sighting distances computed
 #'   from `ANGLEL`/`ANGLER`: `"m"` (default) or `"km"`. Note that `seg_eff` is
 #'   always in km — see [perp_distance()].
@@ -107,6 +112,7 @@ segment_survey <- function(dat,
                                            "eab", "rdk"),
                            circling = c("same_species", "all", "none"),
                            distance_units = c("m", "km"),
+                           distance_sources = c("angle", "exact", "strip"),
                            effort_args = list(),
                            sighting_args = list()) {
   dist_method <- dist_method_canonical(match.arg(dist_method))
@@ -119,7 +125,8 @@ segment_survey <- function(dat,
     seg_length = seg_length, species = species, seed = seed,
     seg_tol_frac = seg_tol_frac, min_track_km = min_track_km,
     min_segment_km = min_segment_km, dist_method = dist_method,
-    circling = circling, distance_units = distance_units
+    circling = circling, distance_units = distance_units,
+    distance_sources = distance_sources
   )
 
   # 1. line occupations
@@ -138,11 +145,12 @@ segment_survey <- function(dat,
   # 3. along-track distance
   dat <- point_to_point_effort(dat, method = dist_method)
 
-  # Perpendicular distances from the ANGLEL/ANGLER declination angles, when the
-  # survey recorded them. Computed here so they travel with the point data
-  # through cutting and end up on each detection.
+  # Right-angle distances from whichever source the survey recorded. Computed
+  # here so they travel with the point data through cutting and end up on each
+  # detection, carrying `distance_source` with them.
   if (!"distance" %in% names(dat)) {
-    dat <- sighting_distances(dat, units = distance_units)
+    dat <- sighting_distances(dat, sources = distance_sources,
+                              units = distance_units)
   }
 
   # 4-5. continuous tracks and their totals

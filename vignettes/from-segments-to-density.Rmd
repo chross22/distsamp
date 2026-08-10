@@ -122,48 +122,76 @@ equally consistent with half of them having been invisible.
 `Distance::ds()` wants a data frame with a `distance` column, optionally with
 `size` and detection covariates. `segs$detections` is already that shape.
 
+`detection_data()` assembles that table for you:
+
+```{r}
+flat <- detection_data(
+  segs,
+  area = 5811,                    # square km - yours to supply
+  covariates = "wt_beaufort"
+)
+head(flat)
+```
+
 ```{r, eval = FALSE}
 library(Distance)
 
-df_data <- segs$detections[!is.na(segs$detections$distance), ]
-
-# Attach segment-level detection covariates by seg_id
-df_data <- merge(
-  df_data,
-  segs$segments[, c("seg_id", "wt_beaufort")],
-  by = "seg_id"
-)
-
-df <- ds(
-  df_data,
-  key = "hn",
-  truncation = "10%",
-  formula = ~ wt_beaufort
-)
+df <- ds(flat, key = "hn", truncation = "10%", formula = ~ wt_beaufort)
 
 summary(df)
 plot(df)
 gof_ds(df)
 ```
 
-Three things worth pausing on.
+Four things worth pausing on.
+
+**`area` is required and has no default.** It scales abundance directly. The
+scripts this package was rewritten from had 5,811 km² written into the middle of
+a function, which is exactly how a study-area figure outlives the study it
+belonged to.
+
+**Segments with no detections are in the table, carrying a missing `distance`.**
+
+```{r}
+sum(is.na(flat$distance))
+```
+
+That is not padding. It is how a flatfile records effort that produced no
+sightings, and dropping those rows would remove the denominator and inflate
+density.
 
 **Use `wt_beaufort`, not `mean_beaufort`.** The weighted version weights each
 record by the distance it covers, so a sea state held over 3 km counts for more
 than one recorded over 200 m. That is the quantity detection actually depends on.
 
-**Circling detections have no distance and drop out here.** That is correct —
-a position logged off the track is not a perpendicular distance. They still
-count towards the segment's abundance, so do not remove them from
-`segs$sightings`.
+**Circling detections are excluded by default**, and the exclusion is reported
+rather than silent. A position logged off the track is not measured at the moment
+of detection. They still count towards the segment's abundance, so this does not
+touch `segs$sightings` — excluding a detection from the detection function while
+counting the animal towards density is a normal combination, and the two are
+separate arguments:
 
 ```{r}
-subset(segs$detections, is.na(distance))
+nrow(detection_data(segs, area = 5811, include_circling = TRUE))
 ```
 
-**Truncation discards the tail.** Detections beyond the truncation distance are
-excluded from the detection function *and* must be excluded from the counts, or
-abundance and effective search area will disagree.
+**Check which source each distance came from.** A methods section has to state
+this, and point and interval distances cannot be fitted together:
+
+```{r}
+table(flat$distance_source, useNA = "no")
+```
+
+**Truncation discards the tail, but not the effort.** `detection_data()` takes a
+`truncation` argument that drops detections beyond it and leaves their segments
+in place with effort intact — effort searched is effort searched whether or not
+anything was seen within the truncation distance. Pass the same value to `ds()`,
+or you will fit the model to one set of detections and scale abundance by
+another.
+
+```{r}
+nrow(detection_data(segs, area = 5811, truncation = 500))
+```
 
 ### Comparing several models
 

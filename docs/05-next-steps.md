@@ -264,41 +264,30 @@ more of the same. Step 11e of
 
 ### Remaining
 
-1. **Unify the sources in `sighting_distances()`**, with a `distance_source`
-   column recording which was used per detection — `"angle"`, `"strip"`,
-   `"exact"`, `"circling"`. That provenance is not optional: a reviewer will
-   ask, and mixing point and interval distances in one fit is a decision the
-   analyst must make consciously rather than discover. The pieces are all built
-   and independently tested; this is the assembly step, plus a documented
-   precedence rule for records carrying more than one source. Where an angle and
-   an exact position coexist they are independent measurements of the same
-   quantity, so their disagreement is worth surfacing rather than silently
-   resolving.
-2. **`detection_data()`** — a flatfile `ds()` accepts directly. Must emit
-   `distbegin`/`distend` for `STRIP`-derived rows (binned fitting), apply
-   truncation **consistently to detections and to the counts used for
-   abundance**, and drop the open top bin, which cannot be fitted.
-
-   It must also take **`include_circling`, defaulting to `FALSE`** — track-line
-   detections only. A detection function is a model of detection *from the
-   track-line under standard search effort*, and a circling position is neither
-   measured at the moment of detection nor obtained under that effort. Including
-   them has to be an explicit, recorded choice. The mechanism is already there:
-   `exact_distance()` and `sighting_distances()` return nothing off the census
-   line, `circling_distance()` handles them separately, and `distance_source`
-   labels the rows.
-
-   **The spatial model is the opposite case, and is already handled.** Circling
-   sightings are animals that were really there, and abundance per segment
-   should count them whether or not their distance is usable.
-   `attach_circling_sightings()` has done this since v1 under the CETAP
-   same-species rule, selected by `segment_survey(circling = )`. The two choices
-   are independent — a defensible analysis commonly excludes circling sightings
-   from the detection function and includes them in the density surface — so
-   they must stay separate arguments, and `detection_data()` must not quietly
-   couple them by filtering the segment counts to match the detections it kept.
+1. ~~**Unify the sources in `sighting_distances()`**~~ — **done.** `sources` is a
+   precedence order over `"angle"`, `"exact"`, `"strip"`, `"circling"`;
+   `distance_source` records which claimed each row, and `distbegin`/`distend`
+   carry the interval for binned rows. Circling is available but not on by
+   default. Step 11f of [02-implementation.md](02-implementation.md).
+2. ~~**`detection_data()`**~~ — **done.** The `Distance` flatfile:
+   `Region.Label` / `Area` / `Sample.Label` / `Effort` / `object` / `distance` /
+   `size`, with `distbegin`/`distend` for binned rows and segment covariates on
+   request. `area` is required with no default. Every segment appears, including
+   those with no detections, because that is how the flatfile records effort
+   that produced nothing. Truncation drops detections and keeps their segments.
+   Point and interval distances in one table is an error by default, and open
+   top bins are dropped. `include_circling` defaults to `FALSE`, and does not
+   touch the segment counts — the density-surface side stays on
+   `segment_survey(circling = )`.
 3. **Left truncation** for the Skymaster blind spot, as `ds(left = ...)` rather
-   than by shifting bins, which is the statistically correct treatment.
+   than by shifting bins, which is the statistically correct treatment. Note the
+   interaction recorded in [07-fitting-architecture.md](07-fitting-architecture.md):
+   a gamma key function and a left truncation model the same phenomenon, so
+   doing both counts the blind spot twice.
+4. **A `g(0)` correction slot** at the abundance step — supplied by the analyst,
+   not estimated, with its standard error propagated and its components named
+   separately. Section 5 of
+   [07-fitting-architecture.md](07-fitting-architecture.md).
 
 ### Deliberately out of scope, and must be said
 

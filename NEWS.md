@@ -99,8 +99,45 @@ circling sightings from a detection function while including them in a density
 surface is a normal and defensible combination, so the two stay separate
 arguments.
 
-None of these sources are wired into `sighting_distances()` or `segment_survey()`
-yet; unifying them behind a `distance_source` column is the next step.
+## One table for `Distance`
+
+`sighting_distances()` now resolves all four sources, and `detection_data()`
+turns the result into the flatfile `Distance::ds()` accepts.
+
+* **`sources` is a precedence order, not a set.** The first source that yields a
+  distance for a record claims it, and `distance_source` records which. Default
+  `c("angle", "exact", "strip")` — the angle first, because it is taken with the
+  sighting abeam and so measures the perpendicular distance directly. Reverse it
+  to prefer exact positions; where a record has both, they are independent
+  measurements and their disagreement checks both.
+* **`"circling"` is available but off by default.** Those detections are usually
+  real, and dropping them thins the near-zero end of the distribution, but the
+  position is fixed after the animal has moved. Ask for it deliberately.
+* **`detection_data(x, area = )`** emits `Region.Label` / `Area` /
+  `Sample.Label` / `Effort` / `object` / `distance` / `size`, plus
+  `distbegin`/`distend` for binned rows and segment covariates on request.
+  `area` is required and has no default — it scales abundance directly, and
+  `ds_data_dmr.R:248` had 5,811 km² written into the middle of a function.
+* **Every segment appears, including those with no detections.** That is how a
+  flatfile records effort that produced nothing; dropping those rows would
+  remove the denominator.
+* **Truncation drops detections and keeps their segments**, effort intact. A
+  segment whose only detection is truncated survives as an empty row.
+* **Point and interval distances in one table is an error** by default —
+  `STRIP` rows are binned and one `ds()` call cannot fit both. Open top bins are
+  dropped, since an unbounded bin cannot be fitted at all.
+* Everything dropped is reported by name and count, and the report ends with
+  `g(0) = 1 is assumed`.
+
+`segment_survey()` gains `distance_sources`, and `detections` carries
+`distbegin`, `distend`, and `distance_source`.
+
+**On `g(0)`.** Nothing here corrects for animals submerged when the aircraft
+passed, or surfaced and missed. It cannot be estimated from a standard NARWC
+extract, which records neither dive data nor the double-observer structure
+mark-recapture needs. Apply a correction from external sources at the abundance
+step, with its standard error propagated. `?detection_data` says so where someone
+about to fit a model will see it.
 
 ## Filling blank survey-state columns
 

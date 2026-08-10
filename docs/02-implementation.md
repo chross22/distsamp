@@ -624,6 +624,87 @@ Four judgement calls:
 `IS_LAT`/`IS_LONG`, which give a better anchor for circling distances than the
 break-off record — see [05-next-steps.md](05-next-steps.md) item 2.
 
+## Step 11f — the unified `sighting_distances()` and `detection_data()`
+
+**Files:** `R/distances.R`, `R/detection-data.R`
+**Replaces:** `ds_data_dmr.R:248`, which hard-coded the study area as 5,811 km².
+
+Steps 11b to 11e built four ways of getting a right-angle distance. This
+assembles them and hands the result to `Distance`.
+
+### One column, four sources
+
+`sighting_distances()` takes `sources` as a **precedence order, not a set**: the
+first source that yields a distance for a record claims it, and
+`distance_source` records which. The default is
+`c("angle", "exact", "strip")`.
+
+Angle before exact, where a record has both. The angle is taken at the moment the
+sighting is abeam, so it measures the perpendicular distance directly, with no
+projection onto a fitted bearing and no position error. Reversing the order is
+one argument, and worth doing: the two are independent measurements of the same
+quantity, so their disagreement is a genuine check on both. In the fixture, where
+three sightings carry both, they agree exactly — but only because the fixture was
+built that way, and on real data the comparison is informative.
+
+`"circling"` is deliberately **not** in the default order. Those detections are
+usually real, and dropping them thins the near-zero end of the distribution — but
+the position is fixed minutes after detection, and that is a different kind of
+number. Asking for it should be a decision.
+
+Three judgement calls:
+
+- **The provenance column is not cosmetic.** Point and interval distances cannot
+  share a likelihood, and circling distances are estimated rather than measured.
+  Without `distance_source` none of that is visible in the table a model gets
+  fitted to.
+- **A source can establish `side` without yielding a distance.** A record with
+  both `ANGLEL` and `ANGLER` is ambiguous and gets no distance, but it does get
+  `side = "both"` so the ambiguity is visible, and it stays *unclaimed* so a
+  later source can still supply a distance for it. Getting this wrong was a
+  regression caught by an existing test.
+- **Circling records are exempt from the on-effort restriction**, because they
+  are off effort by definition. Applying the census filter to them would make the
+  source impossible to use at all.
+
+### The flatfile
+
+`detection_data()` produces the single table `Distance` accepts, with
+`Region.Label` / `Area` / `Sample.Label` / `Effort` / `object` / `distance` /
+`size`, plus `distbegin`/`distend` for binned rows and any segment covariates
+asked for.
+
+- **`area` is a required argument with no default.** It scales abundance
+  directly. `ds_data_dmr.R:248` had 5,811 km² written into the middle of a
+  function.
+- **Every segment appears, including those with no detections.** That is not
+  padding: it is how the flatfile records effort that produced nothing, and
+  dropping those rows would remove the denominator and inflate density.
+- **Truncation drops detections and keeps their segments.** Effort searched is
+  effort searched whether or not anything was seen within the truncation
+  distance. A segment whose only detection is truncated stays, as an empty row —
+  there is a test for exactly that, because it is the case an implementation
+  gets wrong.
+- **Point and interval distances in one table is an error by default.** One
+  `ds()` call cannot fit both, so a table containing both marks a survey-era
+  boundary rather than a model set. `mixed = "warn"` allows inspection.
+- **Open top bins are dropped.** Every `STRIP` scheme's last bin is unbounded, so
+  `distend` is infinite and no detection function can be fitted to it.
+- **Circling detections are excluded by default**, and — separately — this does
+  not touch `segs$sightings`. Excluding a detection from the detection function
+  while counting the animal towards abundance is a normal, defensible
+  combination, so the two are different arguments and neither implies the other.
+
+Everything dropped is reported by name and count rather than vanishing, and the
+report ends with the line that matters most: `g(0) = 1 is assumed`.
+
+### What this still does not do
+
+`g(0)`. The documentation says so in the function's own help, because that is
+where someone about to fit a model will be looking. See
+[07-fitting-architecture.md](07-fitting-architecture.md) section 5 for why it
+cannot be estimated from a NARWC extract, and what to do instead.
+
 ## Step 12 — `segment_sightings()`
 
 **File:** `R/sightings.R`
