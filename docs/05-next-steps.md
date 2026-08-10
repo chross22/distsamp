@@ -130,3 +130,65 @@ directory.
 ---
 
 Full citations: [06-references.md](06-references.md).
+
+---
+
+## Detection function: design decided, partly built
+
+Settled 2026-08-10. Two decisions frame the rest:
+
+**Build it general** — support all three distance sources, since the data era is
+not yet fixed.
+
+**Data preparation only** — `distsamp` does not wrap `Distance::ds()`. `Distance`
+is mature and well documented; a wrapper hides its options and rots against it.
+What `distsamp` can offer instead is the NARWC-specific knowledge: which `STRIP`
+code book applies, that the Skymaster has a blind spot, that a circling position
+is not a perpendicular distance.
+
+### Three sources, three eras
+
+| source | era | gives | state |
+|---|---|---|---|
+| `ANGLEL`/`ANGLER` | 2022+ (NEAQ) | point distance, `ALT / tan(angle)` | **done** |
+| `STRIP` | pre-2022 | interval | **code books done**, not yet wired in |
+| `S_LAT`/`S_LONG` | 2011+ (NLPSC/WEA) | point distance from exact position | not started |
+
+### Done
+
+`narwc_strip_bins()` and `strip_distance()` encode both code books from handbook
+8.A.31, resolve the scheme from the survey date (CETAP before October 2011,
+NLPSC after), branch on aircraft where the CETAP bins differ, and optionally
+apply the Skymaster blind-spot offset.
+
+The stakes are worth stating: `STRIP` code 13 means **1-2 nmi** under CETAP and
+**over 4 nmi** under NLPSC. Code 5 differs by a factor of two. Reading a code
+with the wrong book silently produces wrong distances, and nothing downstream
+would notice.
+
+### Remaining
+
+1. **Exact-position distances.** Perpendicular distance from `S_LAT`/`S_LONG` to
+   the trackline. `original/compute_distance.R` did this with
+   `geosphere::distHaversine`; `gc_distance()` already covers the geodesy.
+2. **Unify the three in `sighting_distances()`**, with a `distance_source`
+   column recording which was used per detection — `"angle"`, `"strip"`,
+   `"exact"`. That provenance is not optional: a reviewer will ask, and mixing
+   point and interval distances in one fit is a decision the analyst must make
+   consciously rather than discover.
+3. **`detection_data()`** — a flatfile `ds()` accepts directly. Must emit
+   `distbegin`/`distend` for `STRIP`-derived rows (binned fitting), apply
+   truncation **consistently to detections and to the counts used for
+   abundance**, and drop the open top bin, which cannot be fitted.
+4. **Left truncation** for the Skymaster blind spot, as `ds(left = ...)` rather
+   than by shifting bins, which is the statistically correct treatment.
+
+### Deliberately out of scope, and must be said
+
+**g(0).** Aerial surveys of whales suffer both availability bias, from animals
+being submerged, and perception bias, from observers missing animals that were
+at the surface. A detection function fitted without correcting for either
+assumes `g(0) = 1` and biases density low, badly for a deep-diving species.
+`distsamp` should not estimate `g(0)` — but it must not let a user assume it
+away either. Whatever `detection_data()` returns should say so in its
+documentation.
