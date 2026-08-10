@@ -213,6 +213,24 @@ check_crossref_metadata <- function(registry, ctx) {
     }
   }
 
+  cc_unreachable_guard(failures, nrow(rows), "DOI",
+                       "doi.org, CrossRef and DataCite")
+}
+
+# Every reference failing at once is not every reference rotting at once; it is
+# the network being down. Reporting it as a note rather than a wall of failures
+# is derivoce's idea, and the reason it gives is the right one: an issue listing
+# the entire bibliography is an issue nobody reads.
+#
+# Applies only when there was more than one thing to check - with a single
+# reference, "all of them failed" carries no information.
+cc_unreachable_guard <- function(failures, n_checked, what, service) {
+  if (n_checked > 1 && length(failures) == n_checked) {
+    return(cc_result(notes = paste0(
+      "Every ", what, " check failed (", n_checked, " of ", n_checked, "). That ",
+      "means ", service, " could not be reached, not that every reference ",
+      "rotted at once. Drawing no conclusion.")))
+  }
   cc_result(failures)
 }
 
@@ -250,7 +268,7 @@ check_url_liveness <- function(registry, ctx) {
     }
   }
 
-  cc_result(failures)
+  cc_unreachable_guard(failures, nrow(rows), "URL", "the network")
 }
 
 # --- check 4: the package's own citation ------------------------------------
@@ -387,7 +405,7 @@ check_reference_list <- function(registry, ctx) {
   }
 
   readme <- paste(readLines(readme_path, warn = FALSE), collapse = "\n")
-  at <- regexpr("(?m)^#+ *References", readme, perl = TRUE)
+  at <- regexpr("(?m)^#+ *References?\\b", readme, perl = TRUE)
   if (at < 0) {
     return(cc_result(notes = paste0(
       "README has no References section; skipping the reference-list check. ",
@@ -396,6 +414,24 @@ check_reference_list <- function(registry, ctx) {
 
   refs <- substring(readme, at)
   body <- substring(readme, 1, at - 1)
+
+  # A long-form document anywhere in the project may carry its own reference
+  # list, and a work cited only there is properly referenced - just not in the
+  # top-level README. Treat every reference section in the project as one pool,
+  # or the check reports a false positive every time a sub-document is added.
+  #
+  # "Reference" as well as "References": a section listing one work is usually
+  # titled in the singular, and that is exactly the sub-document case.
+  others <- setdiff(
+    list.files(root, "[.]md$", full.names = TRUE, recursive = TRUE),
+    readme_path
+  )
+  others <- others[!grepl("/(\\.git|node_modules|renv|packrat)/", others)]
+  for (f in others) {
+    txt <- paste(readLines(f, warn = FALSE), collapse = "\n")
+    a2 <- regexpr("(?m)^#+ *References?\\b", txt, perl = TRUE)
+    if (a2 > 0) refs <- paste(refs, substring(txt, a2), sep = "\n")
+  }
 
   # A "Data sources" or "Software" subsection lists things a *user* should
   # cite, not things this documentation refers to, so its entries are not
