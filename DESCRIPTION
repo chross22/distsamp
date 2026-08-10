@@ -7,8 +7,10 @@ Authors@R:
 Description: Turns marine mammal aerial line-transect survey data recorded in the
     North Atlantic Right Whale Consortium (NARWC) sightings database format into
     effort segments and detection distances, ready for distance sampling and
-    density surface modeling. Determines on-effort records from the handbook code
-    books, accumulates great-circle effort, splits survey lines at breaks in
+    density surface modeling. Reading and standardising an extract is done by
+    the 'narwcr' package, which this one shares with other analyses of the same
+    archive; what follows is specific to distance sampling.
+    Accumulates great-circle effort, splits survey lines at breaks in
     effort, and chops continuous tracklines into segments of a target length
     following the approach of Becker et al. (2010) <doi:10.3354/meps08696>,
     within the segmented line-transect framework of Hedley and Buckland (2004)
@@ -25,11 +27,15 @@ Depends:
     R (>= 4.1)
 Imports:
     dplyr (>= 1.1.0),
+    narwcr,
     rlang (>= 1.0.0),
+    stats,
     tibble,
     tidyr,
     utils,
     withr
+Remotes:
+    chross22/narwcr
 Suggests:
     googledrive,
     Microsoft365R,

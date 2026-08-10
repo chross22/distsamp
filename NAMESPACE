@@ -9,6 +9,7 @@ export(cross_track_distance)
 export(cut_segments)
 export(detection_data)
 export(dist_methods)
+export(distsamp_checks)
 export(exact_distance)
 export(fill_narwc)
 export(flag_circling)
@@ -18,15 +19,18 @@ export(gc_distance)
 export(gc_interpolate)
 export(line_effort)
 export(make_leg_id)
+export(narwc_checks)
 export(narwc_cloud_roots)
 export(narwc_codes)
 export(narwc_column_mapping)
 export(narwc_fetch)
 export(narwc_fill_columns)
+export(narwc_finding)
 export(narwc_never_fill)
 export(narwc_profiles)
 export(narwc_schema)
 export(narwc_strip_bins)
+export(on_effort_census_rows)
 export(perp_distance)
 export(plan_segments)
 export(point_to_point_effort)
@@ -46,5 +50,25 @@ export(track_effort)
 export(validate_narwc)
 export(visibility_ok)
 export(write_segments)
+importFrom(narwcr,
+  fill_narwc,
+  flag_effort,
+  make_leg_id,
+  narwc_checks,
+  narwc_cloud_roots,
+  narwc_codes,
+  narwc_column_mapping,
+  narwc_fetch,
+  narwc_fill_columns,
+  narwc_finding,
+  narwc_never_fill,
+  narwc_profiles,
+  narwc_schema,
+  narwc_strip_bins,
+  on_effort_census_rows,
+  read_narwc,
+  standardize_narwc_columns,
+  visibility_ok
+)
 importFrom(rlang,.data)
 importFrom(stats,runif)
