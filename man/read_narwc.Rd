@@ -4,16 +4,20 @@
 \alias{read_narwc}
 \title{Read NARWC-format survey data}
 \usage{
-read_narwc(x, extra_columns = character(), ...)
+read_narwc(x, extra_columns = character(), profile = NULL, quiet = FALSE, ...)
 }
 \arguments{
 \item{x}{A path to a CSV file, or a data frame.}
 
 \item{extra_columns}{Character vector of additional column names to keep
-beyond those in \code{\link[=narwc_schema]{narwc_schema()}}. Upstream processing pipelines often add
-derived columns (for example \code{Effort_Type}, \code{Tr_SIGHTING}, \code{OBSSIGHT},
-\code{IS_LAT}); name them here to carry them through. Use \code{NULL} to keep every
-column in the input.}
+beyond those in \code{\link[=narwc_schema]{narwc_schema()}}. Use \code{NULL} to keep every column in the
+input.}
+
+\item{profile}{Survey-programme profile whose extra columns should be kept,
+for example \code{"ccs"}. \code{NULL} (default) keeps only the handbook columns. See
+\code{\link[=narwc_profiles]{narwc_profiles()}}.}
+
+\item{quiet}{Suppress the message naming dropped columns. Default \code{FALSE}.}
 
 \item{...}{Passed to \code{\link[utils:read.csv]{utils::read.csv()}} when \code{x} is a path.}
 }
@@ -39,10 +43,36 @@ or reject records — use \code{\link[=validate_narwc]{validate_narwc()}} to fin
 A \code{DATE} column of class \code{Date} is derived from \code{YEAR}, \code{MONTH}, and \code{DAY}
 when all three are present.
 }
+\section{Columns that are not in the handbook}{
+
+Survey programmes add their own derived columns, and a processed "ready for
+model" file may carry a dozen. They are not handbook Table 1 variables, so by
+default they are \strong{dropped} — and this function says so rather than dropping
+them silently, naming what went and pointing at \code{\link[=narwc_profiles]{narwc_profiles()}} when they
+match a known survey programme.
+
+Three ways to keep them:
+
+\describe{
+\item{\code{profile = "ccs"}}{Keeps the columns that programme is known to add.
+See \code{\link[=narwc_profiles]{narwc_profiles()}} for what is registered.}
+\item{\code{extra_columns = c(...)}}{Keeps exactly what you name.}
+\item{\code{extra_columns = NULL}}{Keeps every column in the input.}
+}
+
+Naming a profile keeps its columns; it does not interpret them. A column name
+is not a contract between programmes — \code{Tr_SIGHTING} means one thing in a CCS
+file and nothing in particular anywhere else — so this function will tell you
+what a file looks like and leave the decision to you.
+}
+
 \examples{
 path <- system.file("extdata", "narwc-example.csv", package = "distsamp")
 dat <- read_narwc(path)
 head(dat[, c("FILEID", "EVENTNO", "LEGTYPE", "LEGSTAGE", "SPECCODE")])
+
+# Keep a survey programme's own columns
+narwc_profiles("ccs")$column
 
 }
 \references{
@@ -52,5 +82,6 @@ Guide for Users and Contributors, Version 8}. NARWC Reference Document
 }
 \seealso{
 \code{\link[=validate_narwc]{validate_narwc()}} to check the result against the handbook,
-\code{\link[=narwc_schema]{narwc_schema()}} for the recognised columns.
+\code{\link[=narwc_schema]{narwc_schema()}} for the recognised columns, \code{\link[=narwc_profiles]{narwc_profiles()}} for the
+columns individual survey programmes add.
 }

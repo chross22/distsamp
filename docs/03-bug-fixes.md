@@ -380,6 +380,35 @@ writes results back by rebuilding a six-condition logical index over the whole
 data frame inside a triple loop (`compute_distance.R:26-31`), one trackline at a
 time, which is why it is slow on a full season.
 
+**And one that is not lesser: the calculation only ran on one programme's data.**
+It is gated on `Tr_SIGHTING == 1` (`compute_distance.R:15`, `:18`), and driven by
+`IS_LAT`/`IS_LONG` (`:23`). None of those three is a handbook Table 1 variable,
+and none is assigned anywhere in `original/` — every occurrence across the
+scripts is a `filter()` or a `select()`. They are **specific to the Center for
+Coastal Studies aerial survey programme of Cape Cod Bay**, an artifact of that
+survey's design.
+
+So the original's distance calculation silently required CCS-format input. Given
+a NARWC extract from any other programme the columns are absent and it fails;
+given a pipeline that happens to supply a column of the same name meaning
+something else, it runs and returns the wrong subset. Together with the
+right-whale day filter, the set of sightings that ever received a distance was
+fixed by two conditions, one of them a survey-programme artifact rather than a
+property of the data.
+
+`distsamp` does not use either. Eligibility for a right-angle distance comes from
+handbook-defined columns only — on effort, `LEGTYPE == 2`, `LEGSTAGE == 2` — in
+one shared helper, so the rule is inspectable, identical across all distance
+sources, and runs on data from any programme. `Tr_SIGHTING` is a useful
+*cross-check* on that eligibility where it exists, since it encodes the same
+intent, but it cannot be the mechanism.
+
+`IS_LAT`/`IS_LONG` are a different matter and not a defect at all: they record
+the animal's position at **initial sighting**, before any circling, which is a
+better quantity than anything `distsamp` currently has for a circled animal. That
+is a feature to adopt, not a bug to fix — see
+[05-next-steps.md](05-next-steps.md) item 2.
+
 **Fix:** `exact_distance()` projects the sighting onto the trackline using the
 local track bearing, returning the perpendicular distance, the side, and the
 along-track offset — the last so the size of the correction is visible rather

@@ -36,7 +36,9 @@ test_that("extra columns can be carried through", {
     FILEID = "A", EVENTNO = 1, YEAR = 2024, MONTH = 4, DAY = 1, TIME = 120000,
     LATITUDE = 43, LONGITUDE = -69, LEGTYPE = 2, Effort_Type = "on"
   )
-  expect_false("Effort_Type" %in% names(read_narwc(raw)))
+  # Dropping it is now reported; that the message happens is tested in
+  # test-profiles.R, so keep it out of the way here.
+  expect_false("Effort_Type" %in% names(suppressMessages(read_narwc(raw))))
   expect_true("Effort_Type" %in% names(read_narwc(raw, extra_columns = "Effort_Type")))
   expect_true("Effort_Type" %in% names(read_narwc(raw, extra_columns = NULL)))
 })

@@ -31,6 +31,10 @@
 #'     in a western North Atlantic dataset mean the sign convention was lost.}
 #'   \item{`sighting_without_number`}{`SPECCODE` present but `NUMBER` missing.
 #'     Handbook 8.A.24 requires `NUMBER` for all sightings.}
+#'   \item{`columns_outside_handbook`}{Columns present that are not NARWC
+#'     handbook variables. Survey programmes add their own; they are carried
+#'     through uninterpreted, and one that encodes position, effort, or distance
+#'     must be mapped explicitly. See [narwc_profiles()].}
 #'   \item{`exact_position_out_of_range`}{`S_LAT` or `S_LONG` outside the range
 #'     a coordinate can take. Handbook 8.A.33 and 8.A.34 give the exact sighting
 #'     position in decimal degrees.}
@@ -224,6 +228,33 @@ validate_narwc <- function(dat) {
       "sighting_without_number", "warning", "NUMBER",
       which(!is.na(dat$SPECCODE) & is.na(dat$NUMBER)),
       "SPECCODE present but NUMBER missing (handbook 8.A.24)."
+    )
+  }
+
+  # --- columns from outside the handbook ------------------------------------
+  unknown <- unrecognised_columns(names(dat))
+  if (length(unknown)) {
+    hits <- matching_profiles(unknown)
+    msg <- paste0(
+      "Columns present that are not NARWC handbook variables: ",
+      paste0("`", sort(unknown), "`", collapse = ", "), ". "
+    )
+    msg <- paste0(msg, if (length(hits)) {
+      paste0(
+        "Some are declared by the \"", hits[1], "\" profile; see ",
+        "`narwc_profiles()`. They are carried through uninterpreted."
+      )
+    } else {
+      paste0(
+        "They are carried through uninterpreted. If any encodes position, ",
+        "effort, or distance, it must be mapped explicitly - `distsamp` will ",
+        "not infer meaning from a column name."
+      )
+    })
+    out[[length(out) + 1L]] <- tibble::tibble(
+      check = "columns_outside_handbook", severity = "note",
+      column = paste(sort(unknown), collapse = ", "),
+      n = length(unknown), rows = list(integer(0)), message = msg
     )
   }
 

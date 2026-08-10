@@ -102,6 +102,33 @@ arguments.
 None of these sources are wired into `sighting_distances()` or `segment_survey()`
 yet; unifying them behind a `distance_source` column is the next step.
 
+## Columns from other survey programmes
+
+A NARWC extract is not the only shape this data arrives in. Survey programmes add
+their own derived columns, and `read_narwc()` used to discard every column it did
+not recognise **without saying so** — a Center for Coastal Studies file lost
+`IS_LAT`, `IS_LONG`, and `Tr_SIGHTING` silently, and `extra_columns` only helped
+if you already knew what to name.
+
+* `read_narwc()` now reports dropped columns by name, and names the survey
+  programme when they match a registered one. `quiet = TRUE` suppresses it.
+* `narwc_profiles()` is the registry: programme, column, meaning, the role
+  `distsamp` gives it, and how confident that meaning is.
+  `read_narwc(profile = "ccs")` keeps a programme's columns.
+* `validate_narwc()` gains `columns_outside_handbook`, for data frames that never
+  went through `read_narwc()`.
+
+**A profile is never applied because a column name matched.** `Tr_SIGHTING` means
+"sighting made from the track-line" in a CCS file, and nothing stops another
+programme using that name for something else — a column name is not a contract
+between programmes. `read_narwc()` will say what a file looks like; naming the
+profile is the caller's decision. Keeping a profile's columns also does not
+interpret them: every registry entry is currently `role = "passthrough"`.
+
+CCS is the only profile registered so far, and is an exception rather than a
+representative case. Adding one needs a data dictionary, not just a column list;
+entries whose meaning was inferred from the name are marked `unconfirmed`.
+
 ## Vignettes
 
 * `segmenting-narwc-data` — the full walkthrough.

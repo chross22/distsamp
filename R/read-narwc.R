@@ -14,12 +14,35 @@
 #' A `DATE` column of class `Date` is derived from `YEAR`, `MONTH`, and `DAY`
 #' when all three are present.
 #'
+#' @section Columns that are not in the handbook:
+#' Survey programmes add their own derived columns, and a processed "ready for
+#' model" file may carry a dozen. They are not handbook Table 1 variables, so by
+#' default they are **dropped** — and this function says so rather than dropping
+#' them silently, naming what went and pointing at [narwc_profiles()] when they
+#' match a known survey programme.
+#'
+#' Three ways to keep them:
+#'
+#' \describe{
+#'   \item{`profile = "ccs"`}{Keeps the columns that programme is known to add.
+#'     See [narwc_profiles()] for what is registered.}
+#'   \item{`extra_columns = c(...)`}{Keeps exactly what you name.}
+#'   \item{`extra_columns = NULL`}{Keeps every column in the input.}
+#' }
+#'
+#' Naming a profile keeps its columns; it does not interpret them. A column name
+#' is not a contract between programmes — `Tr_SIGHTING` means one thing in a CCS
+#' file and nothing in particular anywhere else — so this function will tell you
+#' what a file looks like and leave the decision to you.
+#'
 #' @param x A path to a CSV file, or a data frame.
 #' @param extra_columns Character vector of additional column names to keep
-#'   beyond those in [narwc_schema()]. Upstream processing pipelines often add
-#'   derived columns (for example `Effort_Type`, `Tr_SIGHTING`, `OBSSIGHT`,
-#'   `IS_LAT`); name them here to carry them through. Use `NULL` to keep every
-#'   column in the input.
+#'   beyond those in [narwc_schema()]. Use `NULL` to keep every column in the
+#'   input.
+#' @param profile Survey-programme profile whose extra columns should be kept,
+#'   for example `"ccs"`. `NULL` (default) keeps only the handbook columns. See
+#'   [narwc_profiles()].
+#' @param quiet Suppress the message naming dropped columns. Default `FALSE`.
 #' @param ... Passed to [utils::read.csv()] when `x` is a path.
 #'
 #' @return A tibble with the recognised NARWC columns, standardised names and
@@ -33,15 +56,20 @@
 #' 2023-01.
 #'
 #' @seealso [validate_narwc()] to check the result against the handbook,
-#'   [narwc_schema()] for the recognised columns.
+#'   [narwc_schema()] for the recognised columns, [narwc_profiles()] for the
+#'   columns individual survey programmes add.
 #'
 #' @examples
 #' path <- system.file("extdata", "narwc-example.csv", package = "distsamp")
 #' dat <- read_narwc(path)
 #' head(dat[, c("FILEID", "EVENTNO", "LEGTYPE", "LEGSTAGE", "SPECCODE")])
 #'
+#' # Keep a survey programme's own columns
+#' narwc_profiles("ccs")$column
+#'
 #' @export
-read_narwc <- function(x, extra_columns = character(), ...) {
+read_narwc <- function(x, extra_columns = character(), profile = NULL,
+                       quiet = FALSE, ...) {
   dat <- if (is.data.frame(x)) {
     x
   } else if (is.character(x) && length(x) == 1L) {
@@ -68,9 +96,24 @@ read_narwc <- function(x, extra_columns = character(), ...) {
   }
 
   # 2. Select the columns we recognise, plus anything explicitly requested.
+  #    Dropping a column the caller may need is a real loss, so say what went.
+  if (!is.null(profile)) {
+    extra_columns <- unique(c(extra_columns, narwc_profiles(profile)$column))
+  }
   if (!is.null(extra_columns)) {
     keep <- c(schema$required, schema$optional, extra_columns)
+    dropped <- setdiff(names(dat), keep)
     dat <- dat[, intersect(keep, names(dat)), drop = FALSE]
+
+    # An alias left behind because its canonical column was already present is
+    # a duplicate, not a loss. Reporting it would send the caller looking for
+    # information that is still there under the other name.
+    redundant <- names(aliases)[aliases %in% names(dat)]
+    dropped <- setdiff(dropped, redundant)
+
+    if (length(dropped) && !quiet) {
+      report_dropped_columns(dropped)
+    }
   }
 
   # 3. NARWC writes "." for missing. Blank those before coercion so that a
@@ -93,4 +136,37 @@ read_narwc <- function(x, extra_columns = character(), ...) {
 
   class(dat) <- unique(c("distsamp_narwc", class(dat)))
   dat
+}
+
+# Tell the caller which columns were discarded, and whether they look like a
+# known survey programme's. Information, not action: naming the profile is the
+# caller's decision, because a column name means whatever the programme that
+# wrote it says it means.
+report_dropped_columns <- function(dropped) {
+  lines <- paste0(
+    "`read_narwc()` dropped ", length(dropped),
+    " column", if (length(dropped) > 1) "s" else "",
+    " not in the NARWC handbook schema:\n  ",
+    paste(sort(dropped), collapse = ", ")
+  )
+
+  hits <- matching_profiles(dropped)
+  if (length(hits)) {
+    reg <- narwc_profiles(hits[1])
+    n <- length(intersect(dropped, reg$column))
+    lines <- c(lines, paste0(
+      n, " of these are declared by the \"", hits[1], "\" profile (",
+      reg$programme[1], ").\n",
+      "Keep them with `profile = \"", hits[1], "\"`; see `narwc_profiles()`."
+    ))
+  } else {
+    lines <- c(lines, paste0(
+      "Keep them with `extra_columns = `, or all columns with ",
+      "`extra_columns = NULL`.\nIf any of them carries position, effort, or ",
+      "distance information, it must be mapped explicitly - `distsamp` will ",
+      "not guess from a column name."
+    ))
+  }
+
+  rlang::inform(paste(lines, collapse = "\n"))
 }

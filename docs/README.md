@@ -3,11 +3,12 @@
 | Document | What is in it |
 |---|---|
 | [01-plan.md](01-plan.md) | Why the package exists, the decisions taken before building, the target layout and API, and what is deliberately out of scope |
-| [02-implementation.md](02-implementation.md) | How each of the 13 pipeline stages was built, what it replaces in `original/`, and why it works the way it does |
-| [03-bug-fixes.md](03-bug-fixes.md) | The 14 defects found in `original/`, each with file and line, consequence, fix, and the test that guards it |
-| [04-verification.md](04-verification.md) | `R CMD check` and test-suite results, what the 180 tests establish, and reference numbers for the fixture |
+| [02-implementation.md](02-implementation.md) | How each pipeline stage was built, what it replaces in `original/`, and why it works the way it does |
+| [03-bug-fixes.md](03-bug-fixes.md) | The 15 defects found in `original/`, each with file and line, consequence, fix, and the test that guards it |
+| [04-verification.md](04-verification.md) | `R CMD check` and test-suite results, what the tests establish, and reference numbers for the fixture |
 | [05-next-steps.md](05-next-steps.md) | What v1 does not do, in the order it is worth doing |
 | [06-references.md](06-references.md) | Every citation, what it is relied on for, what the published methods do *not* cover, and how to cite this in a methods section |
+| [07-fitting-architecture.md](07-fitting-architecture.md) | Where detection-function and density-surface fitting should live, the model-selection sweep, and what can and cannot be done about `g(0)` |
 
 For using the package rather than understanding how it was built, start with the
 vignette:
@@ -32,8 +33,9 @@ and a visibility test that silently discarded every pre-2004 survey record.
 `distsamp` is the segmentation core rebuilt as an installable package: NARWC
 ingest and validation grounded in the handbook's code books, effort
 determination, great-circle effort accumulation, track splitting, segment
-planning and cutting, along-track midpoints, and per-segment sighting summaries.
-24 exported functions, 180 tests, `R CMD check --as-cran` clean.
+planning and cutting, along-track midpoints, per-segment sighting summaries, and
+right-angle distances from all four sources the archive records.
+33 exported functions, 359 test assertions, `R CMD check --as-cran` clean.
 
 The Becker segmentation method is preserved. The defects are fixed and
 documented, one by one, in [03-bug-fixes.md](03-bug-fixes.md).

@@ -493,6 +493,72 @@ and deliberately so.
 sources behind one call, with a `distance_source` column recording which was
 used, is the next step — see [05-next-steps.md](05-next-steps.md).
 
+## Step 1b — `narwc_profiles()` and unrecognised columns
+
+**File:** `R/profiles.R`, plus changes to `read_narwc()` and `validate_narwc()`
+**Replaces:** nothing. The original scripts assumed one survey programme's file
+layout without saying so.
+
+A NARWC extract is not the only shape this data arrives in. Survey programmes
+add their own derived columns, and a processed "ready for model" file may carry
+a dozen that are not in handbook Table 1.
+
+**The defect this fixes is in v1 of this package, not in `original/`.**
+`read_narwc()` selected the handbook columns and discarded everything else
+without a word:
+
+```r
+keep <- c(schema$required, schema$optional, extra_columns)
+dat <- dat[, intersect(keep, names(dat)), drop = FALSE]
+```
+
+A CCS file lost `IS_LAT`, `IS_LONG`, and `Tr_SIGHTING` silently. `extra_columns`
+was the escape hatch, but it required knowing in advance what to name — and the
+columns you most need to know about are the ones you have not seen before.
+
+**What it does now.** Dropped columns are reported, by name, with the profile
+they match if they match one:
+
+```
+`read_narwc()` dropped 5 columns not in the NARWC handbook schema:
+  Effort_Type, IS_LAT, IS_LONG, IS_SPECCODE, Tr_SIGHTING
+4 of these are declared by the "ccs" profile (Center for Coastal Studies, Cape Cod Bay).
+Keep them with `profile = "ccs"`; see `narwc_profiles()`.
+```
+
+`narwc_profiles()` is the registry: programme, column, meaning, the role
+`distsamp` gives it, and how confident the meaning is. `validate_narwc()` carries
+the same information as a `columns_outside_handbook` note, for data frames that
+never went through `read_narwc()`.
+
+Four judgement calls:
+
+- **Detection suggests, declaration acts.** A profile is never applied because a
+  column name matched. `Tr_SIGHTING` means "sighting made from the track-line" in
+  a CCS file and there is nothing stopping another programme using that name for
+  something else — a column name is not a contract between programmes. So
+  `read_narwc()` will say what a file looks like, and `profile = "ccs"` is the
+  caller's decision. This is the same reasoning that keeps `Tr_SIGHTING` out of
+  the eligibility rule; see defect 15.
+- **Keeping is not interpreting.** `profile = "ccs"` carries those columns
+  through and does nothing else with them. Every registry entry is currently
+  `role = "passthrough"`, and the registry says so rather than implying a
+  capability that does not exist.
+- **Confidence is recorded per column.** `IS_LAT`, `IS_LONG`, and `Tr_SIGHTING`
+  are `confirmed`; `OBSSIGHT` and the rest are `unconfirmed`, because their
+  meaning was inferred from the column name and nothing else. Marking a guess as
+  a guess is the whole point — the previous version of this documentation
+  recorded `IS_LAT` as "presumably the handbook's `S_LAT`", which was wrong in a
+  way that would have propagated into the distance code.
+- **A redundant alias is not a loss.** A file carrying both `LAT_DD` and
+  `LATITUDE` keeps the latter and discards the former, and reporting that would
+  send the caller looking for information that is still present under another
+  name. Aliases whose canonical column survived are excluded from the message.
+
+**Not yet done.** No profile column is interpreted. The case for doing so is
+`IS_LAT`/`IS_LONG`, which give a better anchor for circling distances than the
+break-off record — see [05-next-steps.md](05-next-steps.md) item 2.
+
 ## Step 12 — `segment_sightings()`
 
 **File:** `R/sightings.R`

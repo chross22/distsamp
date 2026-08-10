@@ -24,26 +24,120 @@ Then compare `segment_survey()` output against segments from a previous run of
 the original scripts. Any difference should be attributable to a numbered defect
 in [03-bug-fixes.md](03-bug-fixes.md); anything that is not is a finding.
 
-## 2. A documented profile for the upstream processed format
+## 2. A documented profile for the CCS Cape Cod Bay format
 
-The upstream processing pipeline emits a "processed, ready for model" CSV that
-is not raw NARWC. It carries derived columns that are not NARWC variables at
-all:
+The processed "ready for model" CSV the original scripts consumed is not raw
+NARWC. It carries columns that are not handbook Table 1 variables and that are
+computed nowhere in `original/` — every occurrence of each is a `filter()` or a
+`select()`, with no assignment. They arrive already set.
 
-| Column | Apparently |
-|---|---|
-| `LEGTYPE_BK` | Kenney's `LEGTYPE`, alongside a different `LEGTYPE` |
-| `Effort_Type` | An upstream effort classification |
-| `Tr_SIGHTING` | Flag for a sighting made from the trackline |
-| `OBSSIGHT` | Observer sighting flag |
-| `IS_LAT`, `IS_LONG`, `IS_SPECCODE` | Exact sighting position and species, presumably the handbook's `S_LAT`/`S_LONG` |
-| `Date_UTC`, `Time_UTC` | Date and time, already in UTC |
+**Where they come from (Camille, 2026-08-10):** `Tr_SIGHTING` and the `IS_*`
+columns are **specific to the Center for Coastal Studies aerial survey programme
+of Cape Cod Bay**. They are an artifact of the CCS survey design, not of NARWC
+and not of any general pipeline.
 
-v1 treats these as optional pass-through columns; `LEGTYPE_BK` is aliased to
-`LEGTYPE`, and the rest survive if named in `extra_columns`. That works by
-arrangement rather than by design. With one of those files in hand,
-`read_narwc(profile = ...)` could map them properly, and the `IS_*` columns
-would give a second, independent source of sighting position.
+| Column | Meaning | Source | Used for |
+|---|---|---|---|
+| `Tr_SIGHTING` | Whether the sighting was made from the track-line | **CCS** | **load-bearing** — see below |
+| `IS_LAT`, `IS_LONG`, `IS_SPECCODE` | **Initial sighting** position and species — where the animal was when first detected, as distinct from where it was recorded during a subsequent circle | **CCS** | the distance calculation |
+| `LEGTYPE_BK` | Kenney's `LEGTYPE`, alongside a different `LEGTYPE` | unconfirmed | aliased to `LEGTYPE` |
+| `Effort_Type` | An upstream effort classification | unconfirmed | carried only |
+| `OBSSIGHT` | An observer sighting flag | unconfirmed | carried only, never acted on |
+| `Date_UTC`, `Time_UTC` | Date and time, already in UTC | unconfirmed | carried only |
+
+### `IS_*` is not `S_LAT`/`S_LONG`, and the difference is the useful part
+
+An earlier version of this document guessed that `IS_LAT`/`IS_LONG` were "the
+handbook's `S_LAT`/`S_LONG`". That was wrong in a way worth preserving, because
+the correction points at something better than either.
+
+Under the CCS design there are **two** positions for a circled animal: where it
+was when first sighted from the track-line, and where it was during the circle.
+The distance to the track-line is defined from the *initial* one. That is exactly
+the limitation recorded against `circling_distance()` in
+[02-implementation.md](02-implementation.md) step 11e — that a circle position is
+fixed minutes after detection, by which time the animal has moved, so the result
+estimates where it was rather than measuring it. A survey that records the
+initial sighting position has already solved that problem in the field, and the
+distance computed from it is a measurement rather than an estimate.
+
+So `IS_*` is not a synonym to alias away. It is a **fifth and better distance
+source** wherever it exists, and it should take precedence over both the circle
+position and the aircraft position for circled animals. See the open question at
+the end of this section.
+
+### `Tr_SIGHTING`
+
+`compute_distance.R:15` and `:18` gate **the entire distance calculation** on
+`Tr_SIGHTING == 1`. Now that the column is identified, the consequence is
+sharper than "an opaque filter": the original pipeline **silently required
+CCS-format input.** Run against a NARWC extract from any other programme, the
+column is absent and the filter errors, or — worse, if some other pipeline
+supplies a column of that name meaning something else — it runs and returns the
+wrong subset. Combined with the `"RIWH" %in% ...` day filter at line 13, the set
+of sightings that ever received a distance was fixed by two conditions, one of
+them a survey-programme artifact. See defect 15 in
+[03-bug-fixes.md](03-bug-fixes.md).
+
+`distsamp` does not use it. Eligibility comes from handbook columns only, so the
+distance code runs on data from any programme. `Tr_SIGHTING` remains useful as a
+*cross-check* on that eligibility where it exists — it encodes the same intent —
+but it cannot be the mechanism.
+
+### What is still unknown
+
+`LEGTYPE_BK`, `Effort_Type`, `OBSSIGHT`, `Date_UTC`, and `Time_UTC` have not been
+attributed. `OBSSIGHT` is the least recoverable of them: it appears five times,
+all in `select()`, and is never filtered on or assigned, so its meaning cannot be
+inferred from its use either.
+
+v1 treats all of these as optional pass-through columns; `LEGTYPE_BK` is aliased
+to `LEGTYPE`, and the rest survive if named in `extra_columns`. That works by
+arrangement rather than by design. `read_narwc(profile = "ccs")` could map them
+properly given a data dictionary.
+
+### `IS_*` is a better anchor, not a better animal position
+
+**Settled: `IS_LAT`/`IS_LONG` is the *aircraft's* position on the track-line at
+initial sighting**, not the animal's. The CCS row therefore carries both ends of
+the measurement — the track-line point at detection in `IS_*`, and the circle
+position in `LATITUDE`/`LONGITUDE` — and `compute_distance.R:23` takes the
+distance between them.
+
+That maps onto `circling_distance()` directly, and improves it. This package
+currently anchors a circling sighting on the `LEGSTAGE == 3` break-off record;
+`IS_*` gives **the point of detection instead of the point of turning**, which is
+strictly better, because the aircraft flies some distance past a group before it
+begins the turn. The animal's position still has to come from the circle record,
+so the orbit-radius caveat in step 11e of
+[02-implementation.md](02-implementation.md) is unaffected.
+
+Note that the CCS distance is still *radial* — track-line point straight to the
+animal — so defect 15 stands and the projection `circling_distance()` does is
+still the improvement. The two changes compose: better anchor, and perpendicular
+rather than radial.
+
+**To build:** an `anchor` argument on `circling_distance()` accepting an explicit
+pair of position columns, so a CCS file can supply `IS_LAT`/`IS_LONG` and
+anything else can fall back to the break-off record. Blocked on a real CCS file
+to verify the column semantics end to end — the reading above is confirmed, but
+no file has been seen.
+
+## 2b. Handling columns from other survey programmes — done
+
+`narwc_profiles()`, `read_narwc(profile = )`, and the
+`columns_outside_handbook` check now cover the general case: unrecognised
+columns are reported by name rather than silently dropped, and named to a
+survey programme where one is recognised. Step 1b of
+[02-implementation.md](02-implementation.md) has the reasoning, including why a
+profile is never applied automatically.
+
+CCS is the only profile registered, and is **an exception rather than a
+representative case**. Adding a programme needs its column list and — the part
+that is usually missing — a data dictionary, since a column's meaning cannot be
+inferred from its name. Entries whose meaning was guessed are marked
+`confidence = "unconfirmed"` and should stay that way until someone who ran the
+survey confirms them.
 
 Note the handling in `DataExploration.R:52` and `:71`: those scripts
 `tidyr::fill()` `LEGTYPE`, `LEGSTAGE`, `LEGNO`, `VISIBLTY`, `BEAUFORT` and others
@@ -227,3 +321,20 @@ assumes `g(0) = 1` and biases density low, badly for a deep-diving species.
 `distsamp` should not estimate `g(0)` — but it must not let a user assume it
 away either. Whatever `detection_data()` returns should say so in its
 documentation.
+
+Worked through properly in
+[07-fitting-architecture.md](07-fitting-architecture.md) section 5. The short
+version: three separate things present as `g(0) < 1` — the geometric blind spot,
+availability, and perception — and only the first is recoverable from a NARWC
+extract. Availability needs external dive data; perception needs a
+double-observer protocol the standard extract does not record. So the design is
+a correction the analyst *supplies*, with its standard error propagated and its
+components named separately, rather than an estimator. Correcting for one
+component while believing you have corrected for another is how these estimates
+go wrong by a factor rather than a percentage.
+
+**Where fitting lives.** Also settled in
+[07-fitting-architecture.md](07-fitting-architecture.md): three layers, with the
+detection-function and DSM fitting in a separate package and the analysis itself
+in a `targets` repository. `distsamp` stops at `detection_data()` and
+`segments_as_sf()`.

@@ -54,6 +54,10 @@ outside [-180, 180].}
 in a western North Atlantic dataset mean the sign convention was lost.}
 \item{\code{sighting_without_number}}{\code{SPECCODE} present but \code{NUMBER} missing.
 Handbook 8.A.24 requires \code{NUMBER} for all sightings.}
+\item{\code{columns_outside_handbook}}{Columns present that are not NARWC
+handbook variables. Survey programmes add their own; they are carried
+through uninterpreted, and one that encodes position, effort, or distance
+must be mapped explicitly. See \code{\link[=narwc_profiles]{narwc_profiles()}}.}
 \item{\code{exact_position_out_of_range}}{\code{S_LAT} or \code{S_LONG} outside the range
 a coordinate can take. Handbook 8.A.33 and 8.A.34 give the exact sighting
 position in decimal degrees.}
