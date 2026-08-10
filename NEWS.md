@@ -199,8 +199,21 @@ Found by testing against real data rather than the fixture.
 
 * **Column names no longer have to match exactly.** Matching ignores case and
   separators, so `Event`, `event_no`, and `EventNo` all reach `EVENTNO`. The
-  alias table gained roughly twenty entries — `TIME_UTC`, `GMT`, `TIME_LOC`,
-  `Field_SIGHTNO`, `Sea_State`, `Event_No` and others.
+  alias table gained roughly fifty entries — `TIME_UTC`, `GMT`, `TIME_LOC`,
+  `Field_SIGHTNO`, `Sea_State`, `Event_No`, `Bft`, `Spp`, `Hdg`, `Vis` and the
+  rest.
+
+* **`standardize_narwc_columns()` is exported**, so this vocabulary can be
+  shared rather than reinvented. `msomgom` had solved the same problem
+  independently in `standardize_survey_columns()`, against real exports this
+  table had not seen: about thirty aliases came from there, along with
+  `CONFIDNC` and the warning when two columns could both be one canonical name.
+
+  Policy stays with the caller. The exported function renames columns and
+  nothing else — it does not fill defaults, drop records, or coerce types.
+  That matters: `msomgom` defaults a missing `ALT`, which is right there and
+  wrong here, where `ALT` feeds `perp_distance()` and a fabricated altitude
+  would produce fabricated distances.
 
   It is **not** fuzzy matching: nothing is guessed by edit distance, nothing is
   renamed onto a canonical column that is already present, and inferred matches

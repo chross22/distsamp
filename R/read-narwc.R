@@ -123,13 +123,10 @@ read_narwc <- function(x, extra_columns = character(), profile = NULL,
   if (length(resolved$renames)) {
     names(dat)[match(names(resolved$renames), names(dat))] <-
       unname(resolved$renames)
-    # Only the inferred matches are worth saying out loud. An exact entry in
-    # the alias table is documented behaviour, and announcing `LAT_DD` every
-    # time would bury the ones that deserve a second look.
-    if (!quiet && any(resolved$inferred)) {
-      report_renamed_columns(resolved$renames[resolved$inferred])
-    }
+    if (!quiet) report_renamed_columns(resolved$renames, resolved$inferred)
   }
+  attr(dat, "column_mapping") <-
+    column_mapping_table(resolved$renames, resolved$inferred)
 
   # 2. Select the columns we recognise, plus anything explicitly requested.
   #    Dropping a column the caller may need is a real loss, so say what went.
@@ -248,11 +245,30 @@ resolve_columns <- function(nms, schema) {
     if (target %in% taken) next
     claimants <- which(wants == target)
     if (length(claimants) > 1L) {
-      claimants <- claimants[order(vapply(
-        claimants, function(i) priority(nms[i], target), numeric(1)
-      ))]
+      # A column whose name *is* the canonical one bar case or punctuation
+      # outranks one that only got there through an alias: `Latitude` beats
+      # `Lat` for LATITUDE. Documented priority breaks any remaining tie.
+      is_canonical <- norm(nms[claimants]) != norm(target)
+      claimants <- claimants[order(
+        is_canonical,
+        vapply(claimants, function(i) priority(nms[i], target), numeric(1))
+      )]
     }
     pick <- claimants[1]
+
+    # Several columns claiming one canonical name is only unremarkable where
+    # the order is documented - TIME from UTC before local. Anywhere else it
+    # means the file has two columns that could be the same thing, and which
+    # one was taken is a decision worth seeing. Borrowed from msomgom's
+    # standardize_survey_columns(), which warns rather than choosing quietly.
+    if (length(claimants) > 1L && is.null(narwc_alias_priority[[target]])) {
+      rlang::warn(paste0(
+        "More than one column could be `", target, "`: ",
+        paste0("`", nms[claimants], "`", collapse = ", "),
+        ". Using `", nms[pick], "`. Rename the others if that is wrong."
+      ))
+    }
+
     renames[nms[pick]] <- target
     inferred <- c(inferred, guessed[pick])
     taken <- c(taken, target)
@@ -260,13 +276,82 @@ resolve_columns <- function(nms, schema) {
   list(renames = renames, inferred = inferred)
 }
 
-report_renamed_columns <- function(renames) {
+# The whole dictionary, so a rename can be checked rather than trusted. Each
+# line is marked with how it was reached: an exact entry in the alias table, or
+# a match found only after normalising case and separators. The second kind is
+# the one to read.
+report_renamed_columns <- function(renames, inferred) {
+  if (!length(renames)) {
+    return(invisible(NULL))
+  }
+  how <- ifelse(inferred, "  <- inferred", "")
+  width <- max(nchar(names(renames)))
+  lines <- sprintf("  %-*s -> %s%s", width, names(renames), unname(renames), how)
+
   rlang::inform(paste0(
-    "`read_narwc()` matched ", length(renames), " column",
-    if (length(renames) > 1) "s" else "", " onto handbook names:\n  ",
-    paste(names(renames), "->", unname(renames), collapse = "\n  "),
-    "\nMatching ignores case and separators. Check these are what you meant."
+    "`read_narwc()` renamed ", length(renames), " column",
+    if (length(renames) > 1) "s" else "", ":\n",
+    paste(lines, collapse = "\n"),
+    "\n",
+    if (any(inferred)) {
+      paste0(
+        "Lines marked `inferred` matched only after ignoring case and ",
+        "separators. Check they are what you meant"
+      )
+    } else {
+      "All matched an exact entry in the alias table"
+    },
+    "; `narwc_column_mapping()` returns this, and `quiet = TRUE` silences it."
   ))
+}
+
+
+#' What the column names were changed to
+#'
+#' The record of how [read_narwc()] or [standardize_narwc_columns()] renamed a
+#' data frame's columns, so a rename can be checked rather than trusted.
+#'
+#' @section Why keep it:
+#' Matching ignores case and separators, which is what makes a real export
+#' readable without hand-editing — and also what makes it possible for a column
+#' to be renamed onto something you did not intend. The mapping travels with the
+#' data as an attribute so the question "where did this column come from" has an
+#' answer after the fact, not only in a message that has scrolled away.
+#'
+#' @param dat A data frame from [read_narwc()] or
+#'   [standardize_narwc_columns()].
+#'
+#' @return A tibble with `original`, `standardized`, and `match` — the last
+#'   either `"alias"` for an exact entry in the alias table or `"inferred"` for
+#'   one found after normalising case and separators. Zero rows when nothing was
+#'   renamed.
+#'
+#' @seealso [read_narwc()], [standardize_narwc_columns()]
+#'
+#' @examples
+#' raw <- data.frame(Event = 1, Lat_DD = 43, Long_DD = -69, Sea_State = 3)
+#' dat <- standardize_narwc_columns(raw, quiet = TRUE)
+#' narwc_column_mapping(dat)
+#'
+#' @export
+narwc_column_mapping <- function(dat) {
+  m <- attr(dat, "column_mapping")
+  if (is.null(m)) {
+    return(tibble::tibble(
+      original = character(0), standardized = character(0),
+      match = character(0)
+    ))
+  }
+  m
+}
+
+# Build the record that travels with the data.
+column_mapping_table <- function(renames, inferred) {
+  tibble::tibble(
+    original = names(renames),
+    standardized = unname(renames),
+    match = ifelse(inferred, "inferred", "alias")
+  )
 }
 
 # Glob patterns in `extra_columns`, so `Trk*` keeps a family of columns whose
@@ -311,4 +396,61 @@ report_dropped_columns <- function(dropped) {
   }
 
   rlang::inform(paste(lines, collapse = "\n"))
+}
+
+
+#' Standardise column names onto the NARWC handbook's
+#'
+#' Renames a data frame's columns to their canonical NARWC names, matching
+#' case-insensitively and ignoring separators. This is the step [read_narwc()]
+#' does first, exported on its own so that other packages working with NARWC
+#' survey data can use the same vocabulary rather than maintain a second one.
+#'
+#' @section Why this is shared:
+#' Every pipeline that reads real survey exports hits the same wall: the files
+#' say `Event`, `event_no`, or `Event No.` and the code wants `EVENTNO`. Solving
+#' it once per package means the vocabularies drift, and a column recognised in
+#' one place is silently dropped in another. The alias table here is the merge
+#' of two such attempts — this package's and `msomgom`'s — and is meant to be
+#' the one that grows.
+#'
+#' @section What it will not do:
+#' Guess by edit distance. `EVENTN0` with a zero stays `EVENTN0`, because a
+#' column that is nearly a name is not that name. It also never renames onto a
+#' canonical column that already exists, so a correctly named column always
+#' wins, and it warns when two columns could both be one canonical name.
+#'
+#' Policy stays with the caller. This renames columns and nothing else: it does
+#' not fill defaults, drop records, or coerce types. `read_narwc()` does those,
+#' and a package with different needs — `msomgom` defaults a missing `ALT`,
+#' which would be wrong here, where `ALT` feeds `perp_distance()` — keeps its
+#' own.
+#'
+#' @param dat A data frame.
+#' @param quiet Suppress the report of inferred matches. Default `FALSE`.
+#'
+#' @return `dat` with columns renamed where a match was found.
+#'
+#' @seealso [read_narwc()], [narwc_schema()]
+#'
+#' @examples
+#' raw <- data.frame(Event = 1, Lat = 43, Long = -69, Sea_State = 3,
+#'                   check.names = FALSE)
+#' names(standardize_narwc_columns(raw, quiet = TRUE))
+#'
+#' @export
+standardize_narwc_columns <- function(dat, quiet = FALSE) {
+  stopifnot(is.data.frame(dat))
+  if (!ncol(dat)) {
+    return(dat)
+  }
+  resolved <- resolve_columns(names(dat), narwc_schema())
+  if (length(resolved$renames)) {
+    names(dat)[match(names(resolved$renames), names(dat))] <-
+      unname(resolved$renames)
+    if (!quiet) report_renamed_columns(resolved$renames, resolved$inferred)
+  }
+  attr(dat, "column_mapping") <-
+    column_mapping_table(resolved$renames, resolved$inferred)
+  dat
 }

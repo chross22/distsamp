@@ -1,3 +1,15 @@
+all_messages <- function(expr) {
+  msgs <- character(0)
+  withCallingHandlers(
+    force(expr),
+    message = function(m) {
+      msgs <<- c(msgs, conditionMessage(m))
+      invokeRestart("muffleMessage")
+    }
+  )
+  paste(msgs, collapse = "\n")
+}
+
 ccs_frame <- function() {
   dat <- utils::read.csv(example_path(), stringsAsFactors = FALSE)
   dat$Tr_SIGHTING <- 1
@@ -53,7 +65,10 @@ test_that("a profile keeps that programme's columns", {
 })
 
 test_that("keeping a profile's columns emits no dropped-column message", {
-  expect_silent(read_narwc(ccs_frame(), profile = "ccs"))
+  # The rename report still fires - the fixture uses LAT_DD - so check the
+  # dropped-column message specifically rather than for silence.
+  msgs <- all_messages(read_narwc(ccs_frame(), profile = "ccs"))
+  expect_no_match(msgs, "dropped")
 })
 
 test_that("quiet suppresses the message and extra_columns still works", {
@@ -68,8 +83,8 @@ test_that("quiet suppresses the message and extra_columns still works", {
   expect_true("Effort_Type" %in% names(everything))
 })
 
-test_that("a plain handbook file drops nothing and says nothing", {
-  expect_silent(read_narwc(example_path()))
+test_that("a plain handbook file drops nothing", {
+  expect_no_match(all_messages(read_narwc(example_path())), "dropped")
 })
 
 test_that("unfamiliar columns get advice rather than a profile name", {

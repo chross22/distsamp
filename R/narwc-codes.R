@@ -194,7 +194,7 @@ narwc_schema <- function() {
       "GLAREL", "GLARER", "SURFTEMP", "HEADING", "PLATFORM", "STRATUM",
       "BLOCK", "SPECCODE", "TAXCODE", "IDREL", "NUMBER", "NUMCALF",
       "SIGHTNO", "STRIP", "ANGLEL", "ANGLER", "S_LAT", "S_LONG", "S_TIME",
-      "PHOTOS", "DDSOURCE", "IDSOURCE"
+      "PHOTOS", "DDSOURCE", "IDSOURCE", "CONFIDNC"
     ),
     aliases = c(
       LAT_DD    = "LATITUDE",
@@ -237,7 +237,42 @@ narwc_schema <- function() {
       GROUPSIZE  = "NUMBER",
       ALTITUDE   = "ALT",
       SEASTATE   = "BEAUFORT",
-      SEA_STATE  = "BEAUFORT"
+      SEA_STATE  = "BEAUFORT",
+      # Merged in from msomgom's standardize_survey_columns(), which solved
+      # this independently against real exports and had seen spellings this
+      # table had not.
+      FILE       = "FILEID",
+      FILENAME   = "FILEID",
+      EVENTNUMBER = "EVENTNO",
+      EVNO       = "EVENTNO",
+      EVENTID    = "EVENTNO",
+      MON        = "MONTH",
+      DY         = "DAY",
+      LNG        = "LONGITUDE",
+      LEG        = "LEGTYPE",
+      STAGE      = "LEGSTAGE",
+      ALTFT      = "ALT",
+      ALTITUDEFT = "ALT",
+      HEIGHT     = "ALT",
+      HDG        = "HEADING",
+      COURSE     = "HEADING",
+      WEATHER    = "WX",
+      CLOUDCOVER = "CLOUD",
+      CLOUDS     = "CLOUD",
+      VIS        = "VISIBLTY",
+      VISNM      = "VISIBLTY",
+      BFT        = "BEAUFORT",
+      BEAUFORTSCALE = "BEAUFORT",
+      SPECODE    = "SPECCODE",
+      SPPCODE    = "SPECCODE",
+      SPP        = "SPECCODE",
+      SPCODE     = "SPECCODE",
+      IDRELIABILITY = "IDREL",
+      RELIABILITY = "IDREL",
+      COUNT      = "NUMBER",
+      NUMANIMALS = "NUMBER",
+      CONFIDENCE = "CONFIDNC",
+      CONF       = "CONFIDNC"
     )
   )
 }

@@ -5,7 +5,10 @@ example_path <- function() {
 }
 
 example_data <- function() {
-  read_narwc(example_path())
+  # The fixture uses the handbook's own LAT_DD/LONG_DD, so reading it reports a
+  # rename. That is correct behaviour and is tested in test-column-matching.R;
+  # here it would only crowd out the message each test is actually about.
+  read_narwc(example_path(), quiet = TRUE)
 }
 
 # A single straight north-running survey line, `n` positions `step` degrees
