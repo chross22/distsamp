@@ -13,6 +13,18 @@ Takes survey data in the format of the North Atlantic Right Whale Consortium
 an amount of effort, and counts of what was seen along it — ready for `Distance`
 and `dsm`.
 
+> **The input format is specified by the NARWC users' guide:**
+> Kenney, R.D. (2023) *The North Atlantic Right Whale Consortium Database: A
+> Guide for Users and Contributors, Version 8.* NARWC Reference Document 2023-01.
+> **[Read the handbook (PDF)](https://www.narwc.org/uploads/1/1/6/6/116623219/narwc_users_guide__v8_.pdf)**
+> · [database landing page](https://www.narwc.org/sightings-database.html)
+>
+> Every code book, column definition, and effort rule in this package cites a
+> section of it. Chapter 8 sections are numbered alphabetically by variable, so
+> **they shift between versions** — `distsamp` cites Version 8 throughout. See
+> [docs/06-references.md](docs/06-references.md) for what each section is relied
+> on for.
+
 ## Install
 
 ```r
