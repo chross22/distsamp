@@ -65,6 +65,25 @@
 #' data. *Marine Ecology Progress Series* 413:163-183.
 #' \doi{10.3354/meps08696}
 #'
+#' @examples
+#' path <- system.file("extdata", "narwc-example.csv", package = "distsamp")
+#' dat <- point_to_point_effort(flag_effort(make_leg_id(read_narwc(path))))
+#' dat <- split_tracks(dat)
+#' chopped <- cut_segments(
+#'   plan_segments(track_effort(dat), seg_length = 5, seed = 1), dat, seed = 1
+#' )
+#'
+#' # Counts per segment and species, with pilot sightings (LEGSTAGE 6) and
+#' # photographic detections (7) excluded, and only probable or definite
+#' # identifications kept.
+#' segment_sightings(chopped)
+#'
+#' # One species only
+#' segment_sightings(chopped, species = "RIWH")
+#'
+#' # Keep possible identifications too (IDREL 1), which the default drops
+#' segment_sightings(chopped, idrel_keep = c(1, 2, 3))
+#'
 #' @seealso [segment_survey()]
 #' @export
 segment_sightings <- function(chopped,

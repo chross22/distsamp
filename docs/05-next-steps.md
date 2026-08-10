@@ -39,32 +39,18 @@ and not of any general pipeline.
 | Column | Meaning | Source | Used for |
 |---|---|---|---|
 | `Tr_SIGHTING` | Whether the sighting was made from the track-line | **CCS** | **load-bearing** — see below |
-| `IS_LAT`, `IS_LONG`, `IS_SPECCODE` | **Initial sighting** position and species — where the animal was when first detected, as distinct from where it was recorded during a subsequent circle | **CCS** | the distance calculation |
+| `IS_LAT`, `IS_LONG`, `IS_SPECCODE` | **Initial sighting**: the *aircraft's* position on the track-line at first detection, and the species. Distinct from the circle position in `LATITUDE`/`LONGITUDE` | **CCS** | the distance calculation |
 | `LEGTYPE_BK` | Kenney's `LEGTYPE`, alongside a different `LEGTYPE` | unconfirmed | aliased to `LEGTYPE` |
 | `Effort_Type` | An upstream effort classification | unconfirmed | carried only |
 | `OBSSIGHT` | An observer sighting flag | unconfirmed | carried only, never acted on |
 | `Date_UTC`, `Time_UTC` | Date and time, already in UTC | unconfirmed | carried only |
 
-### `IS_*` is not `S_LAT`/`S_LONG`, and the difference is the useful part
+### `IS_*` is not `S_LAT`/`S_LONG`
 
 An earlier version of this document guessed that `IS_LAT`/`IS_LONG` were "the
-handbook's `S_LAT`/`S_LONG`". That was wrong in a way worth preserving, because
-the correction points at something better than either.
-
-Under the CCS design there are **two** positions for a circled animal: where it
-was when first sighted from the track-line, and where it was during the circle.
-The distance to the track-line is defined from the *initial* one. That is exactly
-the limitation recorded against `circling_distance()` in
-[02-implementation.md](02-implementation.md) step 11e — that a circle position is
-fixed minutes after detection, by which time the animal has moved, so the result
-estimates where it was rather than measuring it. A survey that records the
-initial sighting position has already solved that problem in the field, and the
-distance computed from it is a measurement rather than an estimate.
-
-So `IS_*` is not a synonym to alias away. It is a **fifth and better distance
-source** wherever it exists, and it should take precedence over both the circle
-position and the aircraft position for circled animals. See the open question at
-the end of this section.
+handbook's `S_LAT`/`S_LONG`". That was wrong twice over: they are neither that
+column nor a position of the animal at all. See below for what they are, and for
+why the correction points at something useful.
 
 ### `Tr_SIGHTING`
 
@@ -179,17 +165,19 @@ on everyone who only wants to cut segments.
 
 `segments_as_sf(segs, "midpoints")` is the intended handoff point.
 
-## 5. Mapping
+## 5. Mapping — partly done
 
-`original/make_plots.R`, `make_maps.R`, and `map_utils.R` produce the diagnostic
-maps — tracklines by date, tracks coloured by `new_trackno`, chopped segments
-with their sightings. These are genuinely useful for spotting a segmentation
-gone wrong, and `map_utils.R` contains a substantial reimplementation of
-`ggspatial::annotation_map_tile` worth preserving.
+`plot()` methods on `distsamp_segments` now cover the diagnostic views, behind
+`Suggests` on `ggplot2`: the track with segment midpoints and sightings, tracks
+coloured by `new_trackno`, segment lengths against the target, and the
+distribution of perpendicular distances. They return `ggplot` objects rather
+than writing PNGs to a directory.
 
-They belong behind `Suggests` on `ggplot2` and `sf`, as `plot()` methods on
-`distsamp_segments` rather than as standalone scripts writing PNGs to a
-directory.
+Still missing, and deliberately: **coastlines and basemaps**.
+`original/map_utils.R` contains a substantial reimplementation of
+`ggspatial::annotation_map_tile` worth preserving, but it needs `sf` and a tile
+source, and the diagnostic plots do not. `segments_as_sf()` is the handoff for
+anyone who wants a real map.
 
 ## 6. Smaller items
 

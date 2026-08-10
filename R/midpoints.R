@@ -94,6 +94,22 @@ gc_interpolate <- function(lat1, lon1, lat2, lon2, fraction) {
 #' data. *Marine Ecology Progress Series* 413:163-183.
 #' \doi{10.3354/meps08696}
 #'
+#' @examples
+#' path <- system.file("extdata", "narwc-example.csv", package = "distsamp")
+#' dat <- point_to_point_effort(flag_effort(make_leg_id(read_narwc(path))))
+#' dat <- split_tracks(dat)
+#' chopped <- cut_segments(
+#'   plan_segments(track_effort(dat), seg_length = 5, seed = 1), dat, seed = 1
+#' )
+#'
+#' # The position half of each segment's realised effort along it - not the
+#' # mean of its coordinates, which would sit off the track on a turn.
+#' mids <- segment_midpoints(chopped)
+#' head(mids)
+#'
+#' # Every segment gets exactly one midpoint
+#' nrow(mids) == length(unique(chopped$seg_id))
+#'
 #' @seealso [cut_segments()], [gc_interpolate()]
 #' @export
 segment_midpoints <- function(chopped) {

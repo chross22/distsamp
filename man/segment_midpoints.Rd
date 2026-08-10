@@ -35,6 +35,23 @@ surface temperature and depth standard deviations taken over a 3 x 3-pixel box
 around it. That is the intended use of these coordinates.
 }
 
+\examples{
+path <- system.file("extdata", "narwc-example.csv", package = "distsamp")
+dat <- point_to_point_effort(flag_effort(make_leg_id(read_narwc(path))))
+dat <- split_tracks(dat)
+chopped <- cut_segments(
+  plan_segments(track_effort(dat), seg_length = 5, seed = 1), dat, seed = 1
+)
+
+# The position half of each segment's realised effort along it - not the
+# mean of its coordinates, which would sit off the track on a turn.
+mids <- segment_midpoints(chopped)
+head(mids)
+
+# Every segment gets exactly one midpoint
+nrow(mids) == length(unique(chopped$seg_id))
+
+}
 \references{
 Becker, E.A., Forney, K.A., Redfern, J.V., Barlow, J., Jacox, M.G., Roberts,
 J.J. and Palacios, D.M. (2019) Predicting cetacean abundance and distribution

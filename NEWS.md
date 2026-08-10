@@ -156,9 +156,33 @@ CCS is the only profile registered so far, and is an exception rather than a
 representative case. Adding one needs a data dictionary, not just a column list;
 entries whose meaning was inferred from the name are marked `unconfirmed`.
 
+## Diagnostic plots
+
+`plot()` methods on `distsamp_segments`, behind `Suggests` on `ggplot2`. Each
+returns an ordinary `ggplot` object.
+
+* `plot(segs)` — the track flown, segment midpoints sized by effort, and the
+  sightings. A segmentation gone wrong is usually obvious here.
+* `plot(segs, what = "tracks")` — positions coloured by `new_trackno`, faceted by
+  date. Shows whether track splitting did the right thing.
+* `plot(segs, what = "effort")` — segment lengths against the target, with the
+  tolerance band marked.
+* `plot(segs, what = "distances")` — the detection-function diagnostic, with the
+  documentation spelling out that a dip in the first bin may be a blind spot
+  rather than an absence of animals, and that a smooth curve says nothing about
+  `g(0)`.
+
+`species` filters the views that draw sightings. Coastlines and basemaps are
+still out of scope; `segments_as_sf()` is the handoff for a real map.
+
 ## Vignettes
 
 * `segmenting-narwc-data` — the full walkthrough.
+* Both vignettes extended: `segmenting-narwc-data` gains sections on columns
+  from other survey programmes, filling blank state columns, all four
+  right-angle distance sources, and the diagnostic plots;
+  `from-segments-to-density` gains a "look at the distances first" section and
+  the two traps in comparing several detection functions by AIC.
 * `from-segments-to-density` — new. Picks up where the first ends: fitting a
   detection function with `Distance`, mapping the output onto the
   `segment.data`/`observation.data` shape `dsm` expects, projecting midpoints

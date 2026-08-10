@@ -48,6 +48,31 @@ The original processing code instead hard-coded right whales, attaching every
 circling right whale and discarding circling sightings of everything else.
 }
 
+\examples{
+path <- system.file("extdata", "narwc-example.csv", package = "distsamp")
+dat <- point_to_point_effort(flag_effort(make_leg_id(read_narwc(path))))
+dat <- split_tracks(dat)
+chopped <- cut_segments(
+  plan_segments(track_effort(dat), seg_length = 5, seed = 1), dat, seed = 1
+)
+
+# Circling records are off effort, so cut_segments() left them out. This
+# puts the sightings among them back onto the segment that was in progress
+# when the aircraft broke off.
+full <- flag_circling(dat)
+with_circling <- attach_circling_sightings(chopped, full)
+nrow(with_circling) - nrow(chopped)
+
+# The CETAP same-species rule is the default; "all" ignores it
+nrow(attach_circling_sightings(chopped, full, mode = "all")) - nrow(chopped)
+
+# Attaching a record never changes a segment's length
+identical(
+  tapply(chopped$pt2pt.effort, chopped$seg_id, sum),
+  tapply(with_circling$pt2pt.effort, with_circling$seg_id, sum)
+)
+
+}
 \references{
 Kenney, R.D. (2023) \emph{The North Atlantic Right Whale Consortium Database: A
 Guide for Users and Contributors, Version 8}, section 4.2 (event 11). NARWC

@@ -200,6 +200,20 @@ plan_one_track <- function(total, seg_length, seg_tol) {
 #' data. *Marine Ecology Progress Series* 413:163-183.
 #' \doi{10.3354/meps08696}
 #'
+#' @examples
+#' path <- system.file("extdata", "narwc-example.csv", package = "distsamp")
+#' dat <- point_to_point_effort(flag_effort(make_leg_id(read_narwc(path))))
+#' dat <- split_tracks(dat)
+#' plan <- plan_segments(track_effort(dat), seg_length = 5, seed = 1)
+#'
+#' chopped <- cut_segments(plan, dat, seed = 1)
+#'
+#' # One row per survey record, now carrying the segment it fell in
+#' head(chopped[, c("seg_id", "seg_no", "seg_eff", "EVENTNO")])
+#'
+#' # Realised effort per segment, against the 5 km target
+#' tapply(chopped$pt2pt.effort, chopped$seg_id, sum)
+#'
 #' @seealso [plan_segments()], [segment_survey()]
 #' @export
 cut_segments <- function(plan, dat, min_segment_km = 1, seed = NULL) {

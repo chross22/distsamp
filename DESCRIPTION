@@ -26,6 +26,7 @@ Imports:
     utils,
     withr
 Suggests:
+    ggplot2,
     knitr,
     rmarkdown,
     sf,
