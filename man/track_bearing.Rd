@@ -11,9 +11,12 @@ track_bearing(dat, by = NULL, track_rows = NULL)
 
 \item{by}{Character vector of columns identifying one continuous occupation
 of a survey line. \code{NULL} (default) picks \code{c("FILEID", "LEGNO3")} if
-\code{\link[=make_leg_id]{make_leg_id()}} has been run, then \code{c("FILEID", "LEGNO")}, then \code{"FILEID"}.
+\code{\link[=make_leg_id]{make_leg_id()}} has been run, then \code{c("FILEID", "LEGNO")}, then \code{"FILEID"},
+and prepends \code{DATE} to whichever it picks when that column is present.
 Getting this wrong joins the end of one line to the start of the next and
-produces a bearing that belongs to neither.}
+produces a bearing that belongs to neither — which is why \code{DATE} is
+included: two days sharing a \code{LEGNO} are separated by \code{FILEID} alone, and
+some extracts carry a constant \code{FILEID}.}
 
 \item{track_rows}{Logical vector marking the records that define the track.
 \code{NULL} (default) uses the census records, \code{LEGTYPE == 2}, when \code{LEGTYPE} is

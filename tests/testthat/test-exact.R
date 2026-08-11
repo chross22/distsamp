@@ -203,16 +203,44 @@ test_that("empty input gives empty output of the right shape", {
 
 test_that("the grouping columns are chosen most-specific-first", {
   dat <- flag_effort(make_leg_id(example_data()))
-  expect_equal(default_track_grouping(dat), c("FILEID", "LEGNO3"))
+  expect_equal(default_track_grouping(dat), c("DATE", "FILEID", "LEGNO3"))
 
   dat$LEGNO3 <- NULL
-  expect_equal(default_track_grouping(dat), c("FILEID", "LEGNO"))
+  expect_equal(default_track_grouping(dat), c("DATE", "FILEID", "LEGNO"))
 
   dat$LEGNO <- NULL
-  expect_equal(default_track_grouping(dat), "FILEID")
+  expect_equal(default_track_grouping(dat), c("DATE", "FILEID"))
 
   dat$FILEID <- NULL
   expect_error(default_track_grouping(dat), "make_leg_id")
+})
+
+test_that("DATE is prepended only when it is there to prepend", {
+  dat <- flag_effort(make_leg_id(example_data()))
+  dat$DATE <- NULL
+  expect_equal(default_track_grouping(dat), c("FILEID", "LEGNO3"))
+})
+
+test_that("two days sharing a LEGNO get their own bearings", {
+  # A constant FILEID leaves DATE as the only thing separating the days.
+  day1 <- straight_line(n = 21, lat0 = 43, legno = 5, date = "2024-04-01")
+  day2 <- straight_line(n = 21, lat0 = 40, legno = 5, date = "2024-04-02")
+  day2$EVENTNO <- day2$EVENTNO + 100
+  day2$LATITUDE <- 40                                  # day 2 runs due east
+  day2$LONGITUDE <- -69 + (seq_len(21) - 1) * 0.01
+  both <- make_leg_id(dplyr::bind_rows(day1, day2))
+  both$FILEID <- "F"
+
+  b <- track_bearing(both)
+  expect_false(anyNA(b))
+  expect_true(all(abs(b[1:21] - 0) < 1))               # day 1 due north
+  expect_true(all(abs(b[22:42] - 90) < 1))             # day 2 due east
+
+  # Without DATE the two days are one line, and the junction bearing —
+  # pointing down the ferry — belongs to neither.
+  merged <- track_bearing(both, by = c("FILEID", "LEGNO3"))
+  expect_false(isTRUE(all.equal(merged, b)))
+  expect_gt(abs(merged[21] - b[21]), 90)
 })
 
 test_that("an implausible exact position is flagged by validation", {

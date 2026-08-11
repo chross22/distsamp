@@ -253,8 +253,17 @@ dist_method_canonical <- function(method) {
 #'   [read_narwc()] does not sort, so sort by `DATE`/`FILEID`/`EVENTNO`
 #'   beforehand if you are unsure.
 #' @param by Character vector of columns identifying a continuous survey line.
-#'   Defaults to `c("FILEID", "LEGNO3")`, the line-occupation identifier
-#'   produced by [make_leg_id()].
+#'   Defaults to `c("DATE", "FILEID", "LEGNO3")`, the line-occupation identifier
+#'   produced by [make_leg_id()], qualified by the survey day.
+#'
+#'   `DATE` is in the default because `LEGNO3` only increments when `LEGNO`
+#'   *changes*. If the last line of one day and the first line of the next share
+#'   a `LEGNO`, the two occupations differ in nothing but `FILEID` — and some
+#'   extracts carry a constant `FILEID`, in which case the days merge and the
+#'   ferry between them is counted as on-effort track. That failure is silent:
+#'   no warning, no `NA`, just an effort total that can be many times too large,
+#'   and since effort is the denominator of density, a density proportionally
+#'   too low. Drop `DATE` only for a frame you know occupies a single day.
 #' @param method Distance method passed to [gc_distance()]: `"haversine"`
 #'   (default), `"becker"`, or `"kenney"`.
 #'
@@ -284,7 +293,7 @@ dist_method_canonical <- function(method) {
 #'
 #' @export
 point_to_point_effort <- function(dat,
-                                  by = c("FILEID", "LEGNO3"),
+                                  by = c("DATE", "FILEID", "LEGNO3"),
                                   method = c("haversine", "becker", "kenney",
                                              "eab", "rdk")) {
   method <- dist_method_canonical(match.arg(method))

@@ -155,9 +155,12 @@ cross_track_distance <- function(lat, lon, bearing, target_lat, target_lon,
 #' @param dat A data frame with `LATITUDE` and `LONGITUDE`, in survey order.
 #' @param by Character vector of columns identifying one continuous occupation
 #'   of a survey line. `NULL` (default) picks `c("FILEID", "LEGNO3")` if
-#'   [make_leg_id()] has been run, then `c("FILEID", "LEGNO")`, then `"FILEID"`.
+#'   [make_leg_id()] has been run, then `c("FILEID", "LEGNO")`, then `"FILEID"`,
+#'   and prepends `DATE` to whichever it picks when that column is present.
 #'   Getting this wrong joins the end of one line to the start of the next and
-#'   produces a bearing that belongs to neither.
+#'   produces a bearing that belongs to neither — which is why `DATE` is
+#'   included: two days sharing a `LEGNO` are separated by `FILEID` alone, and
+#'   some extracts carry a constant `FILEID`.
 #' @param track_rows Logical vector marking the records that define the track.
 #'   `NULL` (default) uses the census records, `LEGTYPE == 2`, when `LEGTYPE` is
 #'   present. Circling and transit positions must be excluded: an aircraft
@@ -229,11 +232,14 @@ bearing_along_line <- function(lat, lon) {
 }
 
 # Columns that identify one continuous occupation of a survey line, most
-# specific first.
+# specific first. `DATE` is prepended whenever it is available: `LEGNO3` alone
+# does not separate two days that share a `LEGNO`, and a constant `FILEID`
+# leaves nothing that does.
 default_track_grouping <- function(dat) {
+  prefix <- if ("DATE" %in% names(dat)) "DATE" else character(0)
   for (cols in list(c("FILEID", "LEGNO3"), c("FILEID", "LEGNO"), "FILEID")) {
     if (all(cols %in% names(dat))) {
-      return(cols)
+      return(c(prefix, cols))
     }
   }
   rlang::abort(paste0(

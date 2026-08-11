@@ -96,3 +96,40 @@ test_that("empty input gives empty output", {
   expect_equal(nrow(out), 0)
   expect_true("pt2pt.effort" %in% names(out))
 })
+
+test_that("a constant FILEID does not merge two survey days", {
+  # The real-extract failure: FILEID is the same string on every row, and the
+  # two days share a LEGNO, so LEGNO3 never increments. Only DATE separates
+  # them, and without it the ferry south is counted as on-effort track.
+  day1 <- straight_line(n = 21, lat0 = 43, legno = 5, date = "2024-04-01")
+  day2 <- straight_line(n = 21, lat0 = 40, legno = 5, date = "2024-04-02")
+  day2$EVENTNO <- day2$EVENTNO + 100
+  dat <- dplyr::bind_rows(day1, day2)
+  dat$FILEID <- "F"
+  dat <- flag_effort(make_leg_id(dat))
+
+  # LEGNO3 alone really does collapse both days into one occupation.
+  expect_equal(length(unique(dat$LEGNO3)), 1)
+
+  correct <- 2 * 20 * 0.01 * KM_PER_DEG
+  expect_equal(sum(point_to_point_effort(dat)$pt2pt.effort), correct)
+
+  # The old default counts the ferry as effort. Day 1 climbs 0.20 degrees
+  # before it ends, so the gap down to day 2 is 3.20 degrees, not 3.00.
+  merged <- point_to_point_effort(dat, by = c("FILEID", "LEGNO3"))
+  expect_equal(sum(merged$pt2pt.effort), correct + 3.2 * KM_PER_DEG)
+  expect_gt(sum(merged$pt2pt.effort), 8 * correct)
+})
+
+test_that("Effort is per day when the days would otherwise merge", {
+  day1 <- straight_line(n = 21, lat0 = 43, legno = 5, date = "2024-04-01")
+  day2 <- straight_line(n = 21, lat0 = 40, legno = 5, date = "2024-04-02")
+  day2$EVENTNO <- day2$EVENTNO + 100
+  dat <- dplyr::bind_rows(day1, day2)
+  dat$FILEID <- "F"
+  dat <- point_to_point_effort(flag_effort(make_leg_id(dat)))
+
+  per_day <- unique(dat[, c("DATE", "Effort")])
+  expect_equal(nrow(per_day), 2)
+  expect_true(all(abs(per_day$Effort - 20 * 0.01 * KM_PER_DEG) < 1e-8))
+})

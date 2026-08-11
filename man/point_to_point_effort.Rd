@@ -6,7 +6,7 @@
 \usage{
 point_to_point_effort(
   dat,
-  by = c("FILEID", "LEGNO3"),
+  by = c("DATE", "FILEID", "LEGNO3"),
   method = c("haversine", "becker", "kenney", "eab", "rdk")
 )
 }
@@ -17,8 +17,17 @@ grouping columns named in \code{by}. Records must already be in survey order;
 beforehand if you are unsure.}
 
 \item{by}{Character vector of columns identifying a continuous survey line.
-Defaults to \code{c("FILEID", "LEGNO3")}, the line-occupation identifier
-produced by \code{\link[=make_leg_id]{make_leg_id()}}.}
+Defaults to \code{c("DATE", "FILEID", "LEGNO3")}, the line-occupation identifier
+produced by \code{\link[=make_leg_id]{make_leg_id()}}, qualified by the survey day.
+
+\code{DATE} is in the default because \code{LEGNO3} only increments when \code{LEGNO}
+\emph{changes}. If the last line of one day and the first line of the next share
+a \code{LEGNO}, the two occupations differ in nothing but \code{FILEID} — and some
+extracts carry a constant \code{FILEID}, in which case the days merge and the
+ferry between them is counted as on-effort track. That failure is silent:
+no warning, no \code{NA}, just an effort total that can be many times too large,
+and since effort is the denominator of density, a density proportionally
+too low. Drop \code{DATE} only for a frame you know occupies a single day.}
 
 \item{method}{Distance method passed to \code{\link[=gc_distance]{gc_distance()}}: \code{"haversine"}
 (default), \code{"becker"}, or \code{"kenney"}.}
