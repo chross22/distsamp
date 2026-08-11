@@ -31,7 +31,7 @@
 #'   Default `10`.
 #' @param species Passed to [segment_survey()]. Default `NULL`.
 #' @param ... Passed to `read_narwc()` when `x` is a path — `profile`,
-#'   `extra_columns`, `prefer_track` and so on.
+#'   `extra_columns`, `prefer_source` and so on.
 #'
 #' @return Invisibly, a list with whichever of `dat`, `findings` and `segments`
 #'   the checks reached before a fatal problem stopped them, so investigating

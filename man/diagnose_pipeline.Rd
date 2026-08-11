@@ -26,7 +26,7 @@ Default \code{10}.}
 \item{species}{Passed to \code{\link[=segment_survey]{segment_survey()}}. Default \code{NULL}.}
 
 \item{...}{Passed to \code{read_narwc()} when \code{x} is a path — \code{profile},
-\code{extra_columns}, \code{prefer_track} and so on.}
+\code{extra_columns}, \code{prefer_source} and so on.}
 }
 \value{
 Invisibly, a list with whichever of \code{dat}, \code{findings} and \code{segments}
