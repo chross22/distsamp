@@ -9,6 +9,7 @@
 | [05-next-steps.md](05-next-steps.md) | What v1 does not do, in the order it is worth doing |
 | [06-references.md](06-references.md) | Every citation, what it is relied on for, what the published methods do *not* cover, and how to cite this in a methods section |
 | [07-fitting-architecture.md](07-fitting-architecture.md) | Where detection-function and density-surface fitting should live, the model-selection sweep, and what can and cannot be done about `g(0)` |
+| [08-onboarding-a-real-extract.md](08-onboarding-a-real-extract.md) | Bringing a dataset the package has not seen before into the pipeline: the order to do it in, what `diagnose_pipeline()` is telling you, and the traps that have produced plausible wrong numbers |
 
 For using the package rather than understanding how it was built, start with the
 vignette:
