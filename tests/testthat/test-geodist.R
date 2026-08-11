@@ -133,3 +133,50 @@ test_that("Effort is per day when the days would otherwise merge", {
   expect_equal(nrow(per_day), 2)
   expect_true(all(abs(per_day$Effort - 20 * 0.01 * KM_PER_DEG) < 1e-8))
 })
+
+test_that("recorded effort uses TRKDIST, aligned to the interval it measures", {
+  dat <- flag_effort(make_leg_id(straight_line(n = 5)))
+  # Each fix is 0.01 degrees on from the last; TRKDIST measures back to it.
+  step_m <- 0.01 * KM_PER_DEG * 1000
+  dat$TRKDIST <- c(NA, rep(step_m, 4))
+
+  out <- point_to_point_effort(dat, source = "recorded")
+  expect_equal(sum(out$pt2pt.effort), 4 * 0.01 * KM_PER_DEG)
+  # Attributed forward: the last record of a line closes at zero.
+  expect_equal(out$pt2pt.effort[5], 0)
+})
+
+test_that("recorded and computed agree on a straight line", {
+  dat <- flag_effort(make_leg_id(straight_line(n = 5)))
+  dat$TRKDIST <- c(NA, rep(0.01 * KM_PER_DEG * 1000, 4))
+
+  expect_equal(
+    sum(point_to_point_effort(dat, source = "recorded")$pt2pt.effort),
+    sum(point_to_point_effort(dat)$pt2pt.effort)
+  )
+})
+
+test_that("a recorded reading spanning a ferry is discarded, not counted", {
+  a <- straight_line(n = 3, lat0 = 43, legno = 1)
+  b <- straight_line(n = 3, lat0 = 44, legno = 2)
+  b$EVENTNO <- b$EVENTNO + 100
+  dat <- flag_effort(make_leg_id(dplyr::bind_rows(a, b)))
+  # The first record of line 2 measures back across the ferry from line 1.
+  dat$TRKDIST <- c(NA, rep(0.01 * KM_PER_DEG * 1000, 2),
+                   999999, rep(0.01 * KM_PER_DEG * 1000, 2))
+
+  out <- point_to_point_effort(dat, source = "recorded")
+  expect_equal(sum(out$pt2pt.effort), 4 * 0.01 * KM_PER_DEG)
+})
+
+test_that("recorded effort needs the column", {
+  dat <- flag_effort(make_leg_id(straight_line(n = 3)))
+  expect_error(point_to_point_effort(dat, source = "recorded"), "TRKDIST")
+})
+
+test_that("the default is unchanged", {
+  dat <- flag_effort(make_leg_id(straight_line(n = 5)))
+  dat$TRKDIST <- 999999
+  expect_equal(sum(point_to_point_effort(dat)$pt2pt.effort),
+               4 * 0.01 * KM_PER_DEG)
+})

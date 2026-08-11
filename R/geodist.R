@@ -265,7 +265,24 @@ dist_method_canonical <- function(method) {
 #'   and since effort is the denominator of density, a density proportionally
 #'   too low. Drop `DATE` only for a frame you know occupies a single day.
 #' @param method Distance method passed to [gc_distance()]: `"haversine"`
-#'   (default), `"becker"`, or `"kenney"`.
+#'   (default), `"becker"`, or `"kenney"`. Ignored when `source = "recorded"`.
+#' @param source Where the distance for each interval comes from.
+#'   `"computed"` (default) is the great circle between consecutive positions.
+#'   `"recorded"` uses `TRKDIST`, the distance the receiver itself measured
+#'   since the previous fix, in metres.
+#'
+#'   `"recorded"` is the better measure where it exists. The handbook makes the
+#'   point itself (8.A.10): the farther apart the fixes, the less a straight
+#'   line between them reconstructs the track that was actually flown. A
+#'   computed distance is a chord; the recorded one followed the aircraft.
+#'   The two agree closely on a straight line and diverge on a turn, so a large
+#'   gap between them is a sign of coarse fixes rather than of an error.
+#'
+#'   `TRKDIST` measures *back* to the previous fix, and effort is attributed
+#'   forward to the first record of a pair, so the interval takes the next
+#'   record's reading. Off-effort endpoints and line boundaries are handled
+#'   exactly as for `"computed"`, which means a reading that spans the ferry
+#'   between two lines is discarded rather than counted.
 #'
 #' @return `dat` with two columns added or replaced:
 #'   \describe{
@@ -295,9 +312,14 @@ dist_method_canonical <- function(method) {
 point_to_point_effort <- function(dat,
                                   by = c("DATE", "FILEID", "LEGNO3"),
                                   method = c("haversine", "becker", "kenney",
-                                             "eab", "rdk")) {
+                                             "eab", "rdk"),
+                                  source = c("computed", "recorded")) {
   method <- dist_method_canonical(match.arg(method))
+  source <- match.arg(source)
   require_columns(dat, c("LATITUDE", "LONGITUDE", "OnOff.Effort", by))
+  if (source == "recorded") {
+    require_columns(dat, "TRKDIST")
+  }
 
   if (is_empty_df(dat)) {
     dat$pt2pt.effort <- numeric(0)
@@ -305,18 +327,27 @@ point_to_point_effort <- function(dat,
     return(dat)
   }
 
+  out <- dplyr::group_by(dat, dplyr::across(dplyr::all_of(by)))
   out <- dplyr::mutate(
-    dplyr::group_by(dat, dplyr::across(dplyr::all_of(by))),
+    out,
     .next_lat = dplyr::lead(.data$LATITUDE),
     .next_lon = dplyr::lead(.data$LONGITUDE),
     .next_on  = dplyr::lead(.data$OnOff.Effort),
-    pt2pt.effort = ifelse(
-      !is.na(.data$.next_on) & .data$OnOff.Effort == 1 & .data$.next_on == 1,
+    # `TRKDIST` measures back to the previous fix, while effort is attributed
+    # forward to the first record of each pair, so the interval from this
+    # record to the next carries the *next* record's reading.
+    .step = if (source == "recorded") {
+      dplyr::lead(.data$TRKDIST) / 1000
+    } else {
       gc_distance(
         .data$LATITUDE, .data$LONGITUDE,
-        .data$.next_lat, .data$.next_lon,
+        dplyr::lead(.data$LATITUDE), dplyr::lead(.data$LONGITUDE),
         method = method
-      ),
+      )
+    },
+    pt2pt.effort = ifelse(
+      !is.na(.data$.next_on) & .data$OnOff.Effort == 1 & .data$.next_on == 1,
+      .data$.step,
       0
     ),
     pt2pt.effort = ifelse(is.na(.data$pt2pt.effort), 0, .data$pt2pt.effort),
@@ -325,7 +356,9 @@ point_to_point_effort <- function(dat,
   )
 
   out <- dplyr::ungroup(out)
-  out <- dplyr::select(out, -dplyr::all_of(c(".next_lat", ".next_lon", ".next_on")))
+  out <- dplyr::select(
+    out, -dplyr::all_of(c(".next_lat", ".next_lon", ".next_on", ".step"))
+  )
   class(out) <- unique(c(setdiff(class(dat), class(out)), class(out)))
   out
 }

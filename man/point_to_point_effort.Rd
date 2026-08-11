@@ -7,7 +7,8 @@
 point_to_point_effort(
   dat,
   by = c("DATE", "FILEID", "LEGNO3"),
-  method = c("haversine", "becker", "kenney", "eab", "rdk")
+  method = c("haversine", "becker", "kenney", "eab", "rdk"),
+  source = c("computed", "recorded")
 )
 }
 \arguments{
@@ -30,7 +31,25 @@ and since effort is the denominator of density, a density proportionally
 too low. Drop \code{DATE} only for a frame you know occupies a single day.}
 
 \item{method}{Distance method passed to \code{\link[=gc_distance]{gc_distance()}}: \code{"haversine"}
-(default), \code{"becker"}, or \code{"kenney"}.}
+(default), \code{"becker"}, or \code{"kenney"}. Ignored when \code{source = "recorded"}.}
+
+\item{source}{Where the distance for each interval comes from.
+\code{"computed"} (default) is the great circle between consecutive positions.
+\code{"recorded"} uses \code{TRKDIST}, the distance the receiver itself measured
+since the previous fix, in metres.
+
+\code{"recorded"} is the better measure where it exists. The handbook makes the
+point itself (8.A.10): the farther apart the fixes, the less a straight
+line between them reconstructs the track that was actually flown. A
+computed distance is a chord; the recorded one followed the aircraft.
+The two agree closely on a straight line and diverge on a turn, so a large
+gap between them is a sign of coarse fixes rather than of an error.
+
+\code{TRKDIST} measures \emph{back} to the previous fix, and effort is attributed
+forward to the first record of a pair, so the interval takes the next
+record's reading. Off-effort endpoints and line boundaries are handled
+exactly as for \code{"computed"}, which means a reading that spans the ferry
+between two lines is discarded rather than counted.}
 }
 \value{
 \code{dat} with two columns added or replaced:

@@ -279,6 +279,27 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
     }
   }
 
+  # The receiver's own measurement against the reconstruction, where both
+  # exist. A straight line between fixes is a chord, so the recorded total
+  # should be a little larger; a lot larger means the fixes are far enough
+  # apart to be cutting the corners of the track that was flown.
+  if ("TRKDIST" %in% names(dat)) {
+    rec <- sum(point_to_point_effort(dat, by = by_now,
+                                     source = "recorded")$pt2pt.effort)
+    ratio <- if (total > 0) rec / total else NA_real_
+    if (!is.na(ratio) && ratio > 1.25) {
+      warn("the receiver recorded ", round(rec, 1), " km, ", round(ratio, 2),
+           "x the computed total. That gap means the fixes are far enough",
+           " apart to be cutting the corners of the real track.",
+           " `point_to_point_effort(source = \"recorded\")` uses TRKDIST")
+    } else {
+      pass("TRKDIST gives ", round(rec, 1), " km against ", round(total, 1),
+           " km computed",
+           if (!is.na(ratio)) paste0(" (", round(ratio, 2), "x)") else "",
+           "; `source = \"recorded\"` uses it")
+    }
+  }
+
   # --- Distance sources -----------------------------------------------------
   header("Right-angle distance sources")
   is_sighting <- !is.na(dat$SPECCODE)

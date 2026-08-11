@@ -84,3 +84,22 @@ test_that("subsetting keeps the column mapping readable", {
   out <- capture.output(diagnose_pipeline(example_path(), days = 1, seg_length = 5))
   expect_true(any(grepl("survey days", out)))
 })
+
+test_that("TRKDIST is compared against the computed total when present", {
+  dat <- two_days_one_fileid()
+  dat$TRKDIST <- 0.01 * KM_PER_DEG * 1000
+  out <- capture.output(diagnose_pipeline(dat, seg_length = 5))
+  expect_true(any(grepl("TRKDIST gives", out)))
+})
+
+test_that("a recorded total far above the computed one is warned about", {
+  dat <- two_days_one_fileid()
+  dat$TRKDIST <- 0.01 * KM_PER_DEG * 1000 * 2   # the track wandered
+  out <- capture.output(diagnose_pipeline(dat, seg_length = 5))
+  expect_true(any(grepl("WARN.*the receiver recorded", out)))
+})
+
+test_that("no TRKDIST means no comparison line", {
+  out <- capture.output(diagnose_pipeline(two_days_one_fileid(), seg_length = 5))
+  expect_false(any(grepl("TRKDIST", out)))
+})
