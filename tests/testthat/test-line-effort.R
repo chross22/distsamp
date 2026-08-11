@@ -63,7 +63,11 @@ test_that("repeat effort is the effort on second and later attempts", {
 
 test_that("a survey with no re-flights reports a zero rate", {
   dat <- prepped()
-  dat <- dat[dat$LEGNO3 != "4_8" | is.na(dat$LEGNO3), ]
+  # Drop the second occupation of line 4, the one flown twice. Chosen by
+  # position, not by name: LEGNO3 carries an occupation counter that moves
+  # whenever leg identification changes.
+  occ4 <- unique(dat$LEGNO3[!is.na(dat$LEGNO3) & startsWith(dat$LEGNO3, "4_")])
+  dat <- dat[is.na(dat$LEGNO3) | dat$LEGNO3 != occ4[length(occ4)], ]
   s <- reflight_summary(dat)
   expect_equal(s$n_lines_reflown, 0L)
   expect_equal(s$prop_lines_reflown, 0)

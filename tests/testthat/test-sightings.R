@@ -24,7 +24,10 @@ test_that("only definite and probable identifications count by default", {
   dat <- example_data()
   segs <- segment_survey(dat, seg_length = 5, seed = 1)
   # The fixture has a lone RIWH at IDREL 1 on the second occupation of line 4.
-  seg4 <- segs$segments$seg_id[segs$segments$LEGNO3 == "4_8"]
+  # Chosen by position rather than by name: LEGNO3 carries an occupation
+  # counter, and that counter moves whenever leg identification changes.
+  occ4 <- unique(segs$segments$LEGNO3[startsWith(segs$segments$LEGNO3, "4_")])
+  seg4 <- segs$segments$seg_id[segs$segments$LEGNO3 == occ4[length(occ4)]]
   expect_false(any(segs$sightings$seg_id %in% seg4))
 
   loose <- segment_survey(

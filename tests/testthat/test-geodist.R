@@ -108,7 +108,11 @@ test_that("a constant FILEID does not merge two survey days", {
   dat$FILEID <- "F"
   dat <- flag_effort(make_leg_id(dat))
 
-  # LEGNO3 alone really does collapse both days into one occupation.
+  # `make_leg_id()` now bounds an occupation by DATE, so it will not hand back
+  # a LEGNO3 that spans two days. The frame is forced into that state here
+  # because it is still reachable — a LEGNO3 computed by an earlier version,
+  # or supplied by the caller — and DATE in the grouping is what catches it.
+  dat$LEGNO3 <- "5_1"
   expect_equal(length(unique(dat$LEGNO3)), 1)
 
   correct <- 2 * 20 * 0.01 * KM_PER_DEG
@@ -119,6 +123,26 @@ test_that("a constant FILEID does not merge two survey days", {
   merged <- point_to_point_effort(dat, by = c("FILEID", "LEGNO3"))
   expect_equal(sum(merged$pt2pt.effort), correct + 3.2 * KM_PER_DEG)
   expect_gt(sum(merged$pt2pt.effort), 8 * correct)
+})
+
+test_that("a begin-line record separates the days on its own", {
+  # The other defence: where LEGSTAGE is recorded, each day's begin-line
+  # record opens its own occupation, so the days never merge even if the
+  # grouping had no DATE in it.
+  day1 <- straight_line(n = 21, lat0 = 43, legno = 5, date = "2024-04-01")
+  day2 <- straight_line(n = 21, lat0 = 40, legno = 5, date = "2024-04-02")
+  day2$EVENTNO <- day2$EVENTNO + 100
+  dat <- dplyr::bind_rows(day1, day2)
+  dat$FILEID <- "F"
+  dat <- flag_effort(make_leg_id(dat))
+
+  expect_equal(length(unique(dat$LEGNO3)), 2)
+  correct <- 2 * 20 * 0.01 * KM_PER_DEG
+  expect_equal(sum(point_to_point_effort(dat)$pt2pt.effort), correct)
+  expect_equal(
+    sum(point_to_point_effort(dat, by = c("FILEID", "LEGNO3"))$pt2pt.effort),
+    correct
+  )
 })
 
 test_that("Effort is per day when the days would otherwise merge", {

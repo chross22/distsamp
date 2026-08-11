@@ -230,6 +230,10 @@ test_that("two days sharing a LEGNO get their own bearings", {
   day2$LONGITUDE <- -69 + (seq_len(21) - 1) * 0.01
   both <- make_leg_id(dplyr::bind_rows(day1, day2))
   both$FILEID <- "F"
+  # Forced into a single occupation spanning both days: `make_leg_id()` no
+  # longer produces that, but a caller-supplied LEGNO3 can still be in it, and
+  # this is the case where getting `by` wrong joins two lines.
+  both$LEGNO3 <- "5_1"
 
   b <- track_bearing(both)
   expect_false(anyNA(b))

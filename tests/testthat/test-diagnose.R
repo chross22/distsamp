@@ -4,6 +4,9 @@ two_days_one_fileid <- function() {
   d2$EVENTNO <- d2$EVENTNO + 100
   dat <- dplyr::bind_rows(d1, d2)
   dat$FILEID <- "F"
+  # No begin-line records, so DATE in the grouping is the only thing that can
+  # keep the two days apart — which is what these tests are about.
+  dat$LEGSTAGE <- NA_real_
   dat
 }
 
@@ -14,10 +17,19 @@ test_that("a clean file reports nothing needing attention", {
   expect_named(res, c("dat", "findings", "segments"))
 })
 
-test_that("the merged-days hazard is quantified, not just described", {
+test_that("a constant FILEID across several days is reported", {
   out <- capture.output(diagnose_pipeline(two_days_one_fileid(), seg_length = 5))
   expect_true(any(grepl("WARN.*FILEID is the same value", out)))
-  expect_true(any(grepl("WARN.*grouping without DATE gives 400", out)))
+})
+
+test_that("the days do not merge, and the report says so", {
+  # `make_leg_id()` bounds occupations by DATE, so dropping DATE from the
+  # grouping no longer changes the total. The check still runs, and reporting
+  # that it found nothing is the point — it is what tells you the file is not
+  # in the state that produced a 38x effort overstatement.
+  out <- capture.output(diagnose_pipeline(two_days_one_fileid(), seg_length = 5))
+  expect_true(any(grepl("ok.*grouping without DATE gives the same total", out)))
+  expect_false(any(grepl("WARN.*grouping without DATE", out)))
 })
 
 test_that("an altitude in feet is named as the reason nothing is on effort", {
