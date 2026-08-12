@@ -10,9 +10,16 @@ diagnose_pipeline(x, days = NULL, seg_length = 10, species = NULL, ...)
 \item{x}{A path to a NARWC CSV, or a data frame. A path is read with
 \code{read_narwc()}; a data frame is taken as already read.}
 
-\item{days}{Diagnose only the first \code{days} survey days, so a large extract
-can be checked in seconds before it is run in full. \code{NULL} (default) uses
-everything.
+\item{days}{Which survey days to diagnose, so a large extract can be checked
+in seconds before it is run in full. A number takes that many days from
+the start; a \code{Date} or a date string takes exactly those days. \code{NULL}
+(default) uses everything.
+
+Prefer naming days over taking the first few. The start of a season is
+often atypical — a day may be missing the altitude or sea-state the rest
+of the file records, and every criterion \code{flag_effort()} applies fails on
+a missing value, so an unrepresentative day can report no effort at all
+while the file is fine.
 
 Whole days are kept, never a sample of records. Effort and segmentation
 are computed from consecutive positions along a line, so a random subset

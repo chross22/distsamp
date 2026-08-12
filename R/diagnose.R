@@ -18,9 +18,16 @@
 #'
 #' @param x A path to a NARWC CSV, or a data frame. A path is read with
 #'   `read_narwc()`; a data frame is taken as already read.
-#' @param days Diagnose only the first `days` survey days, so a large extract
-#'   can be checked in seconds before it is run in full. `NULL` (default) uses
-#'   everything.
+#' @param days Which survey days to diagnose, so a large extract can be checked
+#'   in seconds before it is run in full. A number takes that many days from
+#'   the start; a `Date` or a date string takes exactly those days. `NULL`
+#'   (default) uses everything.
+#'
+#'   Prefer naming days over taking the first few. The start of a season is
+#'   often atypical — a day may be missing the altitude or sea-state the rest
+#'   of the file records, and every criterion `flag_effort()` applies fails on
+#'   a missing value, so an unrepresentative day can report no effort at all
+#'   while the file is fine.
 #'
 #'   Whole days are kept, never a sample of records. Effort and segmentation
 #'   are computed from consecutive positions along a line, so a random subset
@@ -65,6 +72,7 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
     invisible(res)
   }
 
+  subset_of <- NULL
   cat("distsamp pipeline diagnosis\n")
 
   # --- Reading --------------------------------------------------------------
@@ -114,12 +122,27 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
            " Diagnosing the whole file")
     } else {
       all_days <- sort(unique(dat$DATE))
-      keep <- utils::head(all_days, days)
+      keep <- if (is.numeric(days)) {
+        utils::head(all_days, days)
+      } else {
+        asked <- as.Date(days)
+        missing_days <- setdiff(as.character(asked), as.character(all_days))
+        if (length(missing_days)) {
+          warn("not in the data: ", paste(missing_days, collapse = ", "))
+        }
+        all_days[all_days %in% asked]
+      }
+      if (!length(keep)) {
+        fail("`days` selected no survey day")
+        return(verdict(list(dat = dat)))
+      }
       if (length(keep) < length(all_days)) {
         dat <- dat[dat$DATE %in% keep, , drop = FALSE]
+        subset_of <- length(all_days)
         pass("diagnosing the first ", length(keep), " of ", length(all_days),
-             " survey days (", nrow(dat), " records). Every total below is",
-             " for that subset")
+             " survey days (", nrow(dat), " records). Every total and every",
+             " finding below is for that subset, and the first days of a",
+             " season are not always typical of it")
       }
     }
   }
@@ -209,7 +232,13 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
   } else {
     med <- stats::median(dat$ALT, na.rm = TRUE)
     if (is.na(med)) {
-      warn("ALT is entirely missing")
+      warn("ALT is missing on all ", nrow(dat), " records diagnosed",
+           if (!is.null(subset_of)) {
+             paste0(" - which is this subset, not necessarily the file. Run",
+                    " without `days` before concluding the column is empty")
+           } else "",
+           ". `flag_effort()` fails a record on a missing criterion, so",
+           " nothing here can be on effort")
     } else if (med > 366) {
       # 366 m is `flag_effort()`'s default ceiling, so a median above it means
       # nothing will survive to effort. The likeliest cause is a column that

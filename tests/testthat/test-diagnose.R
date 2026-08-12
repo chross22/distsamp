@@ -132,3 +132,37 @@ test_that("records on no line are counted separately from occupations", {
   # NA must not be counted as an occupation of its own.
   expect_false(any(grepl("3 line occupation\\(s\\)", out)))
 })
+
+test_that("days accepts specific dates, not only a count", {
+  out <- capture.output(
+    res <- diagnose_pipeline(two_days_one_fileid(), days = "2024-04-02",
+                             seg_length = 5)
+  )
+  expect_equal(as.character(unique(res$dat$DATE)), "2024-04-02")
+})
+
+test_that("a date not in the data is named", {
+  out <- capture.output(
+    diagnose_pipeline(two_days_one_fileid(), days = c("2024-04-01", "2020-01-01"),
+                      seg_length = 5)
+  )
+  expect_true(any(grepl("not in the data: 2020-01-01", out)))
+})
+
+test_that("selecting no day at all stops rather than diagnosing everything", {
+  out <- capture.output(
+    res <- diagnose_pipeline(two_days_one_fileid(), days = "2020-01-01",
+                             seg_length = 5)
+  )
+  expect_true(any(grepl("FAIL.*selected no survey day", out)))
+})
+
+test_that("a missing ALT says it is only the subset", {
+  dat <- two_days_one_fileid()
+  dat$ALT <- NA_real_
+  out <- capture.output(diagnose_pipeline(dat, days = 1, seg_length = 5))
+  expect_true(any(grepl("not necessarily the file", out)))
+
+  whole <- capture.output(diagnose_pipeline(dat, seg_length = 5))
+  expect_false(any(grepl("not necessarily the file", whole)))
+})
