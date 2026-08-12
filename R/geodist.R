@@ -356,6 +356,33 @@ point_to_point_effort <- function(dat,
   )
 
   out <- dplyr::ungroup(out)
+
+  # A recorded distance that is missing is not a distance of zero. Left alone
+  # it silently shortens the total, and shortening effort inflates density —
+  # so an interval that is on effort at both ends but has no reading is
+  # counted, and reported, rather than absorbed.
+  if (source == "recorded") {
+    blank <- !is.na(out$.next_on) & out$OnOff.Effort == 1 &
+      out$.next_on == 1 & is.na(out$.step)
+    if (any(blank)) {
+      rlang::warn(paste0(
+        sum(blank), " on-effort interval", if (sum(blank) > 1) "s" else "",
+        " have no TRKDIST reading. They would otherwise count as zero",
+        " distance and shorten the effort total, so the great-circle",
+        " distance has been used for them. Effort is the denominator of",
+        " density: too little of it reads as too much whale."
+      ))
+      fallback <- gc_distance(
+        out$LATITUDE, out$LONGITUDE, out$.next_lat, out$.next_lon,
+        method = method
+      )
+      out$pt2pt.effort[blank] <- fallback[blank]
+      out <- dplyr::group_by(out, dplyr::across(dplyr::all_of(by)))
+      out <- dplyr::mutate(out, Effort = sum(.data$pt2pt.effort))
+      out <- dplyr::ungroup(out)
+    }
+  }
+
   out <- dplyr::select(
     out, -dplyr::all_of(c(".next_lat", ".next_lon", ".next_on", ".step"))
   )

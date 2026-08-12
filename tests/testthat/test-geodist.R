@@ -204,3 +204,29 @@ test_that("the default is unchanged", {
   expect_equal(sum(point_to_point_effort(dat)$pt2pt.effort),
                4 * 0.01 * KM_PER_DEG)
 })
+
+test_that("a missing TRKDIST reading is not counted as zero distance", {
+  dat <- flag_effort(make_leg_id(straight_line(n = 5)))
+  step_m <- 0.01 * KM_PER_DEG * 1000
+  dat$TRKDIST <- c(NA, step_m, NA, step_m, step_m)   # a gap mid-line
+
+  expect_warning(out <- point_to_point_effort(dat, source = "recorded"),
+                 "no TRKDIST reading")
+  # Every interval still counted: the gap falls back to the great circle.
+  expect_equal(sum(out$pt2pt.effort), 4 * 0.01 * KM_PER_DEG)
+})
+
+test_that("Effort is recomputed after filling a missing reading", {
+  dat <- flag_effort(make_leg_id(straight_line(n = 5)))
+  step_m <- 0.01 * KM_PER_DEG * 1000
+  dat$TRKDIST <- c(NA, step_m, NA, step_m, step_m)
+
+  out <- suppressWarnings(point_to_point_effort(dat, source = "recorded"))
+  expect_true(all(out$Effort == sum(out$pt2pt.effort)))
+})
+
+test_that("a complete TRKDIST is not warned about", {
+  dat <- flag_effort(make_leg_id(straight_line(n = 5)))
+  dat$TRKDIST <- c(NA, rep(0.01 * KM_PER_DEG * 1000, 4))
+  expect_no_warning(point_to_point_effort(dat, source = "recorded"))
+})
