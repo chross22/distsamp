@@ -385,6 +385,38 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
     }
   }
 
+  # Is this an aerial survey at all? distsamp is aerial by construction - the
+  # effort criteria are the handbook's aerial ones and `perp_distance()` is a
+  # declination from an aircraft - but nothing in the data announces the
+  # platform, and a vessel track runs through the whole pipeline returning
+  # numbers that look entirely reasonable. Speed is the one thing that cannot
+  # be mistaken.
+  if (all(c("TIME", "LATITUDE", "LONGITUDE") %in% names(dat)) && nrow(dat) > 2) {
+    tt <- sprintf("%06d", ifelse(is.na(dat$TIME), 0, round(dat$TIME)))
+    tsec <- as.numeric(substr(tt, 1, 2)) * 3600 +
+      as.numeric(substr(tt, 3, 4)) * 60 + as.numeric(substr(tt, 5, 6))
+    gap <- diff(tsec)
+    step <- gc_distance(utils::head(dat$LATITUDE, -1),
+                        utils::head(dat$LONGITUDE, -1),
+                        utils::tail(dat$LATITUDE, -1),
+                        utils::tail(dat$LONGITUDE, -1)) * 1000
+    use <- !is.na(gap) & gap > 0 & gap < 300 & !is.na(step)
+    if (sum(use) > 20) {
+      kn <- stats::median(step[use] / gap[use]) * 1.94384
+      if (kn < 40) {
+        warn("the platform is moving at a median ", round(kn),
+             " knots. That is a vessel, not a survey aircraft - and distsamp",
+             " is aerial by construction: the effort criteria are the",
+             " handbook's aerial ones and `perp_distance()` is a declination",
+             " angle from an aircraft. These numbers will look reasonable and",
+             " mean something else")
+      } else {
+        pass("median speed ", round(kn), " knots, consistent with a survey",
+             " aircraft")
+      }
+    }
+  }
+
   # --- Distance sources -----------------------------------------------------
   header("Right-angle distance sources")
   is_sighting <- !is.na(dat$SPECCODE)

@@ -202,3 +202,21 @@ test_that("a count is still reported as the first days", {
   )
   expect_true(any(grepl("the first 1 of 2 survey days", out)))
 })
+
+test_that("a vessel-speed track is flagged as not an aerial survey", {
+  # 1 Hz logging, ~10 knots: 5.3 m between fixes.
+  n <- 400
+  dat <- straight_line(n = n, step = 5.3 / 111120, lat0 = 43)
+  dat$TIME <- 120000 + seq_len(n) - 1        # one second apart
+  dat$TIME <- as.numeric(format(as.POSIXct(dat$TIME %/% 10000 * 3600 +
+    (dat$TIME %% 10000) %/% 100 * 60 + dat$TIME %% 100,
+    origin = "1970-01-01", tz = "UTC"), "%H%M%S"))
+
+  out <- capture.output(diagnose_pipeline(dat, seg_length = 1))
+  expect_true(any(grepl("WARN.*knots. That is a vessel", out)))
+})
+
+test_that("an aircraft-speed track is reported as consistent", {
+  out <- capture.output(diagnose_pipeline(example_data(), seg_length = 5))
+  expect_true(any(grepl("consistent with a survey aircraft", out)))
+})
