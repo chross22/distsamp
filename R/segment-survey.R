@@ -133,6 +133,29 @@ segment_survey <- function(dat,
   if (!"LEGNO3" %in% names(dat)) {
     dat <- make_leg_id(dat)
   }
+
+  # This package is aerial by construction — the effort criteria are the
+  # handbook's aerial ones and `perp_distance()` is a declination angle from
+  # an aircraft. A NARWC extract can hold a shipboard survey alongside an
+  # aerial one with nothing to say so, and it segments without complaint into
+  # numbers that look entirely reasonable. Checked after the occupations are
+  # built, because that is what a platform is judged over.
+  if (all(c("LATITUDE", "LONGITUDE", "TIME") %in% names(dat))) {
+    kind <- narwcr::classify_platform(dat)
+    other <- !is.na(kind) & kind != "aerial"
+    if (any(other)) {
+      counts <- table(droplevels(kind[other]))
+      rlang::warn(paste0(
+        sum(other), " of ", nrow(dat), " records are not moving at aerial ",
+        "survey speed (", paste(names(counts), unname(counts), sep = ": ",
+                                collapse = ", "),
+        "). distsamp is aerial by construction, and a shipboard survey ",
+        "segmented here yields effort and distances that look reasonable and ",
+        "mean something else. Split with `narwcr::classify_platform()` ",
+        "*after* `make_leg_id()` - filtering before it merges occupations."
+      ))
+    }
+  }
   if (!"CIRCLE" %in% names(dat)) {
     dat <- flag_circling(dat)
   }

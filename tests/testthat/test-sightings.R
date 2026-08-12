@@ -70,7 +70,10 @@ test_that("weighted Beaufort weights by distance, not record count", {
   # One record covers a long stretch at sea state 1; the rest are bunched.
   dat$LATITUDE <- c(43.000, 43.100, 43.101, 43.102, 43.103, 43.104)
   dat$BEAUFORT <- c(1, 3, 3, 3, 3, 3)
-  segs <- segment_survey(dat, seg_length = 100, seed = 1)
+  # Five of the six fixes are bunched into 300 m, which implies a speed no
+  # aircraft flies and trips the platform guard. Deliberate: the point is one
+  # long stretch against several short ones.
+  segs <- suppressWarnings(segment_survey(dat, seg_length = 100, seed = 1))
   expect_equal(segs$segments$mean_beaufort, mean(dat$BEAUFORT))
   # Nearly all the distance was flown at sea state 1.
   expect_lt(segs$segments$wt_beaufort, 1.2)

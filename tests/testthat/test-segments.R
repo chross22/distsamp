@@ -86,7 +86,10 @@ test_that("cutting error does not accumulate down a track", {
   # tolerance band.
   dat <- straight_line(n = 401, step = 0.0025) # 111.12 km in 0.28 km records
   for (s in 1:10) {
-    segs <- segment_survey(dat, seg_length = 5, seed = s)
+    # 0.28 km against the fixture's fixed 25-second clock implies 21 knots, so
+    # the platform guard fires. The clock here is arbitrary — this is about
+    # cutting arithmetic, not about what was flying.
+    segs <- suppressWarnings(segment_survey(dat, seg_length = 5, seed = s))
     last <- segs$segments$seg_eff[nrow(segs$segments)]
     expect_lt(last, 7.5)
   }
@@ -148,4 +151,46 @@ test_that("seg_length must be a single positive number", {
   dat <- straight_line(n = 11)
   expect_error(segment_survey(dat, seg_length = -1))
   expect_error(segment_survey(dat, seg_length = c(1, 2)))
+})
+
+# The platform guard ----------------------------------------------------------
+
+vessel_line <- function(n = 30, legno = 1, date = "2024-04-01") {
+  # 5.3 m between fixes one second apart is about 10 knots.
+  d <- straight_line(n = n, step = 5.3 / 111120, legno = legno, date = date)
+  d$TIME <- 120000 + seq_len(n) - 1
+  d
+}
+
+test_that("segmenting a vessel track warns that this package is aerial", {
+  expect_warning(
+    segment_survey(vessel_line(), seg_length = 1, seed = 1),
+    "aerial by construction"
+  )
+})
+
+test_that("the warning counts the records and names the platform", {
+  expect_warning(segment_survey(vessel_line(), seg_length = 1, seed = 1),
+                 "vessel: 30")
+})
+
+test_that("an aerial track is not warned about", {
+  expect_no_warning(segment_survey(example_data(), seg_length = 5, seed = 1))
+})
+
+test_that("a mixed frame is warned about, and the count is the vessel part", {
+  air <- straight_line(n = 30, legno = 1)
+  sea <- vessel_line(n = 30, legno = 2)
+  sea$EVENTNO <- sea$EVENTNO + 100
+  expect_warning(
+    segment_survey(dplyr::bind_rows(air, sea), seg_length = 1, seed = 1),
+    "30 of 60 records"
+  )
+})
+
+test_that("a platform whose speed cannot be judged is not guessed about", {
+  # Every record on the same second: no usable interval, so no verdict.
+  d <- vessel_line()
+  d$TIME <- 120000
+  expect_no_warning(segment_survey(d, seg_length = 1, seed = 1))
 })
