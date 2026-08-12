@@ -19,15 +19,15 @@
 #' @param x A path to a NARWC CSV, or a data frame. A path is read with
 #'   `read_narwc()`; a data frame is taken as already read.
 #' @param days Which survey days to diagnose, so a large extract can be checked
-#'   in seconds before it is run in full. A number takes that many days from
-#'   the start; a `Date` or a date string takes exactly those days. `NULL`
-#'   (default) uses everything.
+#'   in seconds before it is run in full. `"auto"` picks the day with the most
+#'   census records carrying every criterion `flag_effort()` needs; a number
+#'   takes that many days from the start; a `Date` or date string takes exactly
+#'   those days. `NULL` (default) uses everything.
 #'
-#'   Prefer naming days over taking the first few. The start of a season is
-#'   often atypical — a day may be missing the altitude or sea-state the rest
-#'   of the file records, and every criterion `flag_effort()` applies fails on
-#'   a missing value, so an unrepresentative day can report no effort at all
-#'   while the file is fine.
+#'   `"auto"` is the one to reach for. The start of a season is often atypical
+#'   — a day may not record the altitude or sea state the rest of the file
+#'   does — and every criterion fails on a missing value, so an
+#'   unrepresentative day reports no effort at all while the file is fine.
 #'
 #'   Whole days are kept, never a sample of records. Effort and segmentation
 #'   are computed from consecutive positions along a line, so a random subset
@@ -122,7 +122,28 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
            " Diagnosing the whole file")
     } else {
       all_days <- sort(unique(dat$DATE))
-      keep <- if (is.numeric(days)) {
+      keep <- if (identical(days, "auto")) {
+        # The most survey-like day in the file: the one with the most census
+        # records that also carry the criteria `flag_effort()` needs. Taking
+        # the first day instead can land on one that records no altitude, and
+        # a missing criterion fails every record — so the report says nothing
+        # was on effort when the file is fine.
+        usable <- rep(TRUE, nrow(dat))
+        for (nm in c("ALT", "BEAUFORT", "VISIBLTY")) {
+          if (nm %in% names(dat)) usable <- usable & !is.na(dat[[nm]])
+        }
+        if ("LEGTYPE" %in% names(dat)) {
+          usable <- usable & !is.na(dat$LEGTYPE) & dat$LEGTYPE == 2
+        }
+        score <- tapply(usable, dat$DATE, sum)
+        if (!any(score > 0)) {
+          warn("no day has census records with every effort criterion",
+               " recorded. Falling back to the first day")
+          all_days[1]
+        } else {
+          as.Date(names(score)[which.max(score)])
+        }
+      } else if (is.numeric(days)) {
         utils::head(all_days, days)
       } else {
         asked <- as.Date(days)
@@ -139,10 +160,19 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
       if (length(keep) < length(all_days)) {
         dat <- dat[dat$DATE %in% keep, , drop = FALSE]
         subset_of <- length(all_days)
-        pass("diagnosing the first ", length(keep), " of ", length(all_days),
-             " survey days (", nrow(dat), " records). Every total and every",
-             " finding below is for that subset, and the first days of a",
-             " season are not always typical of it")
+        pass("diagnosing ",
+             if (identical(days, "auto")) {
+               paste0(keep, ", the day with the most census records carrying",
+                      " every effort criterion,")
+             } else {
+               paste0("the first ", length(keep), " of ", length(all_days),
+                      " survey days")
+             },
+             " (", nrow(dat), " records). Every total and every finding below",
+             " is for that subset",
+             if (!identical(days, "auto")) {
+               ", and the first days of a season are not always typical of it"
+             } else "")
       }
     }
   }

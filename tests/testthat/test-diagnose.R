@@ -166,3 +166,24 @@ test_that("a missing ALT says it is only the subset", {
   whole <- capture.output(diagnose_pipeline(dat, seg_length = 5))
   expect_false(any(grepl("not necessarily the file", whole)))
 })
+
+test_that("days = auto skips a day that records no altitude", {
+  d1 <- straight_line(n = 21, lat0 = 43, legno = 1, date = "2024-04-01")
+  d1$ALT <- NA_real_                      # the day that cannot be on effort
+  d2 <- straight_line(n = 21, lat0 = 44, legno = 2, date = "2024-04-02")
+  d2$EVENTNO <- d2$EVENTNO + 100
+  dat <- dplyr::bind_rows(d1, d2)
+
+  out <- capture.output(res <- diagnose_pipeline(dat, days = "auto",
+                                                 seg_length = 5))
+  expect_equal(as.character(unique(res$dat$DATE)), "2024-04-02")
+  expect_true(any(grepl("the day with the most census records", out)))
+  expect_false(any(grepl("FAIL.*0 on-effort", out)))
+})
+
+test_that("days = auto falls back when no day has a full criterion set", {
+  dat <- two_days_one_fileid()
+  dat$ALT <- NA_real_
+  out <- capture.output(diagnose_pipeline(dat, days = "auto", seg_length = 5))
+  expect_true(any(grepl("WARN.*no day has census records", out)))
+})

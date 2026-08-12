@@ -11,15 +11,15 @@ diagnose_pipeline(x, days = NULL, seg_length = 10, species = NULL, ...)
 \code{read_narwc()}; a data frame is taken as already read.}
 
 \item{days}{Which survey days to diagnose, so a large extract can be checked
-in seconds before it is run in full. A number takes that many days from
-the start; a \code{Date} or a date string takes exactly those days. \code{NULL}
-(default) uses everything.
+in seconds before it is run in full. \code{"auto"} picks the day with the most
+census records carrying every criterion \code{flag_effort()} needs; a number
+takes that many days from the start; a \code{Date} or date string takes exactly
+those days. \code{NULL} (default) uses everything.
 
-Prefer naming days over taking the first few. The start of a season is
-often atypical — a day may be missing the altitude or sea-state the rest
-of the file records, and every criterion \code{flag_effort()} applies fails on
-a missing value, so an unrepresentative day can report no effort at all
-while the file is fine.
+\code{"auto"} is the one to reach for. The start of a season is often atypical
+— a day may not record the altitude or sea state the rest of the file
+does — and every criterion fails on a missing value, so an
+unrepresentative day reports no effort at all while the file is fine.
 
 Whole days are kept, never a sample of records. Effort and segmentation
 are computed from consecutive positions along a line, so a random subset
