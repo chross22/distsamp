@@ -115,3 +115,20 @@ test_that("no TRKDIST means no comparison line", {
   out <- capture.output(diagnose_pipeline(two_days_one_fileid(), seg_length = 5))
   expect_false(any(grepl("TRKDIST", out)))
 })
+
+test_that("an empty criterion column is named as the reason nothing is on effort", {
+  dat <- two_days_one_fileid()
+  dat$ALT <- NA_real_
+  out <- capture.output(diagnose_pipeline(dat, seg_length = 5))
+  expect_true(any(grepl("ALT missing: 42", out)))
+  expect_true(any(grepl("FAIL.*0 on-effort", out)))
+})
+
+test_that("records on no line are counted separately from occupations", {
+  dat <- two_days_one_fileid()
+  dat$LEGTYPE[1:3] <- 1                    # transit before the first line
+  out <- capture.output(diagnose_pipeline(dat, seg_length = 5))
+  expect_true(any(grepl("record\\(s\\) on no line", out)))
+  # NA must not be counted as an occupation of its own.
+  expect_false(any(grepl("3 line occupation\\(s\\)", out)))
+})

@@ -174,8 +174,20 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
   if (is.null(dat)) {
     return(verdict(list(dat = dat, findings = findings)))
   }
-  pass(length(unique(dat$LEGNO3)), " line occupation(s) over ",
-       length(unique(dat$DATE)), " survey day(s)")
+  # `NA` is not an occupation — it is every record that belongs to no line,
+  # the transit out and the ferry between lines.
+  occs <- unique(stats::na.omit(dat$LEGNO3))
+  pass(length(occs), " line occupation(s) over ",
+       length(unique(dat$DATE)), " survey day(s), ",
+       sum(is.na(dat$LEGNO3)), " record(s) on no line")
+
+  kind <- table(sub("_[0-9]+$", "", occs))
+  inferred <- unname(kind["derived"])
+  if (!is.na(inferred)) {
+    warn(inferred, " of those were inferred from runs of census track,",
+         " on days recording neither a LEGNO nor a begin-line record.",
+         " That is a guess about where lines start and stop")
+  }
 
   if ("FILEID" %in% names(dat) && "DATE" %in% names(dat)) {
     n_days <- length(unique(dat$DATE))
@@ -229,11 +241,22 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
   # records only that a record is off effort, not what put it there.
   if (n_on < nrow(dat)) {
     off <- dat$OnOff.Effort != 1 | is.na(dat$OnOff.Effort)
+    # Missing counts as failing, because `flag_effort()` defaults to
+    # `na_action = "fail"`. Reporting only the violations would name the wrong
+    # culprit whenever a criterion column is empty — an absent ALT excludes
+    # every record while showing nothing at all in this breakdown.
+    absent <- function(nm) {
+      if (!nm %in% names(dat)) nrow(dat) else sum(off & is.na(dat[[nm]]))
+    }
     culprits <- list(
       c("BEAUFORT above 3", sum(off & !is.na(dat$BEAUFORT) & dat$BEAUFORT > 3)),
+      c("BEAUFORT missing", absent("BEAUFORT")),
       c("ALT above 366 m", sum(off & !is.na(dat$ALT) & dat$ALT > 366)),
+      c("ALT missing", absent("ALT")),
       c("VISIBLTY below 2", sum(off & !is.na(dat$VISIBLTY) & dat$VISIBLTY < 2)),
-      c("LEGTYPE not 2", sum(off & !is.na(dat$LEGTYPE) & dat$LEGTYPE != 2))
+      c("VISIBLTY missing", absent("VISIBLTY")),
+      c("LEGTYPE not 2", sum(off & !is.na(dat$LEGTYPE) & dat$LEGTYPE != 2)),
+      c("LEGTYPE missing", absent("LEGTYPE"))
     )
     culprits <- Filter(function(p) as.integer(p[2]) > 0, culprits)
     if (length(culprits)) {
