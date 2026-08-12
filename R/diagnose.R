@@ -160,17 +160,20 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
       if (length(keep) < length(all_days)) {
         dat <- dat[dat$DATE %in% keep, , drop = FALSE]
         subset_of <- length(all_days)
-        pass("diagnosing ",
-             if (identical(days, "auto")) {
-               paste0(keep, ", the day with the most census records carrying",
-                      " every effort criterion,")
-             } else {
-               paste0("the first ", length(keep), " of ", length(all_days),
-                      " survey days")
-             },
-             " (", nrow(dat), " records). Every total and every finding below",
-             " is for that subset",
-             if (!identical(days, "auto")) {
+        how <- if (identical(days, "auto")) {
+          paste0(keep, ", the day with the most census records carrying every",
+                 " effort criterion")
+        } else if (is.numeric(days)) {
+          paste0("the first ", length(keep), " of ", length(all_days),
+                 " survey days")
+        } else {
+          paste0(length(keep), " named day",
+                 if (length(keep) > 1) "s" else "", ": ",
+                 paste(keep, collapse = ", "))
+        }
+        pass("diagnosing ", how, " (", nrow(dat), " records). Every total and",
+             " every finding below is for that subset",
+             if (is.numeric(days)) {
                ", and the first days of a season are not always typical of it"
              } else "")
       }

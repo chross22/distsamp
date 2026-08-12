@@ -187,3 +187,18 @@ test_that("days = auto falls back when no day has a full criterion set", {
   out <- capture.output(diagnose_pipeline(dat, days = "auto", seg_length = 5))
   expect_true(any(grepl("WARN.*no day has census records", out)))
 })
+
+test_that("a named day is not reported as the first day", {
+  out <- capture.output(
+    diagnose_pipeline(two_days_one_fileid(), days = "2024-04-02", seg_length = 5)
+  )
+  expect_true(any(grepl("1 named day: 2024-04-02", out)))
+  expect_false(any(grepl("the first 1 of", out)))
+})
+
+test_that("a count is still reported as the first days", {
+  out <- capture.output(
+    diagnose_pipeline(two_days_one_fileid(), days = 1, seg_length = 5)
+  )
+  expect_true(any(grepl("the first 1 of 2 survey days", out)))
+})
