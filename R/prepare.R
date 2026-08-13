@@ -25,19 +25,24 @@
 #' @section What it deliberately does not do:
 #' Anything that is an assertion about a particular file rather than a fact
 #' about NARWC data. Mapping a declination angle out of a column the handbook
-#' does not name, and correcting an altitude recorded in feet, are both claims
-#' only you can make — do them on the frame before calling this:
+#' does not name, and correcting an altitude recorded in feet, are claims only
+#' you can make. The first goes before this call; the second goes in `correct`,
+#' because where it happens changes what it does:
 #'
 #' ```r
 #' dat <- narwcr::angles_from_declination(dat, "Decl_Angle", "Left_or_Right")
-#' air <- prepare_aerial(dat)
-#' air$ALT[air$DATE >= as.Date("2024-01-01")] <-
-#'   air$ALT[air$DATE >= as.Date("2024-01-01")] * 0.3048
+#'
+#' air <- prepare_aerial(dat, correct = function(x) {
+#'   feet <- !is.na(x$ALT) & x$DATE >= as.Date("2024-01-01")
+#'   x$ALT[feet] <- x$ALT[feet] * 0.3048
+#'   x
+#' })
 #' ```
 #'
-#' The altitude correction goes *after* this call, not before: only the aerial
-#' records are in feet, and applying it to a mixed frame scales ship altitudes
-#' that were already metres.
+#' `correct` runs after the platform filter and before effort is flagged, which
+#' is the only place it can go: applying it earlier scales ship altitudes that
+#' were already metres, and applying it later leaves every record failing the
+#' altitude ceiling that `flag_effort()` has already tested.
 #'
 #' @param dat A NARWC data frame from `narwcr::read_narwc()`.
 #' @param platform Which platform to keep: `"aerial"` (default), or `"all"` to
@@ -45,6 +50,12 @@
 #'   effort criteria and `perp_distance()` both assume an aircraft.
 #' @param fill_legstage Reconstruct the line state where no `LEGSTAGE` was
 #'   written? Default `TRUE`. See `narwcr::fill_legstage()`.
+#' @param correct A function applied to the filtered frame *before* effort is
+#'   flagged, or `NULL`. This is where a correction that only applies to the
+#'   aerial records goes — an altitude recorded in feet, most often. It has to
+#'   happen here: `flag_effort()` reads `ALT`, so correcting afterwards leaves
+#'   every record failing the altitude ceiling, and correcting before the
+#'   platform filter scales ship altitudes that were already metres.
 #' @param effort_args Named list passed to `narwcr::flag_effort()`, for a
 #'   programme whose criteria differ from the CETAP defaults.
 #' @param quiet Suppress the running commentary. Default `FALSE`.
@@ -63,8 +74,8 @@
 #'
 #' @export
 prepare_aerial <- function(dat, platform = c("aerial", "all"),
-                           fill_legstage = TRUE, effort_args = list(),
-                           quiet = FALSE) {
+                           fill_legstage = TRUE, correct = NULL,
+                           effort_args = list(), quiet = FALSE) {
   platform <- match.arg(platform)
   stopifnot(is.data.frame(dat))
   n_in <- nrow(dat)
@@ -102,6 +113,16 @@ prepare_aerial <- function(dat, platform = c("aerial", "all"),
       "has been kept, so a shipboard survey in this file will be segmented as ",
       "though it were flown."
     ))
+  }
+
+  # Between the filter and the effort flags, because that is the only place a
+  # correction to a criterion column can go and be seen by the criteria.
+  if (!is.null(correct)) {
+    stopifnot(is.function(correct))
+    n_before <- nrow(dat)
+    dat <- correct(dat)
+    stopifnot(is.data.frame(dat), nrow(dat) == n_before)
+    if (!quiet) rlang::inform("Applied `correct()` to the filtered records.")
   }
 
   if (!"OnOff.Effort" %in% names(dat)) {

@@ -8,6 +8,7 @@ prepare_aerial(
   dat,
   platform = c("aerial", "all"),
   fill_legstage = TRUE,
+  correct = NULL,
   effort_args = list(),
   quiet = FALSE
 )
@@ -21,6 +22,13 @@ effort criteria and \code{perp_distance()} both assume an aircraft.}
 
 \item{fill_legstage}{Reconstruct the line state where no \code{LEGSTAGE} was
 written? Default \code{TRUE}. See \code{narwcr::fill_legstage()}.}
+
+\item{correct}{A function applied to the filtered frame \emph{before} effort is
+flagged, or \code{NULL}. This is where a correction that only applies to the
+aerial records goes — an altitude recorded in feet, most often. It has to
+happen here: \code{flag_effort()} reads \code{ALT}, so correcting afterwards leaves
+every record failing the altitude ceiling, and correcting before the
+platform filter scales ship altitudes that were already metres.}
 
 \item{effort_args}{Named list passed to \code{narwcr::flag_effort()}, for a
 programme whose criteria differ from the CETAP defaults.}
@@ -60,18 +68,23 @@ happened already.}
 
 Anything that is an assertion about a particular file rather than a fact
 about NARWC data. Mapping a declination angle out of a column the handbook
-does not name, and correcting an altitude recorded in feet, are both claims
-only you can make — do them on the frame before calling this:
+does not name, and correcting an altitude recorded in feet, are claims only
+you can make. The first goes before this call; the second goes in \code{correct},
+because where it happens changes what it does:
 
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{dat <- narwcr::angles_from_declination(dat, "Decl_Angle", "Left_or_Right")
-air <- prepare_aerial(dat)
-air$ALT[air$DATE >= as.Date("2024-01-01")] <-
-  air$ALT[air$DATE >= as.Date("2024-01-01")] * 0.3048
+
+air <- prepare_aerial(dat, correct = function(x) \{
+  feet <- !is.na(x$ALT) & x$DATE >= as.Date("2024-01-01")
+  x$ALT[feet] <- x$ALT[feet] * 0.3048
+  x
+\})
 }\if{html}{\out{</div>}}
 
-The altitude correction goes \emph{after} this call, not before: only the aerial
-records are in feet, and applying it to a mixed frame scales ship altitudes
-that were already metres.
+\code{correct} runs after the platform filter and before effort is flagged, which
+is the only place it can go: applying it earlier scales ship altitudes that
+were already metres, and applying it later leaves every record failing the
+altitude ceiling that \code{flag_effort()} has already tested.
 }
 
 \examples{

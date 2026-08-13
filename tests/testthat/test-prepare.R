@@ -79,3 +79,28 @@ test_that("no clock means no silent platform assumption", {
   d$TIME <- NULL
   expect_warning(prepare_aerial(d, quiet = TRUE), "No platform check")
 })
+
+test_that("correct runs after the filter and before the effort flags", {
+  # An altitude in feet fails the ceiling; corrected in `correct`, it passes.
+  d <- example_data()
+  d$ALT <- d$ALT / 0.3048                       # pretend the file is in feet
+
+  none <- prepare_aerial(d, quiet = TRUE)
+  expect_equal(sum(none$OnOff.Effort == 1), 0)
+
+  fixed <- prepare_aerial(d, quiet = TRUE, correct = function(x) {
+    x$ALT <- x$ALT * 0.3048
+    x
+  })
+  expect_gt(sum(fixed$OnOff.Effort == 1), 0)
+  expect_equal(sum(fixed$OnOff.Effort == 1),
+               sum(prepare_aerial(example_data(), quiet = TRUE)$OnOff.Effort == 1))
+})
+
+test_that("correct cannot quietly drop records", {
+  expect_error(
+    prepare_aerial(example_data(), quiet = TRUE,
+                   correct = function(x) x[1:5, ]),
+    "nrow"
+  )
+})
