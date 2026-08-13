@@ -31,6 +31,31 @@ subset would report distances across gaps that are an artefact of the sampling.
 Read the report top to bottom before running anything else. The rest of this
 document is what its lines mean.
 
+## 0b. An archive may be several archives
+
+A NARWC extract can be surveys concatenated, each era recording the same
+variable in a *different column*. One real archive, 5,148,704 records spanning
+1844-2026, splits like this:
+
+| variable | recent era | older era |
+|---|---|---|
+| position | `TrkLatitude`/`TrkLongitude` | `LATITUDE`/`LONGITUDE` |
+| date | `Date_UTC` | `YEAR`/`MONTH`/`DAY` |
+| clock | `TrkTime_UTC` | `TIME(UTC)` |
+| event | `Event` | `EVENTNO` |
+
+The counts were complementary, not overlapping: 1,394,560 and 3,754,144.
+
+`narwcr` fills each canonical column from whichever source covers the record in
+front of it. Judging a column present or absent for the *whole file* is the
+mistake, and it produced four separate failures on that archive — the worst
+emptied `LATITUDE` on 3,754,148 records, which `drop_missing_position` then
+deleted, leaving exactly the GPS-logger era behind. It looked like a clean
+two-year dataset and matched a different file record for record.
+
+**Check the row count and the date span first.** A 5-million-row file that
+reads as 1.4 million has lost an era, not a few bad records.
+
 ## 1. Reading: is the pipeline even looking at the right columns?
 
 ```r
@@ -131,6 +156,32 @@ The default column set also includes `LEGSTAGE`, which filled 1,242,722 values.
 stamps `1` across continuation rows, and since `1 → 1` is not an allowed
 transition it manufactures sequence warnings rather than clearing them.
 
+### State recorded once is not state missing everywhere
+
+`LEGSTAGE` is written when it *changes*. A record taken mid-line often carries
+none — and `on_effort_census_rows()` requires `LEGSTAGE == 2`, because handbook
+8.A.31 restricts a right-angle distance measurement to records continuing a
+census line. On the worked archive **1,928 of 2,280 on-effort census sightings
+had no code at all**, so 85% of the detections that could have informed a
+detection function were excluded for something nobody wrote down.
+
+```r
+legs <- narwcr::make_leg_id(dat)
+legs <- narwcr::fill_legstage(legs)
+```
+
+`fill_legstage()` walks handbook 8.A.20's state machine: after a begin, a
+continue or a resume the line is continuing, so those records take `2`. After a
+break-off the aircraft is circling, after an end-line the line is over, and
+before the first event nothing is known — all three keep their `NA` and stay
+ineligible. That is correct rather than conservative: a detection made while
+not searching the line breaks the distance-sampling assumptions, not merely the
+bookkeeping.
+
+**This is not `fill_narwc(columns = "LEGSTAGE")`.** Carrying the *value*
+forward claims the line began a thousand times, and since `1 -> 1` is not a
+legal transition it manufactures the sequence errors it looks like it fixes.
+
 ### Reading `legstage_sequence` warnings
 
 These are usually a symptom of missing `LEGNO`, not of bad `LEGSTAGE`. The
@@ -173,6 +224,41 @@ an altitude criterion — is dropped rather than handled. `diagnose_pipeline()`
 prints the per-criterion breakdown, which is the only way to see which
 criterion excluded what.
 
+## 4b. Distances the schema does not name
+
+The handbook records a declination angle in `ANGLEL` or `ANGLER` by side. Some
+programmes keep one angle column and a separate left/right flag, and `narwcr`
+will not infer that from a column name — a column called `Decl_Angle` might
+hold a declination, an inclination or a bearing.
+
+```r
+dat <- narwcr::read_narwc(path,
+                          extra_columns = c("Decl_Angle", "Left_or_Right"))
+dat <- narwcr::angles_from_declination(dat, "Decl_Angle", "Left_or_Right")
+```
+
+On the worked archive this recovered 2,503 angles against zero in
+`ANGLEL`/`ANGLER`, in a file where only about 4,000 of 51,363 sightings carried
+any distance at all.
+
+### Two sources are a free check on each other
+
+Where a sighting has both a declination angle and an exact position, the two
+distances are computed by entirely different routes — `ALT / tan(angle)` versus
+a projection onto the trackline — and should agree:
+
+```r
+d <- distsamp::sighting_distances(air, sources = "angle")$distance
+e <- distsamp::sighting_distances(air, sources = "exact")$distance
+both <- !is.na(d) & !is.na(e)
+c(n = sum(both), median_diff_m = median(abs(d[both] - e[both])))
+```
+
+They agreed to **0.34 m across 2,310 pairs** on the worked archive. A constant
+offset would mean the altitude is in the wrong unit; scatter would mean one
+source is unreliable. It is the strongest single check available, and worth
+repeating whenever the reading changes.
+
 ## 5. Measured versus reconstructed effort
 
 Where the file carries `TrkDist_m`, narwcr keeps it as `TRKDIST` in metres and
@@ -200,16 +286,21 @@ single track, and none of them carry over.
 
 ## Order of operations
 
-1. `read_narwc()` — check the column mapping, the conversion factors, and any
-   `*_ORIGINAL` column.
-2. `validate_narwc()` — triage by severity.
-3. `fill_narwc(columns = "LEGNO", direction = "down")` — only if `LEGNO` is
-   blank between change points.
+1. `read_narwc(extra_columns = )` — check the row count against the file, the
+   column mapping, the conversion factors, and any `*_ORIGINAL` column.
+2. `angles_from_declination()` — if the file keeps one angle column and a side.
+3. `validate_narwc()` — triage by severity.
 4. `make_leg_id()` — confirm occupations against begin-line records.
-5. `flag_effort()` — read the per-criterion breakdown.
-6. `point_to_point_effort()` — compare with and without `DATE`, and against
+5. `fill_legstage()` — after 4, because it needs `LEGNO3`; before 7, because it
+   is what makes records eligible.
+6. `classify_platform()` — split aerial from vessel, and filter *after*
+   `make_leg_id()`, never before.
+7. Correct the altitude units if needed — after the platform split, since only
+   the aerial records are in feet, and exactly once.
+8. `flag_effort()` — read the per-criterion breakdown.
+9. `point_to_point_effort()` — compare with and without `DATE`, and against
    `TRKDIST` if present.
-7. `segment_survey()`.
+10. `segment_survey()`, then `detection_data()`.
 
 `diagnose_pipeline()` runs 1, 2, 4, 5, 6 and 7 and reports on all of them. It
 does not run 3, because filling changes the data and every check in this

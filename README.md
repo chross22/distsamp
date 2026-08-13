@@ -91,6 +91,38 @@ detection function wants.
 `segment_survey()` runs all of it. Every stage is also exported, so you can
 intervene between them.
 
+## Before you trust the numbers
+
+The failure this package guards against is not the one that errors. It is the
+one that returns a plausible number: effort that includes the ferry between two
+survey days, an altitude read as metres when the column was recorded in feet, a
+shipboard survey segmented as though it were flown.
+
+```r
+diagnose_pipeline(dat, days = "auto")
+```
+
+runs the whole pipeline against one representative survey day and reports what
+it finds — merged days, an implausible altitude, a platform moving at ten
+knots, which criterion excluded which records, and how the recorded
+along-track distance compares with the reconstructed one. `days` also takes a
+count or specific dates.
+
+Each of its checks exists because a real extract produced a believable wrong
+answer. [docs/08-onboarding-a-real-extract.md](docs/08-onboarding-a-real-extract.md)
+is the order to bring a new dataset in, and the traps in it are quoted with the
+magnitudes they actually caused.
+
+## Aerial by construction
+
+The effort criteria are the handbook's aerial ones and `perp_distance()` is a
+declination angle from an aircraft, so a shipboard survey does not belong here —
+but a NARWC extract can hold both with nothing in the data to say so.
+`segment_survey()` checks the platform's speed and refuses to segment a vessel
+track silently. Split with `narwcr::classify_platform()`, *after*
+`make_leg_id()`: filtering before it merges two occupations of one line and
+counts the ferry between them as survey effort.
+
 Segments are cut following the approach of Becker et al. (2010): divide
 continuous portions of survey effort into segments of approximately equal length,
 assign sightings to the segment they fall in, and take habitat covariates at each
@@ -164,9 +196,10 @@ precision.
 [implementation notes](docs/02-implementation.md),
 [defects found in the original code](docs/03-bug-fixes.md),
 [verification](docs/04-verification.md),
-[next steps](docs/05-next-steps.md), and
+[next steps](docs/05-next-steps.md),
 [references](docs/06-references.md) — including how to cite this in a methods
-section.
+section — [where fitting lives](docs/07-fitting-architecture.md), and
+[onboarding a real extract](docs/08-onboarding-a-real-extract.md).
 
 This package was rewritten from a set of internal research scripts. Those are
 not distributed — they contain collaborators' working notes and local paths.
