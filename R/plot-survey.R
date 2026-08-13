@@ -40,10 +40,18 @@
 #'   required, and each view needs the column it colours by.
 #' @param what Which view: `"effort"` (default), `"occupations"`, `"tracks"`,
 #'   `"platform"`, or `"legstage"`.
-#' @param coastline Land to draw underneath. `FALSE` (default) draws none;
-#'   `TRUE` fetches Natural Earth through `rnaturalearth`; or pass your own
-#'   `sf`. See [plot.distsamp_segments()].
+#' @param coastline Land to draw underneath. `TRUE` (default) fetches Natural
+#'   Earth through `rnaturalearth`; `FALSE` draws none; a scale name —
+#'   `"small"`, `"medium"`, `"large"` — picks the resolution; or pass your own
+#'   `sf`, which is the better option at bay scale. Unlike
+#'   [plot.distsamp_segments()], a coastline that cannot be fetched here warns
+#'   and draws nothing rather than erroring: this is a look-at-it function, and
+#'   losing the land is better than losing the plot.
 #' @param max_points Thin to at most this many records. Default `50000`.
+#' @param max_legend Most groups to name in the legend. Default `12`. Beyond
+#'   this, occupations and tracks take a recycled palette and the legend is
+#'   dropped — a hundred labels is not a legend, and a hundred colours cannot
+#'   be told apart.
 #' @param facet_by Column to facet on, or `NULL` for none. Defaults to `DATE`
 #'   when the data covers 2 to 12 days — beyond that the panels are too small
 #'   to read, and one map of everything is more use.
@@ -61,8 +69,8 @@
 #' @export
 plot_survey <- function(dat, what = c("effort", "occupations", "tracks",
                                       "platform", "legstage"),
-                        coastline = FALSE, max_points = 50000,
-                        facet_by = NULL) {
+                        coastline = TRUE, max_points = 50000,
+                        max_legend = 12, facet_by = NULL) {
   what <- match.arg(what)
   check_ggplot2()
   stopifnot(is.data.frame(dat))
@@ -88,19 +96,25 @@ plot_survey <- function(dat, what = c("effort", "occupations", "tracks",
     ))
   }
 
+  # Resolved once, softly: a failed fetch loses the land, not the plot.
+  coastline <- resolve_coastline_soft(coastline)
+
   n_before <- nrow(dat)
   dat <- thin_records(dat, max_points)
 
-  # An identifier with hundreds of levels cannot be given meaningful colours,
-  # and does not need them: what matters is that neighbours differ. Recycling a
-  # small palette makes a mis-split line obvious while a continuous scale over
-  # 700 occupations would not.
   grouped <- what %in% c("occupations", "tracks")
   dat$.grp <- as.character(dat[[spec$col]])
-  dat$.col <- if (grouped) {
-    factor(match(dat$.grp, unique(dat$.grp)) %% 8L)
+
+  # Colour by the identifier itself where there are few enough to tell apart,
+  # so the legend says which line is which. Beyond that a legend is a wall of
+  # labels and the colours cannot be distinguished anyway, so a small palette
+  # is recycled: what has to be visible then is only that neighbours differ.
+  n_groups <- length(unique(stats::na.omit(dat$.grp)))
+  named <- !grouped || n_groups <= max_legend
+  dat$.col <- if (named) {
+    factor(dat$.grp, levels = unique(stats::na.omit(dat$.grp)))
   } else {
-    factor(dat$.grp)
+    factor(match(dat$.grp, unique(dat$.grp)) %% 8L)
   }
 
   # A record belonging to no occupation - the transit out, the ferry between
@@ -126,18 +140,21 @@ plot_survey <- function(dat, what = c("effort", "occupations", "tracks",
     map_coord(coastline, dat$LONGITUDE, dat$LATITUDE) +
     ggplot2::labs(
       x = "Longitude", y = "Latitude",
-      colour = if (grouped) NULL else spec$lab,
+      colour = spec$lab,
       title = spec$title,
       subtitle = plot_survey_subtitle(drawn, spec, grouped, n_before,
-                                      sum(loose))
+                                      sum(loose), named)
     ) +
     ggplot2::theme_minimal()
 
   if (grouped) {
     p <- p + ggplot2::geom_path(ggplot2::aes(group = .data$.grp),
-                                linewidth = 0.3, na.rm = TRUE) +
-      ggplot2::guides(colour = "none")
+                                linewidth = 0.3, na.rm = TRUE)
+    if (!named) p <- p + ggplot2::guides(colour = "none")
   }
+  p <- p + ggplot2::guides(
+    colour = ggplot2::guide_legend(override.aes = list(size = 3))
+  )
 
   facet_by <- resolve_facet(dat, facet_by)
   if (!is.null(facet_by)) {
@@ -146,11 +163,15 @@ plot_survey <- function(dat, what = c("effort", "occupations", "tracks",
   p
 }
 
-plot_survey_subtitle <- function(dat, spec, grouped, n_before, n_loose = 0L) {
+plot_survey_subtitle <- function(dat, spec, grouped, n_before, n_loose = 0L,
+                                 named = TRUE) {
   n <- if (grouped) length(unique(dat$.grp)) else NA_integer_
   shown <- nrow(dat) + n_loose
   paste0(
-    if (grouped) paste0(n, " ", tolower(spec$lab), "s drawn; ") else "",
+    if (grouped) {
+      paste0(n, " ", tolower(spec$lab), "s drawn",
+             if (!named) ", colours recycled" else "", "; ")
+    } else "",
     format(nrow(dat), big.mark = ","), " records",
     if (n_loose) paste0(", ", format(n_loose, big.mark = ","),
                         " on none (grey)") else "",

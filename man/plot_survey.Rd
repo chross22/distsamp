@@ -7,8 +7,9 @@
 plot_survey(
   dat,
   what = c("effort", "occupations", "tracks", "platform", "legstage"),
-  coastline = FALSE,
+  coastline = TRUE,
   max_points = 50000,
+  max_legend = 12,
   facet_by = NULL
 )
 }
@@ -19,11 +20,20 @@ required, and each view needs the column it colours by.}
 \item{what}{Which view: \code{"effort"} (default), \code{"occupations"}, \code{"tracks"},
 \code{"platform"}, or \code{"legstage"}.}
 
-\item{coastline}{Land to draw underneath. \code{FALSE} (default) draws none;
-\code{TRUE} fetches Natural Earth through \code{rnaturalearth}; or pass your own
-\code{sf}. See \code{\link[=plot.distsamp_segments]{plot.distsamp_segments()}}.}
+\item{coastline}{Land to draw underneath. \code{TRUE} (default) fetches Natural
+Earth through \code{rnaturalearth}; \code{FALSE} draws none; a scale name —
+\code{"small"}, \code{"medium"}, \code{"large"} — picks the resolution; or pass your own
+\code{sf}, which is the better option at bay scale. Unlike
+\code{\link[=plot.distsamp_segments]{plot.distsamp_segments()}}, a coastline that cannot be fetched here warns
+and draws nothing rather than erroring: this is a look-at-it function, and
+losing the land is better than losing the plot.}
 
 \item{max_points}{Thin to at most this many records. Default \code{50000}.}
+
+\item{max_legend}{Most groups to name in the legend. Default \code{12}. Beyond
+this, occupations and tracks take a recycled palette and the legend is
+dropped — a hundred labels is not a legend, and a hundred colours cannot
+be told apart.}
 
 \item{facet_by}{Column to facet on, or \code{NULL} for none. Defaults to \code{DATE}
 when the data covers 2 to 12 days — beyond that the panels are too small

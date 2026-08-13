@@ -289,6 +289,18 @@ map_coord <- function(coastline, lon, lat) {
 }
 
 # NULL for no coastline, otherwise an sf object.
+# A coastline that cannot be fetched is fatal where the caller asked for a
+# publication map, and merely a nuisance where they asked to look at their
+# tracks. `soft = TRUE` warns and returns NULL instead of aborting.
+resolve_coastline_soft <- function(coastline) {
+  tryCatch(resolve_coastline(coastline), error = function(e) {
+    rlang::warn(paste0(
+      "Drawing without a coastline: ", conditionMessage(e)
+    ))
+    NULL
+  })
+}
+
 resolve_coastline <- function(coastline) {
   if (isFALSE(coastline) || is.null(coastline)) {
     return(NULL)
