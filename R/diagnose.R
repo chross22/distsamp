@@ -214,10 +214,28 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
     tab <- table(dat$PLATFORM, useNA = "ifany")
     pass(length(tab), " distinct PLATFORM value(s): ",
          paste(names(tab), unname(tab), sep = " x ", collapse = ", "))
+    # Several PLATFORM values is not by itself a problem. The handbook gives
+    # PLATFORM no code book, so the values identify particular platforms -
+    # three aircraft over a multi-decade programme is ordinary. What matters
+    # is whether they differ in *kind*, and speed answers that where the
+    # column cannot.
     if (length(tab) > 1) {
-      warn("more than one platform in one file. `flag_effort()` cannot tell",
-           " \"criterion failed\" from \"criterion does not apply\", so",
-           " non-aerial records are dropped from effort rather than handled")
+      kinds <- tryCatch(narwcr::classify_platform(dat), error = function(e) NULL)
+      other <- if (is.null(kinds)) NULL else kinds[!is.na(kinds) &
+                                                     kinds != "aerial"]
+      if (is.null(kinds)) {
+        pass(length(tab), " platforms. PLATFORM has no code book, so these may",
+             " be several aircraft or several kinds of platform; too little",
+             " position and time data here to tell which")
+      } else if (!length(other)) {
+        pass("all of them moving at aerial survey speed - several airframes,",
+             " not several kinds of platform")
+      } else {
+        warn(length(other), " records are on a platform not moving at aerial",
+             " speed. `flag_effort()` cannot tell \"criterion failed\" from",
+             " \"criterion does not apply\", so those are dropped from effort",
+             " rather than handled. Split with `narwcr::classify_platform()`")
+      }
     }
   }
 

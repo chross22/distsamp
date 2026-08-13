@@ -42,11 +42,13 @@ test_that("an altitude in feet is named as the reason nothing is on effort", {
   expect_true(any(grepl("FAIL.*0 on-effort", out)))
 })
 
-test_that("a second platform is reported as a silent exclusion", {
+test_that("two platforms at aerial speed are two airframes, not a problem", {
   dat <- two_days_one_fileid()
   dat$PLATFORM <- c(rep(210, 21), rep(310, 21))
   out <- capture.output(diagnose_pipeline(dat, seg_length = 5))
-  expect_true(any(grepl("WARN.*more than one platform", out)))
+  expect_true(any(grepl("2 distinct PLATFORM value", out)))
+  expect_true(any(grepl("several airframes", out)))
+  expect_false(any(grepl("WARN.*not moving at aerial speed", out)))
 })
 
 test_that("an empty file stops at reading and says so", {
@@ -219,4 +221,29 @@ test_that("a vessel-speed track is flagged as not an aerial survey", {
 test_that("an aircraft-speed track is reported as consistent", {
   out <- capture.output(diagnose_pipeline(example_data(), seg_length = 5))
   expect_true(any(grepl("consistent with a survey aircraft", out)))
+})
+
+test_that("several airframes are not reported as several kinds of platform", {
+  dat <- example_data()
+  dat$PLATFORM <- rep(c(633, 649), length.out = nrow(dat))
+  out <- capture.output(diagnose_pipeline(dat, seg_length = 5))
+  expect_true(any(grepl("several airframes", out)))
+  expect_false(any(grepl("WARN.*not moving at aerial speed", out)))
+})
+
+test_that("platforms that differ in kind are still warned about", {
+  air <- straight_line(n = 30, legno = 1)
+  air$PLATFORM <- 633
+  sea <- straight_line(n = 30, step = 5.3 / 111120, legno = 2)
+  sea$TIME <- 120000 + seq_len(30) - 1
+  sea$EVENTNO <- sea$EVENTNO + 100
+  sea$PLATFORM <- 900
+
+  out <- capture.output(
+    suppressWarnings(segment_survey(dplyr::bind_rows(air, sea),
+                                    seg_length = 1, seed = 1))
+  )
+  d <- dplyr::bind_rows(air, sea)
+  out <- capture.output(suppressWarnings(diagnose_pipeline(d, seg_length = 1)))
+  expect_true(any(grepl("WARN.*not moving at aerial speed", out)))
 })
