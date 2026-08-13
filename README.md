@@ -91,6 +91,31 @@ detection function wants.
 `segment_survey()` runs all of it. Every stage is also exported, so you can
 intervene between them.
 
+## Getting an extract ready
+
+Reading a file is not the same as being ready to segment one. Four steps sit in
+between, and their order matters in ways that are quiet when you get them
+wrong:
+
+```r
+dat <- narwcr::read_narwc("extract.csv")
+air <- prepare_aerial(dat)
+segs <- segment_survey(air, seg_length = 10, seed = 1)
+```
+
+`prepare_aerial()` builds line occupations, reconstructs the line state where
+the file recorded it only at change points, classifies the platform by speed,
+filters to the aerial records, and flags effort — in that order. Every step is
+also exported, so you can run them by hand and intervene between them; the
+wrapper exists because the order is not obvious and getting it wrong costs
+records silently. Its help says which step depends on which, and why.
+
+Two things it deliberately leaves to you, because they are assertions about a
+particular file rather than facts about NARWC data: mapping a declination angle
+out of a column the handbook does not name, and correcting an altitude recorded
+in feet. Both are covered in
+[docs/08-onboarding-a-real-extract.md](docs/08-onboarding-a-real-extract.md).
+
 ## Before you trust the numbers
 
 The failure this package guards against is not the one that errors. It is the
@@ -99,7 +124,8 @@ survey days, an altitude read as metres when the column was recorded in feet, a
 shipboard survey segmented as though it were flown.
 
 ```r
-diagnose_pipeline(dat, days = "auto")
+diagnose_pipeline(air, days = "auto")
+plot_survey(air, "occupations")
 ```
 
 runs the whole pipeline against one representative survey day and reports what
@@ -108,7 +134,11 @@ knots, which criterion excluded which records, and how the recorded
 along-track distance compares with the reconstructed one. `days` also takes a
 count or specific dates.
 
-Each of its checks exists because a real extract produced a believable wrong
+`plot_survey()` is the same question as a picture: it draws the survey at
+whatever stage it has reached, and a survey line drawn in three pieces — or
+three drawn as one — is visible on a map and invisible in a table.
+
+Each of these checks exists because a real extract produced a believable wrong
 answer. [docs/08-onboarding-a-real-extract.md](docs/08-onboarding-a-real-extract.md)
 is the order to bring a new dataset in, and the traps in it are quoted with the
 magnitudes they actually caused.

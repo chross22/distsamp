@@ -471,6 +471,42 @@ write_segments(segs, out)
 list.files(out)
 ```
 
+## A real extract needs more than reading
+
+The fixture is clean. A real NARWC extract is not, and the steps between
+reading one and segmenting it have an order that is quiet when you get it
+wrong. `prepare_aerial()` runs them:
+
+```{r}
+air <- prepare_aerial(dat, quiet = TRUE)
+c(records = nrow(air), on_effort = sum(air$OnOff.Effort == 1))
+```
+
+It builds line occupations, reconstructs the line state where the file recorded
+it only at change points, classifies the platform by speed, keeps the aerial
+records, and flags effort — in that order. `?prepare_aerial` says which step
+depends on which. Two examples of why the order is not cosmetic:
+
+- Filtering out a vessel leg *before* occupations are built makes two
+  occupations of one survey line adjacent, so they merge and the ferry between
+  them is counted as survey effort. Measured on real data at 224.5 km where
+  4.4 km was correct.
+- `LEGSTAGE` is recorded when it changes, so most mid-line records carry none —
+  and a right-angle distance needs `LEGSTAGE == 2`. On one archive that left
+  1,928 of 2,280 on-effort census sightings with no distance, for a code nobody
+  wrote down.
+
+Then look at what you have, before trusting any number from it:
+
+```{r, fig.width = 7, fig.height = 4.5}
+plot_survey(air, "occupations", coastline = FALSE)
+```
+
+A survey line drawn in three pieces, or three drawn as one, is visible here and
+invisible in a table. `diagnose_pipeline()` is the same question as numbers,
+and `vignette("segmenting-narwc-data")` aside, the traps a real extract springs
+are catalogued in `docs/08-onboarding-a-real-extract.md`.
+
 ## Running the steps yourself
 
 Every stage is exported, so you can intervene between them:
