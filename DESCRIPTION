@@ -42,6 +42,7 @@ Suggests:
     rnaturalearth,
     rnaturalearthdata,
     ggplot2,
+    patchwork,
     knitr,
     rmarkdown,
     sf,

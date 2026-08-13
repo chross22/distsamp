@@ -27,6 +27,10 @@
 #'   \item{`"legstage"`}{Positions coloured by `LEGSTAGE`. Shows where a line
 #'     begins, breaks off, resumes and ends — and, on a file that records the
 #'     code only at change points, how little of it is written down.}
+#'   \item{`"raw"`}{Every position, coloured by `LEGTYPE`, needing nothing but
+#'     the file as read. What the survey looks like before any of this package
+#'     has touched it — the view to compare the others against when a later
+#'     stage seems to have lost something.}
 #' }
 #'
 #' @section Thinning:
@@ -39,7 +43,7 @@
 #' @param dat A survey data frame at any stage: `LATITUDE` and `LONGITUDE` are
 #'   required, and each view needs the column it colours by.
 #' @param what Which view: `"effort"` (default), `"occupations"`, `"tracks"`,
-#'   `"platform"`, or `"legstage"`.
+#'   `"platform"`, `"legstage"`, or `"raw"`.
 #' @param coastline Land to draw underneath. `TRUE` (default) fetches Natural
 #'   Earth through `rnaturalearth`; `FALSE` draws none; a scale name —
 #'   `"small"`, `"medium"`, `"large"` — picks the resolution; or pass your own
@@ -68,7 +72,7 @@
 #'
 #' @export
 plot_survey <- function(dat, what = c("effort", "occupations", "tracks",
-                                      "platform", "legstage"),
+                                      "platform", "legstage", "raw"),
                         coastline = TRUE, max_points = 50000,
                         max_legend = 12, facet_by = NULL) {
   what <- match.arg(what)
@@ -87,7 +91,9 @@ plot_survey <- function(dat, what = c("effort", "occupations", "tracks",
     platform    = list(col = "PLATFORM_KIND", lab = "Platform",
                        title = "Platform"),
     legstage    = list(col = "LEGSTAGE", lab = "LEGSTAGE",
-                       title = "Line stage")
+                       title = "Line stage"),
+    raw         = list(col = "LEGTYPE", lab = "LEGTYPE",
+                       title = "As read")
   )
   if (!spec$col %in% names(dat)) {
     rlang::abort(paste0(
@@ -214,6 +220,7 @@ stage_hint <- function(col) {
       "narwcr::classify_platform(dat)`."
     ),
     LEGSTAGE = "It comes from the survey file, and `narwcr::fill_legstage()` completes it.",
+    LEGTYPE = "It comes from the survey file; every NARWC extract has one.",
     ""
   )
 }

@@ -6,7 +6,7 @@
 \usage{
 plot_survey(
   dat,
-  what = c("effort", "occupations", "tracks", "platform", "legstage"),
+  what = c("effort", "occupations", "tracks", "platform", "legstage", "raw"),
   coastline = TRUE,
   max_points = 50000,
   max_legend = 12,
@@ -18,7 +18,7 @@ plot_survey(
 required, and each view needs the column it colours by.}
 
 \item{what}{Which view: \code{"effort"} (default), \code{"occupations"}, \code{"tracks"},
-\code{"platform"}, or \code{"legstage"}.}
+\code{"platform"}, \code{"legstage"}, or \code{"raw"}.}
 
 \item{coastline}{Land to draw underneath. \code{TRUE} (default) fetches Natural
 Earth through \code{rnaturalearth}; \code{FALSE} draws none; a scale name —
@@ -71,6 +71,10 @@ of survey.}
 \item{\code{"legstage"}}{Positions coloured by \code{LEGSTAGE}. Shows where a line
 begins, breaks off, resumes and ends — and, on a file that records the
 code only at change points, how little of it is written down.}
+\item{\code{"raw"}}{Every position, coloured by \code{LEGTYPE}, needing nothing but
+the file as read. What the survey looks like before any of this package
+has touched it — the view to compare the others against when a later
+stage seems to have lost something.}
 }
 }
 
