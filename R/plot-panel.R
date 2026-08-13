@@ -28,8 +28,11 @@
 #' @param ncol Panels per row. `NULL` (default) picks 2 for up to four views
 #'   and 3 beyond.
 #' @param width,height,dpi Passed to [ggplot2::ggsave()] when writing files.
+#' @param dates,years,months Which survey days to draw, passed to
+#'   [filter_days()]. With `by_day = TRUE` these decide which days get a figure:
+#'   `years = 2019, months = 8` writes an August instead of a decade.
 #' @param ... Passed to [plot_survey()] — `coastline`, `max_points`,
-#'   `max_legend`.
+#'   `max_legend`, `sightings`.
 #'
 #' @return A `patchwork` object, or invisibly the file paths when
 #'   `by_day = TRUE`.
@@ -45,6 +48,7 @@
 #' @export
 plot_survey_panel <- function(dat, views = NULL, by_day = FALSE, dir = ".",
                               ncol = NULL, width = 14, height = 9, dpi = 120,
+                              dates = NULL, years = NULL, months = NULL,
                               ...) {
   check_ggplot2()
   if (!requireNamespace("patchwork", quietly = TRUE)) {
@@ -54,6 +58,12 @@ plot_survey_panel <- function(dat, views = NULL, by_day = FALSE, dir = ".",
     ))
   }
   stopifnot(is.data.frame(dat))
+
+  # Filtered once here rather than inside each panel: the same subset feeds
+  # every view, and with `by_day = TRUE` it decides which days get a figure at
+  # all. `years = 2019, months = 8` is 20-odd figures instead of 187.
+  dat <- filter_days(dat, dates, years, months)
+
   views <- views %||% available_views(dat)
   if (!length(views)) {
     rlang::abort("None of the views can be drawn from this data.")
@@ -117,6 +127,10 @@ panel_title <- function(dat) {
 
 # Views in pipeline order, keeping the ones this frame can answer. Skipping is
 # the point: which views are available says how far the data has got.
+#
+# "positions" is not in the list. It always works, so including it would put an
+# uncoloured map on every panel figure, next to the same map with the colours
+# that are the reason to look. Ask for it by name.
 available_views <- function(dat) {
   needs <- c(raw = "LEGTYPE", platform = "PLATFORM_KIND",
              legstage = "LEGSTAGE", occupations = "LEGNO3",

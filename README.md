@@ -136,7 +136,21 @@ count or specific dates.
 
 `plot_survey()` is the same question as a picture: it draws the survey at
 whatever stage it has reached, and a survey line drawn in three pieces — or
-three drawn as one — is visible on a map and invisible in a table.
+three drawn as one — is visible on a map and invisible in a table. `"positions"`
+is the view that needs nothing but coordinates, so it draws even on a file none
+of this has touched; add `sightings = TRUE` and it shows where the aircraft went
+and what was seen from it, in one map.
+
+A decade of survey on one map is a smear, so every plotting function takes
+`dates`, `years`, and `months` — `years = 2019, months = 8` is August 2019.
+`filter_days()` is that selection on its own.
+
+The scales are Okabe-Ito, which stays legible to colourblind readers, falling
+back to viridis past eight levels. Legends are capped: past `max_legend` groups,
+tracks and occupations recycle a small palette and drop the legend, and species
+beyond the cap are gathered into one "other" entry rather than losing their
+colour. All three of these were real failures on a real archive — a 130-entry
+legend that crushed the map, and 28 species drawn with no colour at all.
 
 Each of these checks exists because a real extract produced a believable wrong
 answer. [docs/08-onboarding-a-real-extract.md](docs/08-onboarding-a-real-extract.md)

@@ -13,6 +13,9 @@ plot_survey_panel(
   width = 14,
   height = 9,
   dpi = 120,
+  dates = NULL,
+  years = NULL,
+  months = NULL,
   ...
 )
 }
@@ -33,8 +36,12 @@ and 3 beyond.}
 
 \item{width, height, dpi}{Passed to \code{\link[ggplot2:ggsave]{ggplot2::ggsave()}} when writing files.}
 
+\item{dates, years, months}{Which survey days to draw, passed to
+\code{\link[=filter_days]{filter_days()}}. With \code{by_day = TRUE} these decide which days get a figure:
+\verb{years = 2019, months = 8} writes an August instead of a decade.}
+
 \item{...}{Passed to \code{\link[=plot_survey]{plot_survey()}} — \code{coastline}, \code{max_points},
-\code{max_legend}.}
+\code{max_legend}, \code{sightings}.}
 }
 \value{
 A \code{patchwork} object, or invisibly the file paths when

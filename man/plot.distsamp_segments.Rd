@@ -9,6 +9,10 @@
   what = c("segments", "tracks", "effort", "distances"),
   species = NULL,
   coastline = FALSE,
+  max_legend = 8,
+  dates = NULL,
+  years = NULL,
+  months = NULL,
   ...
 )
 }
@@ -26,6 +30,16 @@ none. \code{TRUE} fetches Natural Earth countries through \code{rnaturalearth}; 
 scale name — \code{"small"}, \code{"medium"}, \code{"large"} — picks the resolution; or
 pass your own \code{sf} object. Ignored by the \code{"effort"} and \code{"distances"}
 views. See the note on resolution below.}
+
+\item{max_legend}{Most groups to name in the legend. Default \code{8}. Species
+beyond it are gathered into one "other" entry — they stay on the map, they
+just stop having their own colour — and tracks beyond it take a recycled
+palette with the legend dropped. A survey with 36 species or 130 tracks
+produces a legend that squeezes the map to nothing otherwise.}
+
+\item{dates, years, months}{Which survey days to draw, passed to
+\code{\link[=filter_days]{filter_days()}}. \code{NULL} (default) draws all of them. Every table in the
+object — points, segments, detections — is cut to the same days.}
 
 \item{...}{Ignored, for compatibility with \code{\link[=plot]{plot()}}.}
 }
@@ -57,7 +71,12 @@ mark.}
 the detection-function diagnostic: look for a shoulder near zero and a
 tail that falls away. A spike at zero, a peak away from zero, or a long
 flat tail all mean something, and all of them matter before
-\code{Distance::ds()} is called. See the note on \code{g(0)} below.}
+\code{Distance::ds()} is called. See the note on \code{g(0)} below.
+The axis stops at the 99th percentile and the subtitle reports what lies
+beyond it: a single implausible distance would otherwise set the scale
+and put every real one in the first bin. Since such a distance is a bug
+worth finding rather than a nuisance worth hiding, the subtitle says
+outright when the largest is too far to be a detection.}
 }
 }
 

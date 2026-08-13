@@ -6,11 +6,15 @@
 \usage{
 plot_survey(
   dat,
-  what = c("effort", "occupations", "tracks", "platform", "legstage", "raw"),
+  what = c("effort", "occupations", "tracks", "platform", "legstage", "raw", "positions"),
   coastline = TRUE,
   max_points = 50000,
   max_legend = 12,
-  facet_by = NULL
+  facet_by = NULL,
+  dates = NULL,
+  years = NULL,
+  months = NULL,
+  sightings = FALSE
 )
 }
 \arguments{
@@ -18,7 +22,7 @@ plot_survey(
 required, and each view needs the column it colours by.}
 
 \item{what}{Which view: \code{"effort"} (default), \code{"occupations"}, \code{"tracks"},
-\code{"platform"}, \code{"legstage"}, or \code{"raw"}.}
+\code{"platform"}, \code{"legstage"}, \code{"raw"}, or \code{"positions"}.}
 
 \item{coastline}{Land to draw underneath. \code{TRUE} (default) fetches Natural
 Earth through \code{rnaturalearth}; \code{FALSE} draws none; a scale name —
@@ -38,6 +42,18 @@ be told apart.}
 \item{facet_by}{Column to facet on, or \code{NULL} for none. Defaults to \code{DATE}
 when the data covers 2 to 12 days — beyond that the panels are too small
 to read, and one map of everything is more use.}
+
+\item{dates, years, months}{Which survey days to draw, passed to
+\code{\link[=filter_days]{filter_days()}}. \code{NULL} (default) draws all of them. A decade of survey on
+one map is a smear; \verb{years = 2019, months = 8} is a question a map can
+answer.}
+
+\item{sightings}{Draw the sightings over the effort? \code{FALSE} (default) draws
+none, \code{TRUE} draws every species, and a character vector of \code{SPECCODE}
+values draws only those — \code{sightings = "RIWH"}. They are taken from the
+data \emph{before} thinning, since a few thousand sighting rows in three million
+would not survive it, and are drawn as outlined markers so they read on top
+of the track rather than as more of it.}
 }
 \value{
 A \code{ggplot} object.
@@ -75,6 +91,13 @@ code only at change points, how little of it is written down.}
 the file as read. What the survey looks like before any of this package
 has touched it — the view to compare the others against when a later
 stage seems to have lost something.}
+\item{\code{"positions"}}{Every position, uncoloured. The only view that cannot
+fail for want of a column: it needs \code{LATITUDE} and \code{LONGITUDE} and
+nothing else, so it works on a file that has not been through
+\code{\link[=prepare_aerial]{prepare_aerial()}}, or one whose columns are not what you expected.
+Where \code{"raw"} still asks for \code{LEGTYPE}, this asks for nothing. Add
+\code{sightings = TRUE} and it is the whole survey — effort and what was seen
+on it — in one map.}
 }
 }
 
@@ -92,6 +115,10 @@ where random sampling would not. The subtitle says when it happened. Set
 path <- system.file("extdata", "narwc-example.csv", package = "distsamp")
 dat <- narwcr::flag_effort(narwcr::make_leg_id(narwcr::read_narwc(path, quiet = TRUE)))
 plot_survey(dat, "occupations")
+
+# One day, or one month of one year
+plot_survey(dat, "occupations", dates = "2024-04-01")
+plot_survey(dat, "occupations", years = 2024, months = "April")
 \dontshow{\}) # examplesIf}
 }
 \seealso{

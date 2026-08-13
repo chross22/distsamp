@@ -23,7 +23,12 @@
 #'     the detection-function diagnostic: look for a shoulder near zero and a
 #'     tail that falls away. A spike at zero, a peak away from zero, or a long
 #'     flat tail all mean something, and all of them matter before
-#'     `Distance::ds()` is called. See the note on `g(0)` below.}
+#'     `Distance::ds()` is called. See the note on `g(0)` below.
+#'     The axis stops at the 99th percentile and the subtitle reports what lies
+#'     beyond it: a single implausible distance would otherwise set the scale
+#'     and put every real one in the first bin. Since such a distance is a bug
+#'     worth finding rather than a nuisance worth hiding, the subtitle says
+#'     outright when the largest is too far to be a detection.}
 #' }
 #'
 #' @section Coastlines, and why the default is none:
@@ -57,6 +62,14 @@
 #'   `"distances"`.
 #' @param species Optional character vector of `SPECCODE` values to show, for
 #'   the views that draw sightings. `NULL` (default) shows all.
+#' @param max_legend Most groups to name in the legend. Default `8`. Species
+#'   beyond it are gathered into one "other" entry — they stay on the map, they
+#'   just stop having their own colour — and tracks beyond it take a recycled
+#'   palette with the legend dropped. A survey with 36 species or 130 tracks
+#'   produces a legend that squeezes the map to nothing otherwise.
+#' @param dates,years,months Which survey days to draw, passed to
+#'   [filter_days()]. `NULL` (default) draws all of them. Every table in the
+#'   object — points, segments, detections — is cut to the same days.
 #' @param coastline Land to draw under the map views. `FALSE` (default) draws
 #'   none. `TRUE` fetches Natural Earth countries through `rnaturalearth`; a
 #'   scale name — `"small"`, `"medium"`, `"large"` — picks the resolution; or
@@ -95,13 +108,16 @@
 #' @export
 plot.distsamp_segments <- function(x, what = c("segments", "tracks", "effort",
                                                "distances"),
-                                   species = NULL, coastline = FALSE, ...) {
+                                   species = NULL, coastline = FALSE,
+                                   max_legend = 8, dates = NULL, years = NULL,
+                                   months = NULL, ...) {
   what <- match.arg(what)
   check_ggplot2()
+  x <- filter_segments_days(x, dates, years, months)
 
   switch(what,
-    segments  = plot_segments_map(x, species, coastline),
-    tracks    = plot_tracks_map(x, coastline),
+    segments  = plot_segments_map(x, species, coastline, max_legend),
+    tracks    = plot_tracks_map(x, coastline, max_legend),
     effort    = plot_effort_hist(x),
     distances = plot_distance_hist(x, species)
   )
@@ -132,34 +148,46 @@ sightings_with_position <- function(x, species = NULL) {
   if (!nrow(out)) NULL else out
 }
 
-plot_segments_map <- function(x, species = NULL, coastline = FALSE) {
+plot_segments_map <- function(x, species = NULL, coastline = FALSE,
+                              max_legend = 8) {
   segs <- x$segments
   pts <- x$points
   sight <- sightings_with_position(x, species)
-  land <- coastline_layer(coastline)
 
+  # Midpoints were open circles sized by `seg_eff`. On the real archive that
+  # was 19,774 of them, and they covered the survey area in solid black - the
+  # size channel spending the entire map to show a quantity that is near
+  # constant by construction. Segment length belongs to the "effort" view,
+  # which is about exactly that; here what matters is where the midpoints are.
   p <- ggplot2::ggplot() +
-    land +
+    coastline_layer(coastline) +
     ggplot2::geom_point(
       data = pts,
       ggplot2::aes(x = .data$LONGITUDE, y = .data$LATITUDE),
-      colour = "grey75", size = 0.4
+      colour = "grey85", size = 0.3, na.rm = TRUE
     ) +
     ggplot2::geom_point(
       data = segs,
-      ggplot2::aes(x = .data$mid_lon, y = .data$mid_lat, size = .data$seg_eff),
-      shape = 21, fill = NA, colour = "grey25", stroke = 0.5
-    ) +
-    ggplot2::scale_size_continuous(name = "Segment effort (km)")
+      ggplot2::aes(x = .data$mid_lon, y = .data$mid_lat),
+      colour = "grey35", size = point_size_for(nrow(segs)), na.rm = TRUE
+    )
 
+  n_spp <- 0L
   if (!is.null(sight)) {
-    p <- p + ggplot2::geom_point(
-      data = sight,
-      ggplot2::aes(x = .data$LONGITUDE, y = .data$LATITUDE,
-                   colour = .data$SPECCODE),
-      size = 2.2
-    ) +
-      ggplot2::scale_colour_brewer(name = "Species", palette = "Dark2")
+    n_spp <- length(unique(as.character(sight$SPECCODE)))
+    sight$.spp <- lump_levels(sight$SPECCODE, max_levels = max_legend)
+    p <- p +
+      ggplot2::geom_point(
+        data = sight,
+        ggplot2::aes(x = .data$LONGITUDE, y = .data$LATITUDE,
+                     fill = .data$.spp),
+        shape = 21, size = 1.9, stroke = 0.3, colour = "grey15", na.rm = TRUE
+      ) +
+      scale_fill_safe(nlevels(sight$.spp), name = "Species") +
+      ggplot2::guides(fill = ggplot2::guide_legend(
+        override.aes = list(size = 2.8),
+        keyheight = ggplot2::unit(0.85, "lines")
+      ))
   }
 
   p +
@@ -167,38 +195,78 @@ plot_segments_map <- function(x, species = NULL, coastline = FALSE) {
     ggplot2::labs(
       x = "Longitude", y = "Latitude",
       title = "Segment midpoints and sightings",
-      subtitle = paste0(
-        nrow(segs), " segments over ",
-        round(sum(segs$seg_eff, na.rm = TRUE), 1), " km of effort"
-      )
+      subtitle = segments_map_subtitle(segs, sight, n_spp, max_legend)
     ) +
     ggplot2::theme_minimal()
 }
 
-plot_tracks_map <- function(x, coastline = FALSE) {
+segments_map_subtitle <- function(segs, sight, n_spp, max_legend) {
+  effort <- paste0(
+    fmt_count(nrow(segs)), " segments over ",
+    fmt_count(sum(segs$seg_eff, na.rm = TRUE)), " km of effort. ",
+    "Pale grey: every position. Dark grey: segment midpoints."
+  )
+  if (is.null(sight)) {
+    return(effort)
+  }
+  paste(effort, paste0(
+    fmt_count(nrow(sight)), " sightings of ", n_spp, " species",
+    if (n_spp > max_legend) {
+      paste0("; the ", max_legend - 1L, " most seen are named - pass ",
+             "`species =` for the others")
+    } else "", "."
+  ), sep = "\n")
+}
+
+plot_tracks_map <- function(x, coastline = FALSE, max_legend = 12) {
   pts <- x$points
-  pts$.track <- factor(pts$new_trackno)
+
+  # 130 tracks gave a 130-entry legend that squeezed the map into a corner and
+  # overlapped its own axis labels. `plot_survey()` had already solved this;
+  # this view had never been given it.
+  cap <- capped_groups(pts$new_trackno, max_legend)
+  pts$.track <- cap$col
 
   p <- ggplot2::ggplot(
     pts,
     ggplot2::aes(x = .data$LONGITUDE, y = .data$LATITUDE, colour = .data$.track)
   ) +
     coastline_layer(coastline) +
-    ggplot2::geom_path(ggplot2::aes(group = .data$.track), linewidth = 0.4) +
-    ggplot2::geom_point(size = 0.7) +
+    # Grouped by the track itself, never by the colour: once colours recycle,
+    # two tracks share one and a path would join them across open water.
+    ggplot2::geom_path(ggplot2::aes(group = .data$new_trackno),
+                       linewidth = 0.4, na.rm = TRUE) +
+    ggplot2::geom_point(size = 0.7, na.rm = TRUE) +
+    scale_colour_safe(nlevels(pts$.track)) +
     map_coord(coastline, pts$LONGITUDE, pts$LATITUDE) +
     ggplot2::labs(
       x = "Longitude", y = "Latitude", colour = "Track",
       title = "Continuous-effort tracks",
       subtitle = paste0(
-        length(unique(pts$new_trackno)), " tracks; a break in effort starts a ",
-        "new one"
+        format(cap$n, big.mark = ","),
+        " tracks - one unbroken stretch of on-effort flying, so a break in ",
+        "effort starts a new one.",
+        if (!cap$named) {
+          paste0("\nToo many to name, so colours repeat: what to look for is ",
+                 "that neighbouring tracks differ.")
+        } else ""
       )
     ) +
     ggplot2::theme_minimal()
 
-  if ("DATE" %in% names(pts) && length(unique(pts$DATE)) > 1) {
-    p <- p + ggplot2::facet_wrap(~DATE)
+  p <- if (cap$named) {
+    p + legend_guide(nlevels(pts$.track))
+  } else {
+    p + ggplot2::guides(colour = "none")
+  }
+
+  # Faceting a decade gives 187 panels a few millimetres across. The same
+  # 2-to-12 window `plot_survey()` uses, for the same reason.
+  if ("DATE" %in% names(pts)) {
+    n_days <- length(unique(stats::na.omit(pts$DATE)))
+    if (n_days >= 2L && n_days <= 12L) {
+      p <- p + ggplot2::facet_wrap(~DATE)
+    }
   }
   p
 }
@@ -226,7 +294,7 @@ plot_effort_hist <- function(x) {
     ggplot2::theme_minimal()
 }
 
-plot_distance_hist <- function(x, species = NULL) {
+plot_distance_hist <- function(x, species = NULL, trim = 0.99) {
   det <- x$detections
   if (!is.null(species)) {
     det <- det[det$SPECCODE %in% species, , drop = FALSE]
@@ -242,19 +310,61 @@ plot_distance_hist <- function(x, species = NULL) {
     ))
   }
 
-  ggplot2::ggplot(det, ggplot2::aes(x = .data$distance)) +
-    ggplot2::geom_histogram(bins = 12, fill = "grey60", colour = "white") +
+  # One distance of six million metres put every real distance in the first bin
+  # and the whole detection function out of sight. The outlier is the finding,
+  # so the axis stops at a quantile and the subtitle reports what was left off -
+  # trimming the view, never the data.
+  d <- det$distance
+  hi <- unname(stats::quantile(d, trim, na.rm = TRUE))
+  if (!is.finite(hi) || hi <= 0) {
+    hi <- max(d, na.rm = TRUE)
+  }
+  shown <- det[d <= hi, , drop = FALSE]
+  beyond <- sum(d > hi)
+
+  ggplot2::ggplot(shown, ggplot2::aes(x = .data$distance)) +
+    ggplot2::geom_histogram(bins = 30, fill = "grey60", colour = "white") +
     ggplot2::labs(
       x = paste0("Perpendicular distance (", units, ")"),
       y = "Detections",
       title = "Perpendicular distances",
-      subtitle = paste0(
-        nrow(det), " of ", nrow(x$detections),
-        " detections carry a distance. Fitted with `Distance::ds()`; ",
-        "g(0) = 1 is assumed unless corrected."
-      )
+      subtitle = distance_hist_subtitle(det, x$detections, d, hi, beyond, units)
     ) +
     ggplot2::theme_minimal()
+}
+
+distance_hist_subtitle <- function(det, all_det, d, hi, beyond, units) {
+  have <- paste0(
+    fmt_count(nrow(det)), " of ", fmt_count(nrow(all_det)),
+    " detections carry a distance. g(0) = 1 is assumed unless corrected."
+  )
+  # The drawn maximum, not the quantile that produced it. The reader is looking
+  # at an axis; a cut-off they cannot find on it explains nothing.
+  axis <- if (beyond > 0) {
+    paste0(
+      "\nAxis stops at ", fmt_count(max(d[d <= hi], na.rm = TRUE)), " ", units,
+      "; ", fmt_count(beyond), " detection", if (beyond != 1L) "s" else "",
+      " beyond it, largest ", fmt_count(max(d, na.rm = TRUE)), " ", units, "."
+    )
+  } else ""
+
+  # A perpendicular distance is bounded by how far anyone can see from the
+  # aircraft. Past that it is not a wide detection, it is a broken one - a
+  # sighting matched to the wrong segment, or a coordinate with a sign error -
+  # and the plot should say so instead of drawing it.
+  cap <- plausible_max(units)
+  warn <- if (!is.na(cap) && max(d, na.rm = TRUE) > cap) {
+    paste0(
+      "\nThe largest is too far to be a detection - check `?sighting_distances`",
+      " before fitting."
+    )
+  } else ""
+
+  paste0(have, axis, warn)
+}
+
+plausible_max <- function(units) {
+  switch(units, m = 20000, km = 20, nmi = 11, nm = 11, NA_real_)
 }
 
 

@@ -409,9 +409,17 @@ They need `ggplot2`, and return ordinary `ggplot` objects.
 plot(segs)
 ```
 
-The track flown, the segment midpoints sized by effort, and the sightings. A
-segmentation that has gone wrong is usually obvious here — midpoints strung
-along a line the aircraft never flew, or bunched where a track should have split.
+The track flown in pale grey, the segment midpoints in dark grey, and the
+sightings coloured by species. A segmentation that has gone wrong is usually
+obvious here — midpoints strung along a line the aircraft never flew, or bunched
+where a track should have split.
+
+Both of those channels are capped on purpose. Midpoints shrink as they multiply,
+because 19,774 of them at a readable size cover the survey area in solid black.
+And only the `max_legend` most-seen species keep their own colour; the rest are
+gathered into one "other" entry, so a survey with 36 species still has a legend
+you can read. Nothing is dropped from the map — pass `species = "RIWH"` to pull
+any one of them back out.
 
 ```{r, eval = requireNamespace("ggplot2", quietly = TRUE), fig.width = 6, fig.height = 4}
 plot(segs, what = "tracks")
@@ -421,6 +429,10 @@ The same positions coloured by `new_trackno`. This is the view that shows
 whether track splitting worked: a break in effort should start a new colour, and
 a colour should never span two places the aircraft could not have flown between.
 The fixture's re-flown line is the case to look at.
+
+Past `max_legend` tracks the colours repeat and the legend goes away — a
+130-entry legend squeezes the map into a corner, and 130 colours cannot be told
+apart anyway. What the view is for still works: neighbouring tracks differ.
 
 ```{r, eval = requireNamespace("ggplot2", quietly = TRUE), fig.width = 6, fig.height = 4}
 plot(segs, what = "effort")
@@ -444,7 +456,30 @@ to assume the animals were absent. And a smooth curve is not evidence that
 `g(0) = 1`; animals submerged when the aircraft passed leave no trace in this
 plot at all.
 
+The axis stops at the 99th percentile, and the subtitle says how many detections
+lie beyond it and how large the largest is. This matters more than it sounds: on
+one real archive a single distance of six thousand kilometres set the scale and
+put all 2,170 real distances in the first bin. A distance that large is not a
+wide detection, it is a broken one, and the subtitle now says so outright rather
+than letting it quietly own the axis. Nothing is removed from the data — only
+from the view.
+
 For a real map with coastlines, hand the positions to `sf` instead.
+
+## Looking at part of a survey
+
+An archive spanning decades draws as a smear. Every plotting function takes
+`dates`, `years`, and `months`, which narrow together rather than adding up —
+`years = 2019, months = 8` is August 2019, not all of 2019 and every August.
+
+```r
+plot_survey(air, "occupations", years = 2019, months = 8)
+plot(segs, what = "tracks", dates = "2019-08-14")
+```
+
+`filter_days()` is the same selection on its own, for when the subset is wanted
+for something other than a plot. Asking for days the data does not hold is an
+error that reports what the data actually covers, rather than an empty map.
 
 ## Spatial output
 
@@ -506,6 +541,21 @@ A survey line drawn in three pieces, or three drawn as one, is visible here and
 invisible in a table. `diagnose_pipeline()` is the same question as numbers,
 and `vignette("segmenting-narwc-data")` aside, the traps a real extract springs
 are catalogued in `docs/08-onboarding-a-real-extract.md`.
+
+When a view refuses to draw because the column it colours by is not there yet,
+`"positions"` still will. It needs `LATITUDE` and `LONGITUDE` and nothing else,
+which makes it the one to reach for on a file that has been through none of this
+— or one whose columns are not what you were told they were.
+
+```{r, fig.width = 7, fig.height = 4.5}
+plot_survey(air, "positions", sightings = TRUE, coastline = FALSE)
+```
+
+With `sightings = TRUE` it is the whole survey in one map: where the aircraft
+went, and what was seen from it. The sightings are taken before thinning and
+drawn as outlined markers on their own scale, so they read on top of the effort
+rather than as more of it — a few thousand sighting rows in three million would
+not survive `max_points` otherwise.
 
 ## Running the steps yourself
 

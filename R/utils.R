@@ -114,3 +114,11 @@ rle_id <- function(x) {
 `%|NA|%` <- function(x, y) ifelse(is.na(x), y, x)
 
 is_empty_df <- function(x) is.null(x) || nrow(x) == 0L
+
+# Numbers as a reader writes them: thousands separated, never in scientific
+# notation. `format(6e6, big.mark = ",")` gives "6e+06" - and on a subtitle
+# whose whole job is to show that a distance is implausibly large, that is the
+# one thing it must not print.
+fmt_count <- function(x) {
+  format(round(x), big.mark = ",", scientific = FALSE, trim = TRUE)
+}

@@ -112,6 +112,14 @@ find changes what you fit:
   truncation model the same phenomenon, so using both counts the blind spot
   twice.
 - **A long flat tail** is the case for truncating harder.
+- **A distance the aircraft could not possibly have seen** is not a wide
+  detection, it is a broken one — a sighting matched to the wrong segment, or a
+  coordinate with a lost sign. The axis stops at the 99th percentile so one such
+  value cannot push every real distance into the first bin, and the subtitle
+  reports how many lie beyond and how large the largest is. If it says the
+  largest is too far to be a detection, fix that before fitting anything:
+  `?sighting_distances` says where distances come from and which source produced
+  it.
 
 None of this tells you anything about `g(0)`. Animals that were submerged when
 the aircraft passed leave no trace in this plot, and a perfectly smooth curve is
