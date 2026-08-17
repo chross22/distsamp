@@ -15,7 +15,19 @@ test_that("each view draws from the stage that provides its column", {
 test_that("a view whose column is missing says which stage adds it", {
   expect_error(plot_survey(example_data(), "effort"), "flag_effort")
   expect_error(plot_survey(example_data(), "tracks"), "split_tracks")
-  expect_error(plot_survey(example_data(), "platform"), "classify_platform")
+  expect_error(plot_survey(example_data(), "platform"), "make_leg_id")
+})
+
+test_that("a missing column sends you to prepare_aerial(), not to one step", {
+  # Naming the single function that adds the column is true and is bad advice:
+  # the steps are order-dependent. The platform hint is the one that mattered -
+  # classifying and filtering before make_leg_id() merges two occupations of a
+  # line and turns the ferry between them into effort.
+  for (view in c("effort", "tracks", "platform", "occupations")) {
+    expect_error(plot_survey(example_data(), view), "prepare_aerial",
+                 info = view)
+  }
+  expect_error(plot_survey(example_data(), "platform"), "never before")
 })
 
 test_that("position is required whatever the view", {

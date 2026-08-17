@@ -303,17 +303,46 @@ resolve_facet <- function(dat, facet_by) {
   if (n >= 2L && n <= 12L) "DATE" else NULL
 }
 
+# What to do about a missing column.
+#
+# These used to name the single function that adds each column, which was true
+# and was bad advice: the steps are order-dependent, and every one of them is a
+# step of `prepare_aerial()` for that reason. Told to run
+# `narwcr::classify_platform()` and filter, someone does it before
+# `make_leg_id()` — the message gave no reason not to — which makes two
+# occupations of one line adjacent so they merge, and the ferry between them
+# becomes survey effort. Measured at 224.5 km where 4.4 km was right.
+#
+# So each hint names the one call that gets the order right, and then says
+# where in that order this particular column appears — because which column is
+# missing is what tells you how far the data actually got.
 stage_hint <- function(col) {
+  prep <- "Run `prepare_aerial()`, which does these steps in the order they have to happen."
   switch(
     col,
-    OnOff.Effort = "It is added by `narwcr::flag_effort()`.",
-    LEGNO3 = "It is added by `narwcr::make_leg_id()`.",
-    new_trackno = "It is added by `split_tracks()`, after `flag_effort()`.",
-    PLATFORM_KIND = paste0(
-      "Assign it yourself: `dat$PLATFORM_KIND <- ",
-      "narwcr::classify_platform(dat)`."
+    OnOff.Effort = paste0(
+      prep, " Effort is flagged last: `narwcr::flag_effort()` reads LEGTYPE, ",
+      "LEGSTAGE, ALT, BEAUFORT and VISIBLTY, so anything that corrects those ",
+      "has to have run before it."
     ),
-    LEGSTAGE = "It comes from the survey file, and `narwcr::fill_legstage()` completes it.",
+    LEGNO3 = paste0(
+      prep, " Occupations come first, from `narwcr::make_leg_id()`, because ",
+      "everything after them groups by them."
+    ),
+    new_trackno = paste0(
+      prep, " Tracks are cut by `split_tracks()` from `LEGNO3` and ",
+      "`OnOff.Effort`, so both have to exist already."
+    ),
+    PLATFORM_KIND = paste0(
+      prep, " Platform is classified after `make_leg_id()` and never before: ",
+      "dropping records first makes two occupations of one line adjacent, so ",
+      "they merge and the ferry between them counts as survey effort."
+    ),
+    LEGSTAGE = paste0(
+      "It comes from the survey file. `prepare_aerial()` completes a partial ",
+      "one with `narwcr::fill_legstage()`, but it cannot invent a column that ",
+      "was never recorded."
+    ),
     LEGTYPE = "It comes from the survey file; every NARWC extract has one.",
     ""
   )
