@@ -147,3 +147,31 @@ test_that("a day, a month, or a year can be picked out", {
   expect_equal(nrow(plot_survey(d, "effort", months = "April")$data), nrow(d))
   expect_error(plot_survey(d, "effort", years = 1999), "No records fall")
 })
+
+test_that("thinning never reaches the path", {
+  # Every nth is right for a scatter and wrong for a line: a path through the
+  # survivors cuts every corner the aircraft flew round, which against a
+  # coastline draws a trackline over land that is not in the data.
+  d <- staged()
+  n_occ <- sum(!is.na(d$LEGNO3))
+
+  p <- plot_survey(d, "occupations", coastline = FALSE, max_points = 5)
+
+  # The point layer is thinned ...
+  expect_lte(nrow(p$data), 5)
+
+  # ... and the path layer is not.
+  path <- Filter(function(l) inherits(l$geom, "GeomPath"), p$layers)
+  expect_length(path, 1)
+  expect_equal(nrow(path[[1]]$data), n_occ)
+})
+
+test_that("the legend is built before thinning, not after", {
+  # Counting groups on the thinned set can drop a whole occupation the map
+  # still draws a path for.
+  d <- staged()
+  all_groups <- length(unique(stats::na.omit(d$LEGNO3)))
+  p <- plot_survey(d, "occupations", coastline = FALSE, max_points = 5)
+  path <- Filter(function(l) inherits(l$geom, "GeomPath"), p$layers)[[1]]
+  expect_equal(length(unique(path$data$.grp)), all_groups)
+})

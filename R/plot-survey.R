@@ -42,10 +42,18 @@
 #'
 #' @section Thinning:
 #' A survey archive can hold millions of positions, and a scatter plot of five
-#' million points is neither drawable nor readable. Records are thinned to
-#' `max_points` by taking every *n*th, which preserves the shape of a track
-#' where random sampling would not. The subtitle says when it happened. Set
-#' `max_points = Inf` to draw everything.
+#' million points is neither drawable nor readable. The plotted *points* are
+#' thinned to `max_points` by taking every *n*th. The subtitle says when it
+#' happened. Set `max_points = Inf` to draw every point.
+#'
+#' **Thinning never applies to the path.** Every *n*th preserves the shape of a
+#' straight line and loses it at every turn, so a path drawn through the
+#' survivors cuts the corners: at three million records that is a chord between
+#' fixes some 18 km apart, and against a coastline it draws a trackline over
+#' land that is not in the data. The lines in the `"occupations"` and
+#' `"tracks"` views are therefore built from every fix, whatever `max_points`
+#' says. On a whole archive that costs a few seconds of drawing, and it buys a
+#' map that does not invent a mistake for you to go looking for.
 #'
 #' @param dat A survey data frame at any stage: `LATITUDE` and `LONGITUDE` are
 #'   required, and each view needs the column it colours by.
@@ -152,7 +160,6 @@ plot_survey <- function(dat, what = c("effort", "occupations", "tracks",
   sight <- if (isFALSE(sightings)) NULL else survey_sightings(dat, sightings)
 
   n_before <- nrow(dat)
-  dat <- thin_records(dat, max_points)
 
   grouped <- what %in% c("occupations", "tracks")
   dat$.grp <- as.character(dat[[spec$col]])
@@ -164,10 +171,22 @@ plot_survey <- function(dat, what = c("effort", "occupations", "tracks",
   n_groups <- cap$n
   dat$.col <- cap$col
 
+  # The path is built from every fix. Only the points are thinned.
+  #
+  # Thinning keeps every nth record, which is right for a scatter and wrong
+  # for a line: joining survivors 65 records apart draws a straight chord
+  # through whatever the aircraft actually flew round, and against a coastline
+  # that is a trackline over land. It looks exactly like merged occupations,
+  # so it sends you hunting a bug in make_leg_id() that is not there.
+  #
   # A record belonging to no occupation - the transit out, the ferry between
   # lines - is not an occupation of its own. Joining those with a path draws a
-  # survey line where none was flown, so they are shown as grey points and
-  # left unconnected.
+  # survey line where none was flown, so they are excluded here and shown as
+  # grey points below, unconnected.
+  path <- if (grouped) dat[!is.na(dat[[spec$col]]), , drop = FALSE] else NULL
+
+  dat <- thin_records(dat, max_points)
+
   loose <- if (grouped) is.na(dat[[spec$col]]) else rep(FALSE, nrow(dat))
   drawn <- dat[!loose, , drop = FALSE]
 
@@ -204,7 +223,8 @@ plot_survey <- function(dat, what = c("effort", "occupations", "tracks",
     ggplot2::theme_minimal()
 
   if (grouped) {
-    p <- p + ggplot2::geom_path(ggplot2::aes(group = .data$.grp),
+    p <- p + ggplot2::geom_path(data = path,
+                                ggplot2::aes(group = .data$.grp),
                                 linewidth = 0.3, na.rm = TRUE)
   }
   # Not for "positions": `guides()` overrides the scale, so adding one here

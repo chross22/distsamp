@@ -104,10 +104,18 @@ on it — in one map.}
 \section{Thinning}{
 
 A survey archive can hold millions of positions, and a scatter plot of five
-million points is neither drawable nor readable. Records are thinned to
-\code{max_points} by taking every \emph{n}th, which preserves the shape of a track
-where random sampling would not. The subtitle says when it happened. Set
-\code{max_points = Inf} to draw everything.
+million points is neither drawable nor readable. The plotted \emph{points} are
+thinned to \code{max_points} by taking every \emph{n}th. The subtitle says when it
+happened. Set \code{max_points = Inf} to draw every point.
+
+\strong{Thinning never applies to the path.} Every \emph{n}th preserves the shape of a
+straight line and loses it at every turn, so a path drawn through the
+survivors cuts the corners: at three million records that is a chord between
+fixes some 18 km apart, and against a coastline it draws a trackline over
+land that is not in the data. The lines in the \code{"occupations"} and
+\code{"tracks"} views are therefore built from every fix, whatever \code{max_points}
+says. On a whole archive that costs a few seconds of drawing, and it buys a
+map that does not invent a mistake for you to go looking for.
 }
 
 \examples{
