@@ -234,7 +234,9 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
         warn(length(other), " records are on a platform not moving at aerial",
              " speed. `flag_effort()` cannot tell \"criterion failed\" from",
              " \"criterion does not apply\", so those are dropped from effort",
-             " rather than handled. Split with `narwcr::classify_platform()`")
+             " rather than handled. `prepare_aerial()` splits them after",
+             " `make_leg_id()`, which is the only order that does not merge",
+             " two occupations of one line into one")
       }
     }
   }

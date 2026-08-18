@@ -151,8 +151,11 @@ segment_survey <- function(dat,
                                 collapse = ", "),
         "). distsamp is aerial by construction, and a shipboard survey ",
         "segmented here yields effort and distances that look reasonable and ",
-        "mean something else. Split with `narwcr::classify_platform()` ",
-        "*after* `make_leg_id()` - filtering before it merges occupations."
+        "mean something else. `prepare_aerial()` splits them, in the order ",
+        "that has to hold: occupations, then the platform filter, then ",
+        "effort. Filtering before `make_leg_id()` makes two occupations of ",
+        "one line adjacent, so they merge and the ferry between them counts ",
+        "as survey effort."
       ))
     }
   }
