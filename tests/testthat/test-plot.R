@@ -149,3 +149,19 @@ test_that("the non-map views ignore the coastline", {
                             logical(1))))
   }
 })
+
+test_that("the tracks view never joins one day's track to the next day's", {
+  # Track numbers restart at 1 on every survey date, so grouping the path on
+  # the number alone draws a line between two separate surveys.
+  segs <- segment_survey(example_data(), seg_length = 5, seed = 1)
+  pts <- segs$points[!is.na(segs$points$new_trackno), ]
+  skip_if(length(unique(pts$DATE)) < 2, "fixture has one day")
+
+  n_track <- length(unique(pts$new_trackno))
+  n_day_track <- nrow(unique(pts[, c("DATE", "new_trackno")]))
+  expect_gt(n_day_track, n_track)
+
+  p <- plot(segs, what = "tracks", coastline = FALSE)
+  i <- which(vapply(p$layers, function(l) inherits(l$geom, "GeomPath"), NA))
+  expect_equal(length(unique(ggplot2::layer_data(p, i)$group)), n_day_track)
+})

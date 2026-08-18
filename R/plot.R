@@ -227,6 +227,15 @@ plot_tracks_map <- function(x, coastline = FALSE, max_legend = 12) {
   cap <- capped_groups(pts$new_trackno, max_legend)
   pts$.track <- cap$col
 
+  # Grouped by day as well as by track: track numbers restart at 1 on every
+  # survey date, so grouping on the number alone joins one day's track 1 to
+  # the next day's and draws the line between two surveys.
+  pts$.pathgrp <- if ("DATE" %in% names(pts)) {
+    paste(pts$DATE, pts$new_trackno)
+  } else {
+    as.character(pts$new_trackno)
+  }
+
   p <- ggplot2::ggplot(
     pts,
     ggplot2::aes(x = .data$LONGITUDE, y = .data$LATITUDE, colour = .data$.track)
@@ -234,7 +243,7 @@ plot_tracks_map <- function(x, coastline = FALSE, max_legend = 12) {
     coastline_layer(coastline) +
     # Grouped by the track itself, never by the colour: once colours recycle,
     # two tracks share one and a path would join them across open water.
-    ggplot2::geom_path(ggplot2::aes(group = .data$new_trackno),
+    ggplot2::geom_path(ggplot2::aes(group = .data$.pathgrp),
                        linewidth = 0.4, na.rm = TRUE) +
     ggplot2::geom_point(size = 0.7, na.rm = TRUE) +
     scale_colour_safe(nlevels(pts$.track)) +

@@ -164,6 +164,23 @@ plot_survey <- function(dat, what = c("effort", "occupations", "tracks",
   grouped <- what %in% c("occupations", "tracks")
   dat$.grp <- as.character(dat[[spec$col]])
 
+  # The path is grouped by the day as well as by the identifier, because the
+  # identifiers are only unique within a day. `split_tracks()` restarts track
+  # numbers at 1 on every survey date, and a LEGNO3 built from a LEGNO the
+  # programme reuses - or from the `line_<n>` fallback, where no LEGNO was
+  # recorded at all - repeats just as freely. Grouping on the identifier alone
+  # joins one day's track 1 to the next day's: a straight line between two
+  # surveys, across whatever lies between them, which on this coast is land.
+  #
+  # It hides at small scale. Two to twelve days facet by DATE, so each panel
+  # holds one day and the join has nowhere to show. An archive does not facet,
+  # and every repeated identifier draws its line across the whole map.
+  dat$.pathgrp <- if ("DATE" %in% names(dat)) {
+    paste(dat$DATE, dat$.grp)
+  } else {
+    dat$.grp
+  }
+
   # A view that is not an identifier - effort, platform, LEGSTAGE - has few
   # enough levels to always name, and naming them is the whole point.
   cap <- capped_groups(dat$.grp, if (grouped) max_legend else Inf)
@@ -224,7 +241,7 @@ plot_survey <- function(dat, what = c("effort", "occupations", "tracks",
 
   if (grouped) {
     p <- p + ggplot2::geom_path(data = path,
-                                ggplot2::aes(group = .data$.grp),
+                                ggplot2::aes(group = .data$.pathgrp),
                                 linewidth = 0.3, na.rm = TRUE)
   }
   # Not for "positions": `guides()` overrides the scale, so adding one here

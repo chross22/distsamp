@@ -175,3 +175,33 @@ test_that("the legend is built before thinning, not after", {
   path <- Filter(function(l) inherits(l$geom, "GeomPath"), p$layers)[[1]]
   expect_equal(length(unique(path$data$.grp)), all_groups)
 })
+
+test_that("a path is never drawn between two survey days", {
+  # split_tracks() restarts track numbers at 1 on every date, and a LEGNO3
+  # built from a reused LEGNO - or from the line_<n> fallback - repeats just
+  # as freely. Grouping the path on the identifier alone joins one day's
+  # track 1 to the next day's and draws the line between two surveys.
+  #
+  # Faceting hides it: 2-12 days facet by DATE, so each panel holds one day.
+  # An archive does not facet, which is where it shows.
+  d <- split_tracks(point_to_point_effort(staged()))
+  expect_gt(length(intersect(
+    unique(d$new_trackno[d$DATE == sort(unique(d$DATE))[1]]),
+    unique(d$new_trackno[d$DATE == sort(unique(d$DATE))[2]])
+  )), 0)                                    # the ids really do repeat
+
+  p <- plot_survey(d, "tracks", coastline = FALSE, facet_by = NA)
+
+  # The group ggplot actually computed, not a column that happens to sit in
+  # the data - testing the column passes on the broken code, because the
+  # column is there either way and only the aes decides what is joined.
+  i <- which(vapply(p$layers, function(l) inherits(l$geom, "GeomPath"), NA))
+  n_drawn <- length(unique(ggplot2::layer_data(p, i)$group))
+
+  on_path <- d[!is.na(d$new_trackno), ]
+  n_track <- length(unique(on_path$new_trackno))                    # 6
+  n_day_track <- nrow(unique(on_path[, c("DATE", "new_trackno")]))  # 11
+
+  expect_gt(n_day_track, n_track)          # the ids really do repeat
+  expect_equal(n_drawn, n_day_track)       # one path per track per day
+})
