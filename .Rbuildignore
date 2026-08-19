@@ -11,3 +11,4 @@
 ^.*\.tar\.gz$
 ^\.claude$
 ^tools/templates$
+^\.lintr$

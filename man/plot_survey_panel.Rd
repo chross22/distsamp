@@ -8,7 +8,7 @@ plot_survey_panel(
   dat,
   views = NULL,
   by_day = FALSE,
-  dir = ".",
+  dir = "survey-panels",
   ncol = NULL,
   width = 14,
   height = 9,
@@ -29,23 +29,9 @@ erroring, because the point is to see how far the data has got.}
 \item{by_day}{Write one figure per survey day instead of returning one
 figure for everything? Default \code{FALSE}.}
 
-\item{dir}{Directory to write into when \code{by_day = TRUE}.}
-
-\item{ncol}{Panels per row. \code{NULL} (default) picks 2 for up to four views
-and 3 beyond.}
-
-\item{width, height, dpi}{Passed to \code{\link[ggplot2:ggsave]{ggplot2::ggsave()}} when writing files.}
-
-\item{dates, years, months}{Which survey days to draw, passed to
-\code{\link[=filter_days]{filter_days()}}. With \code{by_day = TRUE} these decide which days get a figure:
-\verb{years = 2019, months = 8} writes an August instead of a decade.}
-
-\item{...}{Passed to \code{\link[=plot_survey]{plot_survey()}} — \code{coastline}, \code{max_points},
-\code{max_legend}, \code{sightings}.}
-}
-\value{
-A \code{patchwork} object, or invisibly the file paths when
-\code{by_day = TRUE}.
+\item{dir}{Directory the per-day figures are written to. Default
+\code{"survey-panels"}, created if needed. It is deliberately not the working
+directory: \code{by_day = TRUE} over a season writes one file per survey day.}
 }
 \description{
 Draws more than one \code{\link[=plot_survey]{plot_survey()}} view on one figure, so the stages can be
@@ -70,14 +56,3 @@ check. The files are named \verb{survey-<date>.png} and the paths are returned,
 so a \code{targets} pipeline can track them.
 }
 
-\examples{
-\dontshow{if (requireNamespace("patchwork", quietly = TRUE) && requireNamespace("ggplot2", quietly = TRUE)) withAutoprint(\{ # examplesIf}
-path <- system.file("extdata", "narwc-example.csv", package = "distsamp")
-air <- prepare_aerial(narwcr::read_narwc(path, quiet = TRUE), quiet = TRUE)
-plot_survey_panel(air, c("raw", "occupations"), coastline = FALSE)
-\dontshow{\}) # examplesIf}
-}
-\seealso{
-\code{\link[=plot_survey]{plot_survey()}} for one view, \code{\link[=diagnose_pipeline]{diagnose_pipeline()}} for the same
-questions as numbers.
-}

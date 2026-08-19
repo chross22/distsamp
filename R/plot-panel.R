@@ -24,29 +24,11 @@
 #'   erroring, because the point is to see how far the data has got.
 #' @param by_day Write one figure per survey day instead of returning one
 #'   figure for everything? Default `FALSE`.
-#' @param dir Directory to write into when `by_day = TRUE`.
-#' @param ncol Panels per row. `NULL` (default) picks 2 for up to four views
-#'   and 3 beyond.
-#' @param width,height,dpi Passed to [ggplot2::ggsave()] when writing files.
-#' @param dates,years,months Which survey days to draw, passed to
-#'   [filter_days()]. With `by_day = TRUE` these decide which days get a figure:
-#'   `years = 2019, months = 8` writes an August instead of a decade.
-#' @param ... Passed to [plot_survey()] — `coastline`, `max_points`,
-#'   `max_legend`, `sightings`.
-#'
-#' @return A `patchwork` object, or invisibly the file paths when
-#'   `by_day = TRUE`.
-#'
-#' @seealso [plot_survey()] for one view, [diagnose_pipeline()] for the same
-#'   questions as numbers.
-#'
-#' @examplesIf requireNamespace("patchwork", quietly = TRUE) && requireNamespace("ggplot2", quietly = TRUE)
-#' path <- system.file("extdata", "narwc-example.csv", package = "distsamp")
-#' air <- prepare_aerial(narwcr::read_narwc(path, quiet = TRUE), quiet = TRUE)
-#' plot_survey_panel(air, c("raw", "occupations"), coastline = FALSE)
-#'
-#' @export
-plot_survey_panel <- function(dat, views = NULL, by_day = FALSE, dir = ".",
+#' @param dir Directory the per-day figures are written to. Default
+#'   `"survey-panels"`, created if needed. It is deliberately not the working
+#'   directory: `by_day = TRUE` over a season writes one file per survey day.
+plot_survey_panel <- function(dat, views = NULL, by_day = FALSE,
+                              dir = "survey-panels",
                               ncol = NULL, width = 14, height = 9, dpi = 120,
                               dates = NULL, years = NULL, months = NULL,
                               ...) {
@@ -74,6 +56,12 @@ plot_survey_panel <- function(dat, views = NULL, by_day = FALSE, dir = ".",
   }
 
   require_columns(dat, "DATE")
+
+  # A directory, and never the working directory by default. `by_day = TRUE`
+  # on a season writes a file per survey day - 187 of them here - and the old
+  # default of "." emptied them into whatever the caller happened to be sitting
+  # in, mixed with the source tree. Say where they went, too: a function that
+  # writes 187 files silently is one you have to go looking for.
   dir.create(dir, recursive = TRUE, showWarnings = FALSE)
   days <- sort(unique(stats::na.omit(dat$DATE)))
 
