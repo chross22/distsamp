@@ -76,8 +76,6 @@ flag_circling <- function(dat) {
   dat
 }
 
-`%||%` <- function(x, y) if (is.null(x)) y else x
-
 
 #' Attach sightings made while circling to the segment they came from
 #'
