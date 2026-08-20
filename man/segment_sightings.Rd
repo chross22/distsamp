@@ -72,10 +72,14 @@ segment, carrying the perpendicular distance from \code{\link[=sighting_distance
 \code{ANGLEL}/\code{ANGLER} are available. That is the shape a detection function wants:
 pass it to \code{Distance::ds()}, keyed back to the segments by \code{seg_id}.
 
-Sightings recorded while circling appear here with a missing \code{distance}, and
-correctly so — a position logged off the track is not a perpendicular distance
-and must not enter a detection function, even though the detection itself
-still counts towards the segment's abundance.
+A sighting recorded while circling carries the perpendicular distance of the
+on-effort group it was counted with, marked \code{distance_source == "circling"},
+and the measured \code{break_off_distance} from the point on the line where the
+aircraft broke off. The first is what lets it count towards the segment's
+abundance, which needs a detection probability; the second is what lets you
+judge whether the attachment was reasonable. Neither belongs in a detection
+function — the inherited one is already in it, under the sighting it was
+inherited from — and \code{\link[=detection_data]{detection_data()}} excludes them by default.
 }
 
 \examples{

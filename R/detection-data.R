@@ -48,16 +48,21 @@
 #' rows are dropped, and counted in the report.
 #'
 #' @section Circling detections:
-#' Excluded by default. A detection function models detection *from the
-#' track-line under standard search effort*, and a circling position is neither
-#' measured at the moment of detection nor obtained under that effort. Set
-#' `include_circling = TRUE` to keep them — a choice worth stating in a methods
-#' section rather than making silently.
+#' Excluded by default, and the reason is stronger than "the position is off the
+#' track". A circling detection's `distance` is not measured at all: it is
+#' inherited from the on-effort sighting these animals were counted with, which
+#' is already a row in this table. Keeping both puts the same perpendicular
+#' distance into the detection function twice and weights it twice.
+#' `include_circling = TRUE` does keep them — a choice worth stating in a
+#' methods section rather than making silently — but it is a choice about
+#' double-counting, not about which positions are trustworthy.
 #'
 #' Note that this is independent of whether circling sightings count towards
 #' abundance in a density surface model, which they should and do; that is
 #' controlled by `segment_survey(circling = )`. Excluding them here does not
-#' remove them from `segs$sightings`.
+#' remove them from `segs$sightings` or `segs$detections`, and a surface fitted
+#' from this flatfile alone will miss them — build its observation table from
+#' the detections instead.
 #'
 #' @section This assumes g(0) = 1, and it almost certainly is not:
 #' Nothing in this table corrects for animals that were submerged when the

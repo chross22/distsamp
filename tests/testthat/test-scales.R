@@ -33,6 +33,27 @@ test_that("groups are named while few and recycled once many", {
   expect_lte(nlevels(cap$col), 8)
 })
 
+test_that("an identifier is never named past the qualitative palette", {
+  # 9 to 12 tracks fell between `max_legend` and the palette: named, so the
+  # legend was drawn, and past eight colours, so the scale was viridis. A day's
+  # tracks came out as a dark-purple-to-yellow ramp, which reads as an order -
+  # track 1 early, track 10 late - where the number is only a label.
+  ids <- as.character(1:10)
+  cap <- capped_groups(ids, max_legend = 12)
+  expect_false(cap$named)
+  expect_equal(cap$n, 10)
+  expect_lte(nlevels(cap$col), 8)
+
+  # Exactly eight still gets its own legend, and gets it off the manual scale.
+  cap8 <- capped_groups(as.character(1:8), max_legend = 12)
+  expect_true(cap8$named)
+  expect_equal(scale_colour_safe(8)$palette(8), okabe)
+
+  # `Inf` is the caller saying "this is a meaning, not an identifier" - a
+  # LEGSTAGE keeps its names and takes the viridis fallback deliberately.
+  expect_true(capped_groups(as.character(1:20), max_legend = Inf)$named)
+})
+
 test_that("lumping keeps the most seen and gathers the tail", {
   # 36 species is not a legend. Eight and "28 more" is - and every sighting
   # stays on the map, which dropping the tail would not manage.

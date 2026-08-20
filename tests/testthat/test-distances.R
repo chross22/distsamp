@@ -95,15 +95,34 @@ test_that("the fixture's detections carry the expected distances", {
   expect_true(any(abs(with_dist$distance - 229) < 1e-8))
 })
 
-test_that("a circling detection is kept but has no perpendicular distance", {
+test_that("a circling detection inherits its distance and measures its break-off", {
   segs <- segment_survey(example_data(), seg_length = 5, seed = 1,
                          circling = "same_species")
-  circ <- segs$detections[!is.na(segs$detections$circling) &
-                            segs$detections$circling == 1, ]
-  # It counts towards abundance...
+  det <- segs$detections
+  circ <- det[!is.na(det$circling) & det$circling == 1, ]
   expect_gt(nrow(circ), 0)
-  # ...but a position logged off the track is not a perpendicular distance.
-  expect_true(all(is.na(circ$distance)))
+
+  # No position logged off the track is a perpendicular distance, so the
+  # distance is not measured from it - it is the distance of the on-effort
+  # group these animals were counted with, which is what gives them a
+  # detection probability in the density surface.
+  expect_false(anyNA(circ$distance))
+  expect_true(all(circ$distance_source == "circling"))
+
+  on_line <- det[!is.na(det$circling) & det$circling == 0, ]
+  for (i in seq_len(nrow(circ))) {
+    same <- on_line[on_line$seg_id == circ$seg_id[i] &
+                      on_line$SPECCODE == circ$SPECCODE[i], ]
+    expect_true(circ$distance[i] %in% same$distance)
+  }
+
+  # The measured one is how far off the line the animals were logged. It is a
+  # spatial-model diagnostic and never a perpendicular distance.
+  expect_false(anyNA(circ$break_off_distance))
+  expect_true(all(circ$break_off_distance > 0))
+
+  # A sighting made from the line has no break-off to be measured from.
+  expect_true(all(is.na(on_line$break_off_distance)))
 })
 
 test_that("excluded sightings never reach the detections table", {

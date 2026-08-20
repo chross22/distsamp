@@ -32,6 +32,22 @@ figure for everything? Default \code{FALSE}.}
 \item{dir}{Directory the per-day figures are written to. Default
 \code{"survey-panels"}, created if needed. It is deliberately not the working
 directory: \code{by_day = TRUE} over a season writes one file per survey day.}
+
+\item{ncol}{Panels per row. Defaults to a layout chosen from how many views
+there are, which is what you want unless a particular figure needs a
+shape.}
+
+\item{width, height, dpi}{Size of the written figures, in inches and dots per
+inch. Only used when \code{by_day = TRUE}; otherwise the figure is returned and
+the caller decides.}
+
+\item{dates, years, months}{Narrow which survey days are drawn, as in
+\code{\link[=filter_days]{filter_days()}}. They narrow together rather than adding up: \code{years = 2019} with \code{months = 8} is August 2019, not all of 2019 and every August.}
+
+\item{...}{Passed to \code{\link[=plot_survey]{plot_survey()}} for every view - \code{coastline},
+\code{sightings}, \code{max_points} and the rest. A coastline resolved once and
+passed in is much faster than \code{coastline = TRUE}, which refetches Natural
+Earth for every panel of every day.}
 }
 \description{
 Draws more than one \code{\link[=plot_survey]{plot_survey()}} view on one figure, so the stages can be
@@ -56,3 +72,6 @@ check. The files are named \verb{survey-<date>.png} and the paths are returned,
 so a \code{targets} pipeline can track them.
 }
 
+\seealso{
+\code{\link[=plot_survey]{plot_survey()}}, which draws one view.
+}

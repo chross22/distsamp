@@ -31,10 +31,28 @@ sort_levels <- function(x) {
 # the legend says which line is which. Beyond `max_legend` a legend is a wall of
 # labels and the colours cannot be distinguished anyway, so a small palette is
 # recycled: what has to be visible then is only that neighbours differ.
+#
+# An identifier is never named past the qualitative palette, whatever
+# `max_legend` says. The two bound different things - `max_legend` is how long
+# a legend may get, the palette is how many colours can be told apart - and the
+# smaller one governs. Between them, at 9 to 12 tracks, a named legend was
+# drawn over `scale_colour_viridis_d()`: a day's tracks ran dark purple to
+# yellow and read as an order, track 1 early and track 10 late, with 5
+# somewhere between. A track number is a label. Nothing about it is ordered,
+# and a ramp says otherwise in the one channel the reader trusts most.
+#
+# `Inf` means the caller is colouring a meaning rather than an identifier - a
+# LEGSTAGE, a platform - where the levels have to keep their names and the
+# viridis fallback is the deliberate choice. That case is left alone.
 capped_groups <- function(values, max_legend = 12) {
   ids <- as.character(values)
   levs <- sort_levels(ids)
-  named <- length(levs) <= max_legend
+  cap <- if (is.finite(max_legend)) {
+    min(max_legend, length(okabe_ito))
+  } else {
+    max_legend
+  }
+  named <- length(levs) <= cap
 
   list(
     named = named,

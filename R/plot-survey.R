@@ -293,12 +293,10 @@ plot_survey_subtitle <- function(dat, spec, grouped, n_before, n_loose = 0L,
     n <- length(unique(dat$.grp))
     paste0(
       big(n), " ", tolower(spec$lab), "s - ", spec$unit, ". ",
-      if (named) {
-        "Each has its own colour."
-      } else {
-        "Too many to name, so colours repeat: what to look for is that "
-      },
-      if (!named) "neighbouring lines differ." else ""
+      # Kept short. This runs on one line at the figure's width, and the
+      # longer wording it replaced was clipped mid-sentence - the reader saw
+      # "what to look for is that" and never the part that said what.
+      if (named) "Each has its own colour." else "Colours repeat; neighbours differ."
     )
   } else NULL
 

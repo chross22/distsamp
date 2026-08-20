@@ -54,7 +54,7 @@ test_that("occupations get recycled colours, not one per level", {
   # need to: what matters is that neighbours differ.
   p <- plot_survey(staged(), "occupations", max_legend = 2)
   expect_lte(length(levels(p$data$.col)), 8)
-  expect_match(p$labels$subtitle, "colours repeat")
+  expect_match(p$labels$subtitle, "Colours repeat")
   expect_equal(p$guides$guides$colour, "none")   # a recycled legend is no legend
 })
 

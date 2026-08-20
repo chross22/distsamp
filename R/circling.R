@@ -167,13 +167,25 @@ attach_circling_sightings <- function(chopped, dat,
 
   # Where each segment ended, so a circling sighting can be traced back to the
   # segment that was in progress immediately before the break-off.
+  #
+  # The last record's position comes with it. That record is where the aircraft
+  # was when it left the line, and the distance from it to the circling
+  # position is the only distance about a circling sighting that is measured
+  # rather than inherited.
+  # `na.last = FALSE`, so a record with no event number sorts first and can
+  # never be taken as the one the aircraft broke off from. Its position would
+  # then be measured from, and there is nothing to say it is where the aircraft
+  # was.
+  by_event <- chopped[order(chopped$EVENTNO, na.last = FALSE), , drop = FALSE]
   bounds <- dplyr::summarise(
-    dplyr::group_by(chopped, .data$DATE, .data$seg_id),
+    dplyr::group_by(by_event, .data$DATE, .data$seg_id),
     seg_no = dplyr::first(.data$seg_no),
     seg_eff = dplyr::first(.data$seg_eff),
     new_trackno = dplyr::first(.data$new_trackno),
     first_event = min(.data$EVENTNO, na.rm = TRUE),
     last_event = max(.data$EVENTNO, na.rm = TRUE),
+    break_lat = dplyr::last(.data$LATITUDE),
+    break_lon = dplyr::last(.data$LONGITUDE),
     .groups = "drop"
   )
 
@@ -201,17 +213,33 @@ attach_circling_sightings <- function(chopped, dat,
 
   sel <- !is.na(target)
 
+  # The on-effort sighting each candidate belongs to, where there is one: the
+  # LAST of its own species in the target segment, by event order. A segment
+  # can hold several, and the group most recently seen is the one the aircraft
+  # turned back for - taking whichever row happened to come first in the frame
+  # would make the inherited distance depend on row order, which is not a fact
+  # about the survey.
+  #
+  # `match()` takes the first hit, so the lookup is built in reverse. This row
+  # is the source of the inherited distance below, and of the same-species
+  # rule: no row, no attachment.
+  #
+  # One vectorised call over all candidates, and it has to stay that way. The
+  # membership test this replaced carried the same warning: doing it per
+  # candidate makes the function O(candidates x records), which is invisible
+  # while circling is rare and quadratic when it is not - and on right whale
+  # surveys it is not.
+  seen <- which(!is.na(chopped$SPECCODE) & chopped$SPECCODE != "")
+  seen <- seen[order(chopped$EVENTNO[seen], decreasing = TRUE)]
+  origin <- seen[match(
+    paste(bounds$seg_id[target], cand$SPECCODE, sep = "\r"),
+    paste(chopped$seg_id[seen], chopped$SPECCODE[seen], sep = "\r")
+  )]
+
   if (mode == "same_species") {
     # Handbook 4.2 / the CETAP rule: a circling sighting joins the segment only
-    # if that segment already holds one of the same species. Membership is
-    # tested against a set built once, in a single vectorised call - `%in%`
-    # rebuilds its hash on every call, so testing it inside the loop would have
-    # left the quadratic term in place.
-    seen <- !is.na(chopped$SPECCODE) & chopped$SPECCODE != ""
-    seg_species <- unique(paste(chopped$seg_id[seen], chopped$SPECCODE[seen],
-                                sep = "\r"))
-    key <- paste(bounds$seg_id[target], cand$SPECCODE, sep = "\r")
-    sel <- sel & key %in% seg_species
+    # if that segment already holds one of the same species.
+    sel <- sel & !is.na(origin)
   }
 
   if (!any(sel)) {
@@ -229,6 +257,55 @@ attach_circling_sightings <- function(chopped, dat,
   # Attaching a record must not change how long the segment is.
   extra$pt2pt.effort <- 0
 
-  out <- dplyr::bind_rows(chopped, extra[, intersect(names(chopped), names(extra))])
+  # Two distances, because a circling sighting is asked two different questions
+  # and one number cannot answer both.
+  #
+  # `distance` is inherited from the on-effort sighting these animals were
+  # counted with. Handbook 4.2 says they are "counted with the original
+  # on-effort group", and that group has a real perpendicular distance, taken
+  # from the line at the moment of break-off. Inheriting it is what lets the
+  # density surface get a detection probability for them at all: `dsm()` runs
+  # every observation through the detection function, and one with no distance
+  # is one it silently has nothing to do with.
+  #
+  # `distance_source` says "circling" rather than the source it came from, so
+  # the inheritance is never mistaken for a measurement of these animals. That
+  # plus `CIRCLE == 1` is what `detection_data()` excludes on: an inherited
+  # distance is a duplicate of one already in the detection function, and
+  # fitting a detection function to the same distance twice weights it twice.
+  #
+  # `break_off_distance` is the measured one: great-circle metres from where
+  # the aircraft left the line to where the animals were logged. Nothing
+  # upstream can produce it, because it is the one fact about a circling
+  # sighting that only exists once the break-off record is known. It is not a
+  # perpendicular distance and must never be used as one - what it is for is
+  # judging the attachment, which is a spatial-model question. A group logged
+  # 300 m off the line was plainly the group broken off for; one logged 8 km
+  # off, on a segment whose midpoint the surface will place it at, is a
+  # question worth asking before its animals enter a density estimate.
+  at_origin <- origin[sel]
+  has_origin <- !is.na(at_origin)
+
+  extra$distance <- NA_real_
+  extra$side <- NA_character_
+  if ("distance" %in% names(chopped)) {
+    extra$distance[has_origin] <- chopped$distance[at_origin[has_origin]]
+  }
+  if ("side" %in% names(chopped)) {
+    extra$side[has_origin] <- as.character(chopped$side[at_origin[has_origin]])
+  }
+  extra$distance_source <- ifelse(has_origin & !is.na(extra$distance),
+                                  "circling", NA_character_)
+
+  extra$break_off_distance <- gc_distance(
+    bounds$break_lat[at], bounds$break_lon[at],
+    extra$LATITUDE, extra$LONGITUDE
+  ) * 1000
+
+  # `break_off_distance` exists only on the attached rows, so it is named
+  # explicitly: intersecting with `chopped`'s columns would drop the one column
+  # this function is the only possible source of.
+  keep <- union(intersect(names(chopped), names(extra)), "break_off_distance")
+  out <- dplyr::bind_rows(chopped, extra[, keep])
   dplyr::arrange(out, .data$DATE, .data$seg_id, .data$EVENTNO)
 }

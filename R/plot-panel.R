@@ -27,6 +27,23 @@
 #' @param dir Directory the per-day figures are written to. Default
 #'   `"survey-panels"`, created if needed. It is deliberately not the working
 #'   directory: `by_day = TRUE` over a season writes one file per survey day.
+#' @param ncol Panels per row. Defaults to a layout chosen from how many views
+#'   there are, which is what you want unless a particular figure needs a
+#'   shape.
+#' @param width,height,dpi Size of the written figures, in inches and dots per
+#'   inch. Only used when `by_day = TRUE`; otherwise the figure is returned and
+#'   the caller decides.
+#' @param dates,years,months Narrow which survey days are drawn, as in
+#'   [filter_days()]. They narrow together rather than adding up: `years =
+#'   2019` with `months = 8` is August 2019, not all of 2019 and every August.
+#' @param ... Passed to [plot_survey()] for every view - `coastline`,
+#'   `sightings`, `max_points` and the rest. A coastline resolved once and
+#'   passed in is much faster than `coastline = TRUE`, which refetches Natural
+#'   Earth for every panel of every day.
+#'
+#' @seealso [plot_survey()], which draws one view.
+#'
+#' @export
 plot_survey_panel <- function(dat, views = NULL, by_day = FALSE,
                               dir = "survey-panels",
                               ncol = NULL, width = 14, height = 9, dpi = 120,

@@ -39,10 +39,14 @@
 #' `ANGLEL`/`ANGLER` are available. That is the shape a detection function wants:
 #' pass it to `Distance::ds()`, keyed back to the segments by `seg_id`.
 #'
-#' Sightings recorded while circling appear here with a missing `distance`, and
-#' correctly so — a position logged off the track is not a perpendicular distance
-#' and must not enter a detection function, even though the detection itself
-#' still counts towards the segment's abundance.
+#' A sighting recorded while circling carries the perpendicular distance of the
+#' on-effort group it was counted with, marked `distance_source == "circling"`,
+#' and the measured `break_off_distance` from the point on the line where the
+#' aircraft broke off. The first is what lets it count towards the segment's
+#' abundance, which needs a detection probability; the second is what lets you
+#' judge whether the attachment was reasonable. Neither belongs in a detection
+#' function — the inherited one is already in it, under the sighting it was
+#' inherited from — and [detection_data()] excludes them by default.
 #'
 #' @return A list with three tibbles:
 #'   \describe{
@@ -100,7 +104,7 @@ segment_sightings <- function(chopped,
     seg_id = character(0), DATE = as.Date(character(0)),
     SPECCODE = character(0), size = numeric(0), distance = numeric(0),
     side = character(0), EVENTNO = numeric(0), SIGHTNO = numeric(0),
-    circling = integer(0)
+    circling = integer(0), break_off_distance = numeric(0)
   )
 
   # --- conditions ----------------------------------------------------------
@@ -183,7 +187,12 @@ build_detections <- function(sight) {
     distance_source = as.character(pick("distance_source", NA_character_)),
     EVENTNO = as.numeric(pick("EVENTNO", NA_real_)),
     SIGHTNO = as.numeric(pick("SIGHTNO", NA_real_)),
-    circling = as.integer(pick("CIRCLE", NA_integer_))
+    circling = as.integer(pick("CIRCLE", NA_integer_)),
+    # Metres from the break-off point on the line to where the animals were
+    # logged, and `NA` for every sighting made from the line - which has no
+    # break-off to be measured from. See `attach_circling_sightings()` for why
+    # this is not, and must not be used as, a perpendicular distance.
+    break_off_distance = as.numeric(pick("break_off_distance", NA_real_))
   )
   dplyr::arrange(out, .data$DATE, .data$seg_id, .data$EVENTNO)
 }
