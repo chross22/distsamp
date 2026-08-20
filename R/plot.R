@@ -170,36 +170,26 @@ plot_segments_map <- function(x, species = NULL, coastline = FALSE,
   # in event order, so consecutive segments take consecutive colours and a cut
   # is a colour change.
   #
-  # Records belonging to no segment stay pale grey. They are the transits and
-  # the off-effort flying, and they are on the map to show what was NOT cut.
+  # Only the cut positions are drawn.
+  #
+  # Two other layers used to be here and both were taken off, because at
+  # archive scale each of them hid the one thing this view is for. The
+  # off-effort positions - transits, ferrying between lines - were a pale grey
+  # underlay showing what was NOT cut, which is a real question and belongs to
+  # the "tracks" and "effort" views, where it is not competing with anything.
+  # And a white-ringed midpoint per segment falls every few pixels along every
+  # line at this scale, so 8,628 of them read as a string of beads laid over
+  # the colouring rather than as the centres of anything.
+  #
+  # What is left says one thing: here is the flying that became segments, and
+  # here is where each one ends and the next begins.
   on_seg <- pts[!is.na(pts$seg_id), , drop = FALSE]
-  off_seg <- pts[is.na(pts$seg_id), , drop = FALSE]
   if (nrow(on_seg)) {
     on_seg <- on_seg[order(on_seg$DATE, on_seg$EVENTNO), , drop = FALSE]
     on_seg$.col <- capped_groups(on_seg$seg_id, max_legend)$col
   }
 
-  # Midpoints were open circles sized by `seg_eff`. On the real archive that
-  # was 19,774 of them, and they covered the survey area in solid black - the
-  # size channel spending the entire map to show a quantity that is near
-  # constant by construction. Segment length belongs to the "effort" view,
-  # which is about exactly that; here what matters is where the midpoints are.
-  #
-  # White-filled with a dark rim rather than a dark point: the palette under
-  # them now includes black, and a dark midpoint on a black segment is not a
-  # midpoint anybody can see.
-  #
-  # Smaller than the positions they sit among, and deliberately. There is one
-  # per segment, so at archive scale they fall every few pixels along every
-  # line - drawn any larger they merge into a string of white beads and hide
-  # the colouring they are supposed to sit on.
-  p <- ggplot2::ggplot() +
-    coastline_layer(coastline) +
-    ggplot2::geom_point(
-      data = off_seg,
-      ggplot2::aes(x = .data$LONGITUDE, y = .data$LATITUDE),
-      colour = "grey85", size = 0.3, na.rm = TRUE
-    )
+  p <- ggplot2::ggplot() + coastline_layer(coastline)
 
   if (nrow(on_seg)) {
     p <- p +
@@ -212,14 +202,6 @@ plot_segments_map <- function(x, species = NULL, coastline = FALSE,
       scale_colour_safe(nlevels(on_seg$.col)) +
       ggplot2::guides(colour = "none")
   }
-
-  p <- p +
-    ggplot2::geom_point(
-      data = segs,
-      ggplot2::aes(x = .data$mid_lon, y = .data$mid_lat),
-      shape = 21, fill = "white", colour = "grey20", stroke = 0.15,
-      size = point_size_for(nrow(segs)) * 0.8, na.rm = TRUE
-    )
 
   n_spp <- 0L
   if (!is.null(sight)) {
@@ -240,7 +222,12 @@ plot_segments_map <- function(x, species = NULL, coastline = FALSE,
   }
 
   p +
-    map_coord(coastline, pts$LONGITUDE, pts$LATITUDE) +
+    # The extent follows the segments now that the off-effort positions are not
+    # drawn. Taken from `pts` it would leave margins of empty water around a
+    # transit nothing on the map explains.
+    map_coord(coastline,
+              if (nrow(on_seg)) on_seg$LONGITUDE else pts$LONGITUDE,
+              if (nrow(on_seg)) on_seg$LATITUDE else pts$LATITUDE) +
     ggplot2::labs(
       x = "Longitude", y = "Latitude",
       title = if (is.null(sight)) "Segments" else "Segments and sightings",
@@ -253,8 +240,7 @@ segments_map_subtitle <- function(segs, sight, n_spp, max_legend) {
   effort <- paste0(
     fmt_count(nrow(segs)), " segments over ",
     fmt_count(sum(segs$seg_eff, na.rm = TRUE)), " km of effort. ",
-    "Colour separates neighbouring segments; it means nothing else.\n",
-    "White rings are midpoints; pale grey is flying that was not cut."
+    "Colour separates neighbouring segments; it means nothing else."
   )
   if (is.null(sight)) {
     return(effort)
