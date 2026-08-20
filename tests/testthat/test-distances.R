@@ -95,33 +95,30 @@ test_that("the fixture's detections carry the expected distances", {
   expect_true(any(abs(with_dist$distance - 229) < 1e-8))
 })
 
-test_that("a circling detection inherits its distance and measures its break-off", {
+test_that("a circling detection is measured from the break-off, never guessed", {
+  # `break_off` is the only option that makes a circling detection at all. The
+  # default counts those animals into the group they were found with, which is
+  # covered in test-attach-circling.R.
   segs <- segment_survey(example_data(), seg_length = 5, seed = 1,
-                         circling = "same_species")
+                         circling = "same_species",
+                         circling_distance = "break_off")
   det <- segs$detections
   circ <- det[!is.na(det$circling) & det$circling == 1, ]
   expect_gt(nrow(circ), 0)
 
-  # No position logged off the track is a perpendicular distance, so the
-  # distance is not measured from it - it is the distance of the on-effort
-  # group these animals were counted with, which is what gives them a
-  # detection probability in the density surface.
+  # Measured from where the aircraft left the line - not computed from an
+  # angle, because none was taken, and not copied from another sighting.
   expect_false(anyNA(circ$distance))
-  expect_true(all(circ$distance_source == "circling"))
-
-  on_line <- det[!is.na(det$circling) & det$circling == 0, ]
-  for (i in seq_len(nrow(circ))) {
-    same <- on_line[on_line$seg_id == circ$seg_id[i] &
-                      on_line$SPECCODE == circ$SPECCODE[i], ]
-    expect_true(circ$distance[i] %in% same$distance)
-  }
-
-  # The measured one is how far off the line the animals were logged. It is a
-  # spatial-model diagnostic and never a perpendicular distance.
-  expect_false(anyNA(circ$break_off_distance))
+  expect_equal(circ$distance, circ$break_off_distance)
+  expect_true(all(circ$distance_source == "break_off"))
   expect_true(all(circ$break_off_distance > 0))
 
-  # A sighting made from the line has no break-off to be measured from.
+  # It is not perpendicular to anything, so there is no side of the line for
+  # it to be on.
+  expect_true(all(is.na(circ$side)))
+
+  # And a sighting made from the line has no break-off to be measured from.
+  on_line <- det[!is.na(det$circling) & det$circling == 0, ]
   expect_true(all(is.na(on_line$break_off_distance)))
 })
 

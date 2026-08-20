@@ -14,7 +14,7 @@ segment_survey(
   min_segment_km = 1,
   dist_method = c("haversine", "becker", "kenney", "eab", "rdk"),
   circling = c("same_species", "all", "none"),
-  circling_distance = c("inherit", "break_off", "with_group"),
+  circling_distance = c("with_group", "break_off"),
   distance_units = c("m", "km"),
   distance_sources = c("angle", "exact", "strip"),
   effort_args = list(),

@@ -142,8 +142,14 @@ test_that("circling detections are excluded by default and can be kept", {
 })
 
 test_that("what was dropped is reported, not silent", {
-  msg <- tryCatch(detection_data(segs_fx(), area = 5811, truncation = 500),
-                  message = conditionMessage)
+  # `circling_distance = "break_off"` so there IS a circling detection to
+  # drop. The default counts those animals into the group they were found
+  # with, which leaves no separate detection for this to report on.
+  msg <- tryCatch(
+    detection_data(segs_fx(circling_distance = "break_off"),
+                   area = 5811, truncation = 500),
+    message = conditionMessage
+  )
   expect_match(msg, "circling detection")
   expect_match(msg, "beyond the truncation distance")
   expect_match(msg, "g\\(0\\) = 1 is assumed")

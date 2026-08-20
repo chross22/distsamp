@@ -135,7 +135,7 @@ test_that("the two circling distances are both available and differ", {
   moved$LONGITUDE[off] <- moved$LONGITUDE[off] + 0.02
   p <- prep(moved)
 
-  inherited <- attach_circling_sightings(p$chopped, p$dat)
+  inherited <- attach_circling_sightings(p$chopped, p$dat)   # with_group
   measured <- attach_circling_sightings(p$chopped, p$dat,
                                         distance = "break_off")
 
@@ -154,12 +154,9 @@ test_that("the two circling distances are both available and differ", {
   expect_equal(cm$distance, cm$break_off_distance)
   expect_true(all(cm$distance_source == "break_off"))
 
-  # This fixture records no angles, so there is no perpendicular distance
-  # anywhere in it to inherit - and "inherit" correctly produces none rather
-  # than inventing one. That is the practical difference between the options
-  # as much as the numeric one: a measured break-off distance exists wherever
-  # positions do, and an inherited one exists only where the on-effort group
-  # had a distance of its own.
+  # `with_group` gives the record no distance at all, because it makes no
+  # observation out of it - the animals are counted into the group they were
+  # found with, and that group has its own measured distance already.
   expect_true(all(is.na(ci$distance)))
   expect_true(all(is.na(ci$distance_source)))
 
@@ -175,8 +172,8 @@ test_that("with_group counts the animals into the group, not as a new one", {
   moved$LONGITUDE[off] <- moved$LONGITUDE[off] + 0.02
   p <- prep(moved)
 
-  sep <- attach_circling_sightings(p$chopped, p$dat)
-  grp <- attach_circling_sightings(p$chopped, p$dat, distance = "with_group")
+  sep <- attach_circling_sightings(p$chopped, p$dat, distance = "break_off")
+  grp <- attach_circling_sightings(p$chopped, p$dat)   # with_group, the default
 
   circ <- function(x) x[!is.na(x$case) & x$case == "circling", ]
   expect_equal(nrow(circ(sep)), nrow(circ(grp)))
@@ -202,10 +199,10 @@ test_that("with_group counts the animals into the group, not as a new one", {
 
 test_that("with_group makes no second detection out of a circling sighting", {
   segs_sep <- segment_survey(example_data(), seg_length = 5, seed = 1,
-                             circling = "same_species")
-  segs_grp <- segment_survey(example_data(), seg_length = 5, seed = 1,
                              circling = "same_species",
-                             circling_distance = "with_group")
+                             circling_distance = "break_off")
+  segs_grp <- segment_survey(example_data(), seg_length = 5, seed = 1,
+                             circling = "same_species")
 
   is_circ <- function(d) !is.na(d$circling) & d$circling == 1
   expect_gt(sum(is_circ(segs_sep$detections)), 0)
@@ -217,5 +214,22 @@ test_that("with_group makes no second detection out of a circling sighting", {
                sum(segs_sep$detections$size, na.rm = TRUE))
 
   # Which is the point: no row carries a distance it was not seen at.
-  expect_false(any(segs_grp$detections$distance_source %in% "circling"))
+  expect_false(any(segs_grp$detections$distance_source %in%
+                     c("circling", "break_off")))
+})
+
+test_that("the removed inherit option says what replaced it and why", {
+  # It produced the identical estimate to with_group while adding a row that
+  # claimed a distance nothing was detected at. Anything still naming it should
+  # be told that, not told it is not one of the choices.
+  p <- prep(scenario())
+  expect_error(
+    attach_circling_sightings(p$chopped, p$dat, distance = "inherit"),
+    "with_group"
+  )
+  expect_error(
+    segment_survey(example_data(), seg_length = 5, seed = 1,
+                   circling_distance = "inherit"),
+    "with_group"
+  )
 })

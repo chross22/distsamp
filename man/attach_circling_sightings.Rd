@@ -8,7 +8,7 @@ attach_circling_sightings(
   chopped,
   dat,
   mode = c("same_species", "all", "none"),
-  distance = c("inherit", "break_off", "with_group")
+  distance = c("with_group", "break_off")
 )
 }
 \arguments{

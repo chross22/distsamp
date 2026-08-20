@@ -118,15 +118,14 @@ segment_survey <- function(dat,
                            dist_method = c("haversine", "becker", "kenney",
                                            "eab", "rdk"),
                            circling = c("same_species", "all", "none"),
-                           circling_distance = c("inherit", "break_off",
-                                                 "with_group"),
+                           circling_distance = c("with_group", "break_off"),
                            distance_units = c("m", "km"),
                            distance_sources = c("angle", "exact", "strip"),
                            effort_args = list(),
                            sighting_args = list()) {
   dist_method <- dist_method_canonical(match.arg(dist_method))
   circling <- match.arg(circling)
-  circling_distance <- match.arg(circling_distance)
+  circling_distance <- match.arg(circling_distance)  # "inherit" errors below
   distance_units <- match.arg(distance_units)
   stopifnot(is.data.frame(dat))
   stopifnot(is.numeric(seg_length), length(seg_length) == 1L, seg_length > 0)

@@ -195,9 +195,22 @@ flag_circling <- function(dat) {
 #' @export
 attach_circling_sightings <- function(chopped, dat,
                                       mode = c("same_species", "all", "none"),
-                                      distance = c("inherit", "break_off",
-                                                   "with_group")) {
+                                      distance = c("with_group",
+                                                   "break_off")) {
   mode <- match.arg(mode)
+  # Named before match.arg(), which would otherwise report a removed option as
+  # simply not one of the choices - true, and no help at all to anyone whose
+  # script or notes still say it.
+  if (identical(distance, "inherit") ||
+      (length(distance) == 1L && identical(distance, "inherit"))) {
+    rlang::abort(paste0(
+      "`distance = \"inherit\"` was removed. It gave the circling record an ",
+      "observation of\nits own carrying the on-effort group's perpendicular ",
+      "distance - which produced the\nexact same estimate as ",
+      "`\"with_group\"`, segment for segment, while adding a row that\n",
+      "claimed a distance nothing was detected at. Use `\"with_group\"`."
+    ))
+  }
   distance <- match.arg(distance)
   if (mode == "none" || is_empty_df(chopped)) {
     return(chopped)
@@ -317,45 +330,30 @@ attach_circling_sightings <- function(chopped, dat,
   extra$circling_counted <- TRUE
   extra$circling_merged <- NA_real_
 
-  # Two distances, because a circling sighting is asked two different questions
-  # and one number cannot answer both.
+  # A circling record carries no perpendicular distance of its own, and none
+  # is invented for it.
   #
-  # `distance` is inherited from the on-effort sighting these animals were
-  # counted with. Handbook 4.2 says they are "counted with the original
-  # on-effort group", and that group has a real perpendicular distance, taken
-  # from the line at the moment of break-off. Inheriting it is what lets the
-  # density surface get a detection probability for them at all: `dsm()` runs
-  # every observation through the detection function, and one with no distance
-  # is one it silently has nothing to do with.
+  # No angle was taken while circling and none could have been, so there is
+  # nothing to compute one from. An earlier version copied the on-effort
+  # group's distance onto the record so it could be an observation in its own
+  # right - which gave the identical estimate to counting the animals into that
+  # group, segment for segment, while putting a row in the table that claimed
+  # to be a detection at a distance nothing was detected at. The copy is gone.
   #
-  # `distance_source` says "circling" rather than the source it came from, so
-  # the inheritance is never mistaken for a measurement of these animals. That
-  # plus `CIRCLE == 1` is what `detection_data()` excludes on: an inherited
-  # distance is a duplicate of one already in the detection function, and
-  # fitting a detection function to the same distance twice weights it twice.
-  #
-  # `break_off_distance` is the measured one: great-circle metres from where
-  # the aircraft left the line to where the animals were logged. Nothing
-  # upstream can produce it, because it is the one fact about a circling
-  # sighting that only exists once the break-off record is known. It is not a
-  # perpendicular distance and must never be used as one - what it is for is
-  # judging the attachment, which is a spatial-model question. A group logged
-  # 300 m off the line was plainly the group broken off for; one logged 8 km
-  # off, on a segment whose midpoint the surface will place it at, is a
-  # question worth asking before its animals enter a density estimate.
+  # `break_off_distance` is the one measured thing here: great-circle metres
+  # from where the aircraft left the line to where the animals were logged.
+  # Nothing upstream can produce it, because it is the one fact about a
+  # circling sighting that exists only once the break-off record is known. It
+  # is not a perpendicular distance. Under `distance = "break_off"` it becomes
+  # the record's `distance` anyway, which is that option's whole claim; under
+  # `"with_group"` it stays a diagnostic, for judging whether the attachment
+  # was reasonable before those animals enter a density estimate.
   at_origin <- origin[sel]
   has_origin <- !is.na(at_origin)
 
   extra$distance <- NA_real_
   extra$side <- NA_character_
-  if ("distance" %in% names(chopped)) {
-    extra$distance[has_origin] <- chopped$distance[at_origin[has_origin]]
-  }
-  if ("side" %in% names(chopped)) {
-    extra$side[has_origin] <- as.character(chopped$side[at_origin[has_origin]])
-  }
-  extra$distance_source <- ifelse(has_origin & !is.na(extra$distance),
-                                  "circling", NA_character_)
+  extra$distance_source <- NA_character_
 
   extra$break_off_distance <- gc_distance(
     bounds$break_lat[at], bounds$break_lon[at],
