@@ -112,10 +112,20 @@ flag_circling <- function(dat) {
 #' break-off than it ever was from the line.
 #'
 #' The two will not agree, and which is nearer the truth depends on how the
-#' circle was actually flown, which the records do not record. Run both and
-#' compare if it matters to your estimate; `break_off_distance` is on every
-#' attached record either way, so the comparison needs no re-segmentation to
-#' see the size of it.
+#' circle was actually flown, which the records do not record.
+#'
+#' `distance = "with_group"` declines the question. If these animals are
+#' counted with the original group then they *are* that group, and a group has
+#' one distance, one detection probability and one row — so the animals are
+#' added to its `NUMBER` and no second observation is made. That removes the
+#' objection to inheriting, which is that a row appears carrying a distance it
+#' was never seen at. What it does not remove is the judgement underneath: it
+#' is right only where the animals really are that group or associated with it,
+#' which is what `mode = "same_species"` is testing.
+#'
+#' Run them and compare if it matters to your estimate; `break_off_distance` is
+#' on every attached record whichever is chosen, so the comparison needs no
+#' re-segmentation to see the size of it.
 #'
 #' The original processing code instead hard-coded right whales, attaching every
 #' circling right whale and discarding circling sightings of everything else.
@@ -124,17 +134,23 @@ flag_circling <- function(dat) {
 #' @param dat The full point-level data, including the off-effort records that
 #'   segmentation left out, with `CIRCLE` from [flag_circling()].
 #' @param mode `"same_species"` (default), `"all"`, or `"none"`; see Details.
-#' @param distance Which distance an attached record carries in `distance`.
-#'   `"inherit"` (default) takes the perpendicular distance of the on-effort
-#'   group these animals were counted with, marking it
-#'   `distance_source == "circling"`. `"break_off"` takes the measured
-#'   great-circle distance from the point on the line where the aircraft broke
-#'   off, marking it `distance_source == "break_off"`.
+#' @param distance What an attached record carries.
 #'
-#'   `break_off_distance` is computed either way — the choice is only about
-#'   which number `distance` carries, and so which one a density surface uses
-#'   to get a detection probability. Neither is admissible in a detection
-#'   function and [detection_data()] excludes both.
+#'   `"inherit"` (default) gives it the perpendicular distance of the on-effort
+#'   group these animals were counted with, marked
+#'   `distance_source == "circling"`. `"break_off"` gives it the measured
+#'   great-circle distance from the point on the line where the aircraft broke
+#'   off, marked `distance_source == "break_off"`. Both make it an observation
+#'   of its own on a density surface.
+#'
+#'   `"with_group"` makes it no observation at all: the animals are added to
+#'   the `NUMBER` of the on-effort sighting they were counted with, and the
+#'   record is marked `circling_counted = FALSE` so [segment_sightings()] does
+#'   not count them twice. Nothing is inherited or constructed.
+#'
+#'   `break_off_distance` is computed under all three, so the size of the
+#'   disagreement is visible whichever is chosen. No option puts a circling
+#'   record into a detection function — [detection_data()] excludes them all.
 #'
 #' @return `chopped` with the attachable circling records appended, carrying the
 #'   `seg_id`, `seg_no`, and `seg_eff` of the segment they were attached to and
@@ -179,7 +195,8 @@ flag_circling <- function(dat) {
 #' @export
 attach_circling_sightings <- function(chopped, dat,
                                       mode = c("same_species", "all", "none"),
-                                      distance = c("inherit", "break_off")) {
+                                      distance = c("inherit", "break_off",
+                                                   "with_group")) {
   mode <- match.arg(mode)
   distance <- match.arg(distance)
   if (mode == "none" || is_empty_df(chopped)) {
@@ -290,6 +307,16 @@ attach_circling_sightings <- function(chopped, dat,
   # Attaching a record must not change how long the segment is.
   extra$pt2pt.effort <- 0
 
+  # Whether the attached record becomes a detection of its own.
+  #
+  # It always did, and under `with_group` it must not: those animals are added
+  # to the group they were counted with instead, so counting them again here
+  # would count them twice. The record still rides along - its position is
+  # where the animals were logged, which is the only record of that - and
+  # `segment_sightings()` skips it.
+  extra$circling_counted <- TRUE
+  extra$circling_merged <- NA_real_
+
   # Two distances, because a circling sighting is asked two different questions
   # and one number cannot answer both.
   #
@@ -356,6 +383,60 @@ attach_circling_sightings <- function(chopped, dat,
                                     "break_off")
   }
 
+  # `with_group` takes "counted with the original on-effort group" literally.
+  #
+  # The other two options give the attached record a distance so that it can be
+  # an observation of its own on a density surface. This one says there should
+  # be no second observation at all: these animals were counted with a group
+  # that was detected from the line, at a distance that was measured, so they
+  # are that group. Its `NUMBER` goes up by theirs and nothing is inherited,
+  # constructed or copied.
+  #
+  # It is the reading that survives the obvious objection to `inherit` - a
+  # second row carrying a distance it was not seen at, looking for all the
+  # world like a trackline detection - and it needs no invented number to do
+  # it. What it does need is that the animals really are that group or
+  # associated with it, which is what `mode = "same_species"` is testing and
+  # is a judgement about the survey rather than about the code.
+  #
+  # A record with no origin cannot be merged into anything. Those stay separate
+  # detections, carrying whatever distance the rules above gave them, which
+  # under `mode = "same_species"` never happens - the rule already required an
+  # origin - and under `mode = "all"` is the honest outcome: a group of another
+  # species found while circling was not counted with anything.
+  if (identical(distance, "with_group")) {
+    if (!"NUMBER" %in% names(chopped)) {
+      rlang::abort(paste0(
+        "`circling_distance = \"with_group\"` adds the circling animals to ",
+        "the group they were counted with, and this data has no `NUMBER` ",
+        "column to add them to."
+      ))
+    }
+    add <- as.numeric(extra$NUMBER)
+    add[is.na(add)] <- 0
+    merged <- has_origin & add > 0
+    if (any(merged)) {
+      # Several circling records can point at one on-effort sighting, so the
+      # additions are summed per origin rather than assigned - assigning would
+      # keep only the last.
+      by_origin <- tapply(add[merged], at_origin[merged], sum)
+      rows <- as.integer(names(by_origin))
+      chopped$NUMBER[rows] <- as.numeric(chopped$NUMBER[rows]) + as.numeric(by_origin)
+    }
+    extra$circling_counted <- !has_origin
+
+    # The animals MOVED. They did not get copied.
+    #
+    # Leaving `NUMBER` on a record whose animals are now in another row makes
+    # every one of them count twice for anything that sums the column - which
+    # `segment_sightings()` does not, because it skips the flagged rows, and
+    # which anything else reasonably might. The count goes to zero and the
+    # number that moved is kept beside it, so the record can still say what it
+    # contributed and to what.
+    extra$circling_merged <- ifelse(merged, add, NA_real_)
+    extra$NUMBER[merged] <- 0
+  }
+
   # The columns this function sets are named explicitly, not intersected.
   #
   # Intersecting with `chopped`'s columns keeps only what was already there,
@@ -365,7 +446,8 @@ attach_circling_sightings <- function(chopped, dat,
   # `sighting_distances()` to work from: the attached rows would arrive with an
   # inherited distance, or a measured one under `distance = "break_off"`, and
   # lose it on the way out.
-  added <- c("break_off_distance", "distance", "side", "distance_source")
+  added <- c("break_off_distance", "distance", "side", "distance_source",
+             "circling_counted", "circling_merged")
   keep <- union(intersect(names(chopped), names(extra)), added)
   out <- dplyr::bind_rows(chopped, extra[, keep])
   dplyr::arrange(out, .data$DATE, .data$seg_id, .data$EVENTNO)

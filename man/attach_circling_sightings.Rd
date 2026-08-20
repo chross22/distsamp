@@ -8,7 +8,7 @@ attach_circling_sightings(
   chopped,
   dat,
   mode = c("same_species", "all", "none"),
-  distance = c("inherit", "break_off")
+  distance = c("inherit", "break_off", "with_group")
 )
 }
 \arguments{
@@ -19,17 +19,23 @@ segmentation left out, with \code{CIRCLE} from \code{\link[=flag_circling]{flag_
 
 \item{mode}{\code{"same_species"} (default), \code{"all"}, or \code{"none"}; see Details.}
 
-\item{distance}{Which distance an attached record carries in \code{distance}.
-\code{"inherit"} (default) takes the perpendicular distance of the on-effort
-group these animals were counted with, marking it
-\code{distance_source == "circling"}. \code{"break_off"} takes the measured
-great-circle distance from the point on the line where the aircraft broke
-off, marking it \code{distance_source == "break_off"}.
+\item{distance}{What an attached record carries.
 
-\code{break_off_distance} is computed either way — the choice is only about
-which number \code{distance} carries, and so which one a density surface uses
-to get a detection probability. Neither is admissible in a detection
-function and \code{\link[=detection_data]{detection_data()}} excludes both.}
+\code{"inherit"} (default) gives it the perpendicular distance of the on-effort
+group these animals were counted with, marked
+\code{distance_source == "circling"}. \code{"break_off"} gives it the measured
+great-circle distance from the point on the line where the aircraft broke
+off, marked \code{distance_source == "break_off"}. Both make it an observation
+of its own on a density surface.
+
+\code{"with_group"} makes it no observation at all: the animals are added to
+the \code{NUMBER} of the on-effort sighting they were counted with, and the
+record is marked \code{circling_counted = FALSE} so \code{\link[=segment_sightings]{segment_sightings()}} does
+not count them twice. Nothing is inherited or constructed.
+
+\code{break_off_distance} is computed under all three, so the size of the
+disagreement is visible whichever is chosen. No option puts a circling
+record into a detection function — \code{\link[=detection_data]{detection_data()}} excludes them all.}
 }
 \value{
 \code{chopped} with the attachable circling records appended, carrying the
@@ -74,10 +80,20 @@ distance, and a group circled twice before logging is further from the
 break-off than it ever was from the line.
 
 The two will not agree, and which is nearer the truth depends on how the
-circle was actually flown, which the records do not record. Run both and
-compare if it matters to your estimate; \code{break_off_distance} is on every
-attached record either way, so the comparison needs no re-segmentation to
-see the size of it.
+circle was actually flown, which the records do not record.
+
+\code{distance = "with_group"} declines the question. If these animals are
+counted with the original group then they \emph{are} that group, and a group has
+one distance, one detection probability and one row — so the animals are
+added to its \code{NUMBER} and no second observation is made. That removes the
+objection to inheriting, which is that a row appears carrying a distance it
+was never seen at. What it does not remove is the judgement underneath: it
+is right only where the animals really are that group or associated with it,
+which is what \code{mode = "same_species"} is testing.
+
+Run them and compare if it matters to your estimate; \code{break_off_distance} is
+on every attached record whichever is chosen, so the comparison needs no
+re-segmentation to see the size of it.
 
 The original processing code instead hard-coded right whales, attaching every
 circling right whale and discarding circling sightings of everything else.

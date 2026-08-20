@@ -167,3 +167,55 @@ test_that("the two circling distances are both available and differ", {
   # line, so there is no left or right of the line to be on.
   expect_true(all(is.na(cm$side)))
 })
+
+test_that("with_group counts the animals into the group, not as a new one", {
+  moved <- scenario()
+  off <- !is.na(moved$LEGTYPE) & moved$LEGTYPE == 4
+  moved$LATITUDE[off] <- moved$LATITUDE[off] + 0.02
+  moved$LONGITUDE[off] <- moved$LONGITUDE[off] + 0.02
+  p <- prep(moved)
+
+  sep <- attach_circling_sightings(p$chopped, p$dat)
+  grp <- attach_circling_sightings(p$chopped, p$dat, distance = "with_group")
+
+  circ <- function(x) x[!is.na(x$case) & x$case == "circling", ]
+  expect_equal(nrow(circ(sep)), nrow(circ(grp)))
+
+  # The record still rides along - where the animals were logged is a fact
+  # nothing else records - but it is not counted a second time.
+  expect_true(all(circ(sep)$circling_counted))
+  expect_false(any(circ(grp)$circling_counted))
+
+  # Not one animal more or fewer either way. The circling animals move from a
+  # row of their own into the group they were counted with.
+  total <- function(x) sum(as.numeric(x$NUMBER), na.rm = TRUE)
+  expect_equal(total(sep), total(grp))
+
+  # And they land on the on-effort sighting, whose group is now larger.
+  on_line <- function(x) {
+    x[(is.na(x$case) | x$case != "circling") &
+        !is.na(x$SPECCODE) & x$SPECCODE != "", ]
+  }
+  expect_gt(total(on_line(grp)), total(on_line(sep)))
+  expect_equal(total(on_line(grp)) - total(on_line(sep)), total(circ(sep)))
+})
+
+test_that("with_group makes no second detection out of a circling sighting", {
+  segs_sep <- segment_survey(example_data(), seg_length = 5, seed = 1,
+                             circling = "same_species")
+  segs_grp <- segment_survey(example_data(), seg_length = 5, seed = 1,
+                             circling = "same_species",
+                             circling_distance = "with_group")
+
+  is_circ <- function(d) !is.na(d$circling) & d$circling == 1
+  expect_gt(sum(is_circ(segs_sep$detections)), 0)
+  expect_equal(sum(is_circ(segs_grp$detections)), 0)
+
+  # One fewer row, and not one fewer animal: the same total, in bigger groups.
+  expect_lt(nrow(segs_grp$detections), nrow(segs_sep$detections))
+  expect_equal(sum(segs_grp$detections$size, na.rm = TRUE),
+               sum(segs_sep$detections$size, na.rm = TRUE))
+
+  # Which is the point: no row carries a distance it was not seen at.
+  expect_false(any(segs_grp$detections$distance_source %in% "circling"))
+})

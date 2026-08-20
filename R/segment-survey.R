@@ -51,10 +51,12 @@
 #' @param circling How to handle sightings recorded while circling off the
 #'   census track: `"same_species"` (default), `"all"`, or `"none"`. See
 #'   [attach_circling_sightings()].
-#' @param circling_distance Which distance an attached circling record carries:
+#' @param circling_distance What an attached circling record carries:
 #'   `"inherit"` (default), the perpendicular distance of the on-effort group
-#'   it was counted with, or `"break_off"`, the measured great-circle distance
-#'   from where the aircraft left the line. See [attach_circling_sightings()].
+#'   it was counted with; `"break_off"`, the measured great-circle distance
+#'   from where the aircraft left the line; or `"with_group"`, which gives it
+#'   no distance and no detection of its own, adding the animals to the group
+#'   they were counted with instead. See [attach_circling_sightings()].
 #'   `settings$circling_distance` records which was used.
 #' @param effort_args Named list of arguments for [flag_effort()], used only
 #'   when `dat` has no `OnOff.Effort` column.
@@ -116,7 +118,8 @@ segment_survey <- function(dat,
                            dist_method = c("haversine", "becker", "kenney",
                                            "eab", "rdk"),
                            circling = c("same_species", "all", "none"),
-                           circling_distance = c("inherit", "break_off"),
+                           circling_distance = c("inherit", "break_off",
+                                                 "with_group"),
                            distance_units = c("m", "km"),
                            distance_sources = c("angle", "exact", "strip"),
                            effort_args = list(),

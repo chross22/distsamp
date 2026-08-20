@@ -135,6 +135,17 @@ segment_sightings <- function(chopped,
 
   sight <- dplyr::filter(chopped, !is.na(.data$SPECCODE), .data$SPECCODE != "")
 
+  # A circling record already counted into the group it was found with.
+  #
+  # `attach_circling_sightings(distance = "with_group")` adds those animals to
+  # the on-effort sighting's `NUMBER` and marks the record so it is not counted
+  # a second time here. It still rides along in `points`, because where the
+  # animals were logged is a fact worth keeping and nothing else records it.
+  if ("circling_counted" %in% names(sight)) {
+    sight <- dplyr::filter(sight, is.na(.data$circling_counted) |
+                             .data$circling_counted)
+  }
+
   if ("LEGSTAGE" %in% names(sight) && length(legstage_exclude)) {
     sight <- dplyr::filter(
       sight,
