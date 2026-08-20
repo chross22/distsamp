@@ -51,6 +51,11 @@
 #' @param circling How to handle sightings recorded while circling off the
 #'   census track: `"same_species"` (default), `"all"`, or `"none"`. See
 #'   [attach_circling_sightings()].
+#' @param circling_distance Which distance an attached circling record carries:
+#'   `"inherit"` (default), the perpendicular distance of the on-effort group
+#'   it was counted with, or `"break_off"`, the measured great-circle distance
+#'   from where the aircraft left the line. See [attach_circling_sightings()].
+#'   `settings$circling_distance` records which was used.
 #' @param effort_args Named list of arguments for [flag_effort()], used only
 #'   when `dat` has no `OnOff.Effort` column.
 #' @param sighting_args Named list of arguments for [segment_sightings()].
@@ -111,12 +116,14 @@ segment_survey <- function(dat,
                            dist_method = c("haversine", "becker", "kenney",
                                            "eab", "rdk"),
                            circling = c("same_species", "all", "none"),
+                           circling_distance = c("inherit", "break_off"),
                            distance_units = c("m", "km"),
                            distance_sources = c("angle", "exact", "strip"),
                            effort_args = list(),
                            sighting_args = list()) {
   dist_method <- dist_method_canonical(match.arg(dist_method))
   circling <- match.arg(circling)
+  circling_distance <- match.arg(circling_distance)
   distance_units <- match.arg(distance_units)
   stopifnot(is.data.frame(dat))
   stopifnot(is.numeric(seg_length), length(seg_length) == 1L, seg_length > 0)
@@ -125,7 +132,8 @@ segment_survey <- function(dat,
     seg_length = seg_length, species = species, seed = seed,
     seg_tol_frac = seg_tol_frac, min_track_km = min_track_km,
     min_segment_km = min_segment_km, dist_method = dist_method,
-    circling = circling, distance_units = distance_units,
+    circling = circling, circling_distance = circling_distance,
+    distance_units = distance_units,
     distance_sources = distance_sources
   )
 
@@ -194,7 +202,8 @@ segment_survey <- function(dat,
 
   # Bring back sightings made while circling off the census track, attributing
   # them to the segment that was in progress at the break-off.
-  chopped <- attach_circling_sightings(chopped, dat, mode = circling)
+  chopped <- attach_circling_sightings(chopped, dat, mode = circling,
+                                       distance = circling_distance)
 
   # 8-9. per-segment products
   mids <- segment_midpoints(chopped)

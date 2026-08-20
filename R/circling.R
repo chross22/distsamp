@@ -97,6 +97,26 @@ flag_circling <- function(dat) {
 #' only when the preceding segment already holds an on-effort sighting of the
 #' same species. It is the default.
 #'
+#' @section Which distance:
+#' "Counted with the original on-effort group" is also a statement about
+#' distance, and `distance = "inherit"` reads it as one: the animals take that
+#' group's perpendicular distance, which was measured from the line at the
+#' moment of break-off.
+#'
+#' `distance = "break_off"` reads the sighting as its own: the great-circle
+#' distance from where the aircraft left the line to where the animals were
+#' logged. That is a real measurement of a real thing, and it is the honest
+#' answer to "how far off the track were they" — but it is a slant distance
+#' from an off-effort position minutes after the fact, not a perpendicular
+#' distance, and a group circled twice before logging is further from the
+#' break-off than it ever was from the line.
+#'
+#' The two will not agree, and which is nearer the truth depends on how the
+#' circle was actually flown, which the records do not record. Run both and
+#' compare if it matters to your estimate; `break_off_distance` is on every
+#' attached record either way, so the comparison needs no re-segmentation to
+#' see the size of it.
+#'
 #' The original processing code instead hard-coded right whales, attaching every
 #' circling right whale and discarding circling sightings of everything else.
 #'
@@ -104,6 +124,17 @@ flag_circling <- function(dat) {
 #' @param dat The full point-level data, including the off-effort records that
 #'   segmentation left out, with `CIRCLE` from [flag_circling()].
 #' @param mode `"same_species"` (default), `"all"`, or `"none"`; see Details.
+#' @param distance Which distance an attached record carries in `distance`.
+#'   `"inherit"` (default) takes the perpendicular distance of the on-effort
+#'   group these animals were counted with, marking it
+#'   `distance_source == "circling"`. `"break_off"` takes the measured
+#'   great-circle distance from the point on the line where the aircraft broke
+#'   off, marking it `distance_source == "break_off"`.
+#'
+#'   `break_off_distance` is computed either way — the choice is only about
+#'   which number `distance` carries, and so which one a density surface uses
+#'   to get a detection probability. Neither is admissible in a detection
+#'   function and [detection_data()] excludes both.
 #'
 #' @return `chopped` with the attachable circling records appended, carrying the
 #'   `seg_id`, `seg_no`, and `seg_eff` of the segment they were attached to and
@@ -147,8 +178,10 @@ flag_circling <- function(dat) {
 #' @seealso [flag_circling()], [segment_sightings()]
 #' @export
 attach_circling_sightings <- function(chopped, dat,
-                                      mode = c("same_species", "all", "none")) {
+                                      mode = c("same_species", "all", "none"),
+                                      distance = c("inherit", "break_off")) {
   mode <- match.arg(mode)
+  distance <- match.arg(distance)
   if (mode == "none" || is_empty_df(chopped)) {
     return(chopped)
   }
@@ -302,10 +335,38 @@ attach_circling_sightings <- function(chopped, dat,
     extra$LATITUDE, extra$LONGITUDE
   ) * 1000
 
-  # `break_off_distance` exists only on the attached rows, so it is named
-  # explicitly: intersecting with `chopped`'s columns would drop the one column
-  # this function is the only possible source of.
-  keep <- union(intersect(names(chopped), names(extra)), "break_off_distance")
+  # `distance = "break_off"` puts the measured one in `distance` instead.
+  #
+  # It is the other reading of the same question, and it is offered rather than
+  # argued with because the two differ in a way no amount of reasoning settles
+  # from here: one says these animals are part of a group whose distance from
+  # the line is known, the other says they are where they were logged and that
+  # is how far off the line they were. They will not agree, and which is closer
+  # to the truth depends on how the aircraft actually flew the circle - which
+  # the records do not say.
+  #
+  # What they do agree on is that neither belongs in a detection function. An
+  # inherited distance is already in it under another row; a break-off distance
+  # is a slant distance from an off-effort position and is not perpendicular to
+  # anything. `detection_data()` excludes both on `CIRCLE == 1`.
+  if (identical(distance, "break_off")) {
+    extra$distance <- extra$break_off_distance
+    extra$side <- NA_character_
+    extra$distance_source <- ifelse(is.na(extra$distance), NA_character_,
+                                    "break_off")
+  }
+
+  # The columns this function sets are named explicitly, not intersected.
+  #
+  # Intersecting with `chopped`'s columns keeps only what was already there,
+  # which silently drops anything this function is the sole source of.
+  # `break_off_distance` is always one of those. So are `distance`, `side` and
+  # `distance_source` whenever the survey carried no angles for
+  # `sighting_distances()` to work from: the attached rows would arrive with an
+  # inherited distance, or a measured one under `distance = "break_off"`, and
+  # lose it on the way out.
+  added <- c("break_off_distance", "distance", "side", "distance_source")
+  keep <- union(intersect(names(chopped), names(extra)), added)
   out <- dplyr::bind_rows(chopped, extra[, keep])
   dplyr::arrange(out, .data$DATE, .data$seg_id, .data$EVENTNO)
 }

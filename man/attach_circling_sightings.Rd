@@ -7,7 +7,8 @@
 attach_circling_sightings(
   chopped,
   dat,
-  mode = c("same_species", "all", "none")
+  mode = c("same_species", "all", "none"),
+  distance = c("inherit", "break_off")
 )
 }
 \arguments{
@@ -17,6 +18,18 @@ attach_circling_sightings(
 segmentation left out, with \code{CIRCLE} from \code{\link[=flag_circling]{flag_circling()}}.}
 
 \item{mode}{\code{"same_species"} (default), \code{"all"}, or \code{"none"}; see Details.}
+
+\item{distance}{Which distance an attached record carries in \code{distance}.
+\code{"inherit"} (default) takes the perpendicular distance of the on-effort
+group these animals were counted with, marking it
+\code{distance_source == "circling"}. \code{"break_off"} takes the measured
+great-circle distance from the point on the line where the aircraft broke
+off, marking it \code{distance_source == "break_off"}.
+
+\code{break_off_distance} is computed either way — the choice is only about
+which number \code{distance} carries, and so which one a density surface uses
+to get a detection probability. Neither is admissible in a detection
+function and \code{\link[=detection_data]{detection_data()}} excludes both.}
 }
 \value{
 \code{chopped} with the attachable circling records appended, carrying the
@@ -43,6 +56,28 @@ belong to the segment.
 \code{mode = "same_species"} implements that rule: a circling sighting is attached
 only when the preceding segment already holds an on-effort sighting of the
 same species. It is the default.
+}
+
+\section{Which distance}{
+
+"Counted with the original on-effort group" is also a statement about
+distance, and \code{distance = "inherit"} reads it as one: the animals take that
+group's perpendicular distance, which was measured from the line at the
+moment of break-off.
+
+\code{distance = "break_off"} reads the sighting as its own: the great-circle
+distance from where the aircraft left the line to where the animals were
+logged. That is a real measurement of a real thing, and it is the honest
+answer to "how far off the track were they" — but it is a slant distance
+from an off-effort position minutes after the fact, not a perpendicular
+distance, and a group circled twice before logging is further from the
+break-off than it ever was from the line.
+
+The two will not agree, and which is nearer the truth depends on how the
+circle was actually flown, which the records do not record. Run both and
+compare if it matters to your estimate; \code{break_off_distance} is on every
+attached record either way, so the comparison needs no re-segmentation to
+see the size of it.
 
 The original processing code instead hard-coded right whales, attaching every
 circling right whale and discarding circling sightings of everything else.

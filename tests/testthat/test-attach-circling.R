@@ -124,3 +124,46 @@ test_that("a sighting before any segment ends is left unattached", {
   out <- attach_circling_sightings(p$chopped, p$dat)
   expect_lte(sum(out$case %in% "circling"), 2)
 })
+
+test_that("the two circling distances are both available and differ", {
+  # `scenario()` logs the circling records at the break-off position, so the
+  # measured distance there is zero by construction and would not tell the two
+  # options apart. Moved off the line, which is what circling is.
+  moved <- scenario()
+  off <- !is.na(moved$LEGTYPE) & moved$LEGTYPE == 4
+  moved$LATITUDE[off] <- moved$LATITUDE[off] + 0.02
+  moved$LONGITUDE[off] <- moved$LONGITUDE[off] + 0.02
+  p <- prep(moved)
+
+  inherited <- attach_circling_sightings(p$chopped, p$dat)
+  measured <- attach_circling_sightings(p$chopped, p$dat,
+                                        distance = "break_off")
+
+  ci <- inherited[!is.na(inherited$case) & inherited$case == "circling", ]
+  cm <- measured[!is.na(measured$case) & measured$case == "circling", ]
+  expect_gt(nrow(ci), 0)
+  expect_equal(nrow(ci), nrow(cm))
+
+  # The measurement is on every attached record whichever option is chosen, so
+  # the size of the disagreement can be seen without re-segmenting.
+  expect_equal(ci$break_off_distance, cm$break_off_distance)
+  expect_false(anyNA(cm$break_off_distance))
+  expect_true(all(cm$break_off_distance > 0))
+
+  # "break_off" puts the measured one in `distance`; "inherit" does not.
+  expect_equal(cm$distance, cm$break_off_distance)
+  expect_true(all(cm$distance_source == "break_off"))
+
+  # This fixture records no angles, so there is no perpendicular distance
+  # anywhere in it to inherit - and "inherit" correctly produces none rather
+  # than inventing one. That is the practical difference between the options
+  # as much as the numeric one: a measured break-off distance exists wherever
+  # positions do, and an inherited one exists only where the on-effort group
+  # had a distance of its own.
+  expect_true(all(is.na(ci$distance)))
+  expect_true(all(is.na(ci$distance_source)))
+
+  # And a break-off distance carries no side: it is not perpendicular to the
+  # line, so there is no left or right of the line to be on.
+  expect_true(all(is.na(cm$side)))
+})

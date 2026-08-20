@@ -14,6 +14,7 @@ segment_survey(
   min_segment_km = 1,
   dist_method = c("haversine", "becker", "kenney", "eab", "rdk"),
   circling = c("same_species", "all", "none"),
+  circling_distance = c("inherit", "break_off"),
   distance_units = c("m", "km"),
   distance_sources = c("angle", "exact", "strip"),
   effort_args = list(),
@@ -43,6 +44,12 @@ Becker and Kenney are the same formula and give identical results.}
 \item{circling}{How to handle sightings recorded while circling off the
 census track: \code{"same_species"} (default), \code{"all"}, or \code{"none"}. See
 \code{\link[=attach_circling_sightings]{attach_circling_sightings()}}.}
+
+\item{circling_distance}{Which distance an attached circling record carries:
+\code{"inherit"} (default), the perpendicular distance of the on-effort group
+it was counted with, or \code{"break_off"}, the measured great-circle distance
+from where the aircraft left the line. See \code{\link[=attach_circling_sightings]{attach_circling_sightings()}}.
+\code{settings$circling_distance} records which was used.}
 
 \item{distance_units}{Units for perpendicular sighting distances computed
 from \code{ANGLEL}/\code{ANGLER}: \code{"m"} (default) or \code{"km"}. Note that \code{seg_eff} is
