@@ -19,16 +19,43 @@ test_that("an unknown view is refused", {
   expect_error(plot(segs_fixture(), what = "sightings"))
 })
 
+# The sighting layer, found by what it carries rather than by its position.
+# It was `layers[[3]]`, which is a fact about how many layers came before it -
+# and adding one to the map silently made the test read a different layer.
+# Keyed on `.spp`, the lumped species factor that only the sighting layer
+# builds. `SPECCODE` does not distinguish it: the position layers are
+# point-level rows and carry that column too, just with nothing in it.
+sighting_layer <- function(p) {
+  for (l in p$layers) {
+    if (is.data.frame(l$data) && ".spp" %in% names(l$data)) return(l$data)
+  }
+  NULL
+}
+
 test_that("the species filter reaches the layers", {
   segs <- segs_fixture()
   all_spp <- plot(segs, species = NULL)
   one <- plot(segs, species = "RIWH")
 
-  # The sighting layer is the last one; it should carry fewer rows.
-  n_all <- nrow(all_spp$layers[[3]]$data)
-  n_one <- nrow(one$layers[[3]]$data)
-  expect_gt(n_all, n_one)
-  expect_true(all(one$layers[[3]]$data$SPECCODE == "RIWH"))
+  expect_gt(nrow(sighting_layer(all_spp)), nrow(sighting_layer(one)))
+  expect_true(all(sighting_layer(one)$SPECCODE == "RIWH"))
+})
+
+test_that("the segments view can drop the sightings and colours the cuts", {
+  segs <- segs_fixture()
+
+  # 2,204 markers over 8,628 segments cover the colouring that says where the
+  # cuts fall, and that colouring is what the view is for.
+  expect_null(sighting_layer(plot(segs, sightings = FALSE)))
+  expect_false(is.null(sighting_layer(plot(segs))))
+
+  # Positions that were cut carry a segment colour; the palette recycles, so
+  # what the colour says is only that a segment is not the one before it.
+  p <- plot(segs, sightings = FALSE)
+  coloured <- Filter(function(l) ".col" %in% names(l$data), p$layers)
+  expect_length(coloured, 1)
+  expect_lte(nlevels(coloured[[1]]$data$.col), 8)
+  expect_false(anyNA(coloured[[1]]$data$seg_id))
 })
 
 test_that("the effort view marks the target and its tolerance band", {

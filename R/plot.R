@@ -62,6 +62,11 @@
 #'   `"distances"`.
 #' @param species Optional character vector of `SPECCODE` values to show, for
 #'   the views that draw sightings. `NULL` (default) shows all.
+#' @param sightings Draw the sightings over the segments? Default `TRUE`. Set
+#'   `FALSE` on the whole-archive segments view: 2,204 markers over 8,628
+#'   segments cover the colouring that says where the cuts fall, which is what
+#'   that view is for. The per-day figures are where a sighting's position
+#'   against its segment can actually be read.
 #' @param max_legend Most groups to name in the legend. Default `8`. Species
 #'   beyond it are gathered into one "other" entry — they stay on the map, they
 #'   just stop having their own colour — and tracks beyond it take a recycled
@@ -110,13 +115,13 @@ plot.distsamp_segments <- function(x, what = c("segments", "tracks", "effort",
                                                "distances"),
                                    species = NULL, coastline = FALSE,
                                    max_legend = 8, dates = NULL, years = NULL,
-                                   months = NULL, ...) {
+                                   months = NULL, sightings = TRUE, ...) {
   what <- match.arg(what)
   check_ggplot2()
   x <- filter_segments_days(x, dates, years, months)
 
   switch(what,
-    segments  = plot_segments_map(x, species, coastline, max_legend),
+    segments  = plot_segments_map(x, species, coastline, max_legend, sightings),
     tracks    = plot_tracks_map(x, coastline, max_legend),
     effort    = plot_effort_hist(x),
     distances = plot_distance_hist(x, species)
@@ -149,27 +154,71 @@ sightings_with_position <- function(x, species = NULL) {
 }
 
 plot_segments_map <- function(x, species = NULL, coastline = FALSE,
-                              max_legend = 8) {
+                              max_legend = 8, sightings = TRUE) {
   segs <- x$segments
   pts <- x$points
-  sight <- sightings_with_position(x, species)
+  sight <- if (isFALSE(sightings)) NULL else sightings_with_position(x, species)
+
+  # The positions are coloured by the segment they were cut into, so the cuts
+  # themselves are on the map.
+  #
+  # They used to be one flat grey, which showed where the aircraft went and
+  # nothing about how that was divided - and this is the segments view, so the
+  # division is the subject. 8,628 segments cannot have 8,628 distinguishable
+  # colours and do not need to: what has to be visible is that a segment is
+  # not the one before it. `capped_groups()` recycles the qualitative palette
+  # in event order, so consecutive segments take consecutive colours and a cut
+  # is a colour change.
+  #
+  # Records belonging to no segment stay pale grey. They are the transits and
+  # the off-effort flying, and they are on the map to show what was NOT cut.
+  on_seg <- pts[!is.na(pts$seg_id), , drop = FALSE]
+  off_seg <- pts[is.na(pts$seg_id), , drop = FALSE]
+  if (nrow(on_seg)) {
+    on_seg <- on_seg[order(on_seg$DATE, on_seg$EVENTNO), , drop = FALSE]
+    on_seg$.col <- capped_groups(on_seg$seg_id, max_legend)$col
+  }
 
   # Midpoints were open circles sized by `seg_eff`. On the real archive that
   # was 19,774 of them, and they covered the survey area in solid black - the
   # size channel spending the entire map to show a quantity that is near
   # constant by construction. Segment length belongs to the "effort" view,
   # which is about exactly that; here what matters is where the midpoints are.
+  #
+  # White-filled with a dark rim rather than a dark point: the palette under
+  # them now includes black, and a dark midpoint on a black segment is not a
+  # midpoint anybody can see.
+  #
+  # Smaller than the positions they sit among, and deliberately. There is one
+  # per segment, so at archive scale they fall every few pixels along every
+  # line - drawn any larger they merge into a string of white beads and hide
+  # the colouring they are supposed to sit on.
   p <- ggplot2::ggplot() +
     coastline_layer(coastline) +
     ggplot2::geom_point(
-      data = pts,
+      data = off_seg,
       ggplot2::aes(x = .data$LONGITUDE, y = .data$LATITUDE),
       colour = "grey85", size = 0.3, na.rm = TRUE
-    ) +
+    )
+
+  if (nrow(on_seg)) {
+    p <- p +
+      ggplot2::geom_point(
+        data = on_seg,
+        ggplot2::aes(x = .data$LONGITUDE, y = .data$LATITUDE,
+                     colour = .data$.col),
+        size = 0.55, na.rm = TRUE
+      ) +
+      scale_colour_safe(nlevels(on_seg$.col)) +
+      ggplot2::guides(colour = "none")
+  }
+
+  p <- p +
     ggplot2::geom_point(
       data = segs,
       ggplot2::aes(x = .data$mid_lon, y = .data$mid_lat),
-      colour = "grey35", size = point_size_for(nrow(segs)), na.rm = TRUE
+      shape = 21, fill = "white", colour = "grey20", stroke = 0.15,
+      size = point_size_for(nrow(segs)) * 0.8, na.rm = TRUE
     )
 
   n_spp <- 0L
@@ -194,7 +243,7 @@ plot_segments_map <- function(x, species = NULL, coastline = FALSE,
     map_coord(coastline, pts$LONGITUDE, pts$LATITUDE) +
     ggplot2::labs(
       x = "Longitude", y = "Latitude",
-      title = "Segment midpoints and sightings",
+      title = if (is.null(sight)) "Segments" else "Segments and sightings",
       subtitle = segments_map_subtitle(segs, sight, n_spp, max_legend)
     ) +
     ggplot2::theme_minimal()
@@ -204,7 +253,8 @@ segments_map_subtitle <- function(segs, sight, n_spp, max_legend) {
   effort <- paste0(
     fmt_count(nrow(segs)), " segments over ",
     fmt_count(sum(segs$seg_eff, na.rm = TRUE)), " km of effort. ",
-    "Pale grey: every position. Dark grey: segment midpoints."
+    "Colour separates neighbouring segments; it means nothing else.\n",
+    "White rings are midpoints; pale grey is flying that was not cut."
   )
   if (is.null(sight)) {
     return(effort)

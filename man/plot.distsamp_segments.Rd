@@ -13,6 +13,7 @@
   dates = NULL,
   years = NULL,
   months = NULL,
+  sightings = TRUE,
   ...
 )
 }
@@ -40,6 +41,12 @@ produces a legend that squeezes the map to nothing otherwise.}
 \item{dates, years, months}{Which survey days to draw, passed to
 \code{\link[=filter_days]{filter_days()}}. \code{NULL} (default) draws all of them. Every table in the
 object — points, segments, detections — is cut to the same days.}
+
+\item{sightings}{Draw the sightings over the segments? Default \code{TRUE}. Set
+\code{FALSE} on the whole-archive segments view: 2,204 markers over 8,628
+segments cover the colouring that says where the cuts fall, which is what
+that view is for. The per-day figures are where a sighting's position
+against its segment can actually be read.}
 
 \item{...}{Ignored, for compatibility with \code{\link[=plot]{plot()}}.}
 }
