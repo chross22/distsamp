@@ -1,0 +1,10 @@
+pandoc: 3.8.3
+pkgdown: 2.2.1
+pkgdown_sha: ~
+articles:
+  from-segments-to-density: from-segments-to-density.html
+  segmenting-narwc-data: segmenting-narwc-data.html
+last_built: 2026-08-21T16:34Z
+urls:
+  reference: https://camilleross.org/distsamp/reference
+  article: https://camilleross.org/distsamp/articles
