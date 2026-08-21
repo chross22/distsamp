@@ -21,3 +21,6 @@ figure/
 # Internal research code the package was built from. Kept locally for
 # reference; deliberately not published.
 original/
+
+# generated pkgdown site
+pkgdown-site/

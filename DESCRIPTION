@@ -49,6 +49,6 @@ Suggests:
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
 VignetteBuilder: knitr
-URL: https://github.com/chross22/distsamp
+URL: https://github.com/chross22/distsamp, https://camilleross.org/distsamp/
 BugReports: https://github.com/chross22/distsamp/issues
 Config/roxygen2/version: 8.1.0

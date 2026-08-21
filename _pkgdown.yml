@@ -1,0 +1,83 @@
+# Served from camilleross.org/distsamp/, not chross22.github.io: GitHub applies
+# the user site's custom domain to every project page on the account. This must
+# name where visitors actually land, or the canonical link, sitemap and og:url
+# all point at a hostname nobody uses and search engines see two of each page.
+url: https://camilleross.org/distsamp/
+
+# NOT docs/. Several of these packages keep hand-written design notes and
+# methods write-ups in docs/, tracked in git, and a pkgdown build would erase
+# them. pkgdown refuses outright when it finds a docs/ it did not create; this
+# names a directory that is unambiguously generated.
+destination: pkgdown-site
+
+template:
+  bootstrap: 5
+  light-switch: true
+
+reference:
+- title: Segmenting a survey
+  desc: >
+    Turning track lines into effort segments ready for Distance and dsm —
+    each with a location, an amount of effort, and counts of what was seen
+    along it.
+  contents:
+  - cut_segments
+  - line_effort
+  - plan_segments
+  - point_to_point_effort
+  - segment_midpoints
+  - segment_sightings
+  - segment_survey
+  - segments_as_sf
+  - segments_wide
+  - split_tracks
+  - track_effort
+  - write_segments
+
+- title: Distances and geometry
+  desc: >
+    Perpendicular distance is what a detection function consumes. Where the
+    survey recorded declination angles, it can be computed exactly.
+  contents:
+  - circling_distance
+  - cross_track_distance
+  - detection_data
+  - dist_methods
+  - exact_distance
+  - gc_bearing
+  - gc_distance
+  - gc_interpolate
+  - perp_distance
+  - sighting_distances
+  - strip_distance
+  - track_bearing
+
+- title: Circling and reflights
+  desc: >
+    An aircraft that circles a sighting is no longer on effort. These find
+    those passages and attach their sightings to the right segment.
+  contents:
+  - attach_circling_sightings
+  - filter_days
+  - flag_circling
+  - reflight_summary
+
+- title: Reading NARWC data
+  desc: >
+    Re-exported from narwcr so a survey can be read and segmented without
+    loading both packages.
+  contents:
+  - validate_narwc
+
+- title: Preparing and inspecting
+  desc: >
+    Aerial-specific preparation, a pipeline diagnosis that reports rather
+    than stops, and plots for looking at what came out.
+  contents:
+  - crop_to_bbox
+  - diagnose_pipeline
+  - distsamp_checks
+  - plot.distsamp_segments
+  - plot_survey
+  - plot_survey_panel
+  - prepare_aerial
