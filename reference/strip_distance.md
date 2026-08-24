@@ -71,7 +71,7 @@ statistically correct treatment.
 
 ## See also
 
-[`narwc_strip_bins()`](https://rdrr.io/pkg/narwcr/man/narwc_strip_bins.html),
+[`narwc_strip_bins()`](https://camilleross.org/narwcr/reference/narwc_strip_bins.html),
 [`sighting_distances()`](https://camilleross.org/distsamp/reference/sighting_distances.md)
 
 ## Examples

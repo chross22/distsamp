@@ -2,7 +2,7 @@
 
 The checks in this package, for use alongside the handbook-general set
 that
-[`narwcr::narwc_checks()`](https://rdrr.io/pkg/narwcr/man/narwc_checks.html)
+[`narwcr::narwc_checks()`](https://camilleross.org/narwcr/reference/narwc_checks.html)
 provides.
 
 ## Usage
@@ -14,7 +14,7 @@ distsamp_checks()
 ## Value
 
 A named list of functions, in the shape
-[`narwcr::narwc_checks()`](https://rdrr.io/pkg/narwcr/man/narwc_checks.html)
+[`narwcr::narwc_checks()`](https://camilleross.org/narwcr/reference/narwc_checks.html)
 uses.
 
 ## Why these are separate
@@ -61,8 +61,8 @@ Reference Document 2023-01.
 
 ## See also
 
-[`narwcr::validate_narwc()`](https://rdrr.io/pkg/narwcr/man/validate_narwc.html),
-[`narwcr::narwc_checks()`](https://rdrr.io/pkg/narwcr/man/narwc_checks.html)
+[`narwcr::validate_narwc()`](https://camilleross.org/narwcr/reference/validate_narwc.html),
+[`narwcr::narwc_checks()`](https://camilleross.org/narwcr/reference/narwc_checks.html)
 
 ## Examples
 

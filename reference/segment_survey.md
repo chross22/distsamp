@@ -31,7 +31,7 @@ segment_survey(
 - dat:
 
   NARWC survey data, ideally from
-  [`read_narwc()`](https://rdrr.io/pkg/narwcr/man/read_narwc.html).
+  [`read_narwc()`](https://camilleross.org/narwcr/reference/read_narwc.html).
 
 - seg_length:
 
@@ -104,7 +104,7 @@ segment_survey(
 - effort_args:
 
   Named list of arguments for
-  [`flag_effort()`](https://rdrr.io/pkg/narwcr/man/flag_effort.html),
+  [`flag_effort()`](https://camilleross.org/narwcr/reference/flag_effort.html),
   used only when `dat` has no `OnOff.Effort` column.
 
 - sighting_args:
@@ -154,11 +154,11 @@ stages.
 
 ## Pipeline
 
-1.  [`make_leg_id()`](https://rdrr.io/pkg/narwcr/man/make_leg_id.html) —
-    separate re-occupations of the same survey line.
+1.  [`make_leg_id()`](https://camilleross.org/narwcr/reference/make_leg_id.html)
+    — separate re-occupations of the same survey line.
 
-2.  [`flag_effort()`](https://rdrr.io/pkg/narwcr/man/flag_effort.html) —
-    decide which records are on effort.
+2.  [`flag_effort()`](https://camilleross.org/narwcr/reference/flag_effort.html)
+    — decide which records are on effort.
 
 3.  [`point_to_point_effort()`](https://camilleross.org/distsamp/reference/point_to_point_effort.md)
     — great-circle distance between consecutive on-effort positions.

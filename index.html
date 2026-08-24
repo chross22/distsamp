@@ -6,6 +6,11 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Segment Aerial Line-Transect Survey Data for Distance Sampling • distsamp</title>
+<!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="favicon-96x96.png">
+<link rel="icon" type="”image/svg+xml”" href="favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" sizes="any" href="favicon.ico">
+<link rel="manifest" href="site.webmanifest">
 <script src="lightswitch.js"></script><script src="deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
@@ -91,7 +96,7 @@
 <span><span class="co"># Synthetic example data - see the note above</span></span>
 <span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"narwc-example.csv"</span>, package <span class="op">=</span> <span class="st">"distsamp"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/narwcr/man/read_narwc.html" class="external-link">read_narwc</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span>          <span class="co"># standardise names and types</span></span>
+<span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://camilleross.org/narwcr/reference/read_narwc.html" class="external-link">read_narwc</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span>          <span class="co"># standardise names and types</span></span>
 <span><span class="fu"><a href="reference/validate_narwc.html">validate_narwc</a></span><span class="op">(</span><span class="va">dat</span><span class="op">)</span>              <span class="co"># report problems, never stop</span></span>
 <span></span>
 <span><span class="va">segs</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/segment_survey.html">segment_survey</a></span><span class="op">(</span><span class="va">dat</span>, seg_length <span class="op">=</span> <span class="fl">5</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
@@ -129,7 +134,7 @@ attach_circling_sightings  -&gt;  segment_midpoints  -&gt;  segment_sightings</c
 </h2>
 <p>Reading a file is not the same as being ready to segment one. Four steps sit in between, and their order matters in ways that are quiet when you get them wrong:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu">narwcr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/narwcr/man/read_narwc.html" class="external-link">read_narwc</a></span><span class="op">(</span><span class="st">"extract.csv"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu">narwcr</span><span class="fu">::</span><span class="fu"><a href="https://camilleross.org/narwcr/reference/read_narwc.html" class="external-link">read_narwc</a></span><span class="op">(</span><span class="st">"extract.csv"</span><span class="op">)</span></span>
 <span><span class="va">air</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/prepare_aerial.html">prepare_aerial</a></span><span class="op">(</span><span class="va">dat</span><span class="op">)</span></span>
 <span><span class="va">segs</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/segment_survey.html">segment_survey</a></span><span class="op">(</span><span class="va">air</span>, seg_length <span class="op">=</span> <span class="fl">10</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
 <p><code><a href="reference/prepare_aerial.html">prepare_aerial()</a></code> builds line occupations, reconstructs the line state where the file recorded it only at change points, classifies the platform by speed, filters to the aerial records, and flags effort — in that order. Every step is also exported, so you can run them by hand and intervene between them; the wrapper exists because the order is not obvious and getting it wrong costs records silently. Its help says which step depends on which, and why.</p>
@@ -150,18 +155,18 @@ attach_circling_sightings  -&gt;  segment_midpoints  -&gt;  segment_sightings</c
 <div class="section level2">
 <h2 id="aerial-by-construction">Aerial by construction<a class="anchor" aria-label="anchor" href="#aerial-by-construction"></a>
 </h2>
-<p>The effort criteria are the handbook’s aerial ones and <code><a href="reference/perp_distance.html">perp_distance()</a></code> is a declination angle from an aircraft, so a shipboard survey does not belong here — but a NARWC extract can hold both with nothing in the data to say so. <code><a href="reference/segment_survey.html">segment_survey()</a></code> checks the platform’s speed and refuses to segment a vessel track silently. Split with <code><a href="https://rdrr.io/pkg/narwcr/man/classify_platform.html" class="external-link">narwcr::classify_platform()</a></code>, <em>after</em> <code><a href="https://rdrr.io/pkg/narwcr/man/make_leg_id.html" class="external-link">make_leg_id()</a></code>: filtering before it merges two occupations of one line and counts the ferry between them as survey effort.</p>
+<p>The effort criteria are the handbook’s aerial ones and <code><a href="reference/perp_distance.html">perp_distance()</a></code> is a declination angle from an aircraft, so a shipboard survey does not belong here — but a NARWC extract can hold both with nothing in the data to say so. <code><a href="reference/segment_survey.html">segment_survey()</a></code> checks the platform’s speed and refuses to segment a vessel track silently. Split with <code><a href="https://camilleross.org/narwcr/reference/classify_platform.html" class="external-link">narwcr::classify_platform()</a></code>, <em>after</em> <code><a href="https://camilleross.org/narwcr/reference/make_leg_id.html" class="external-link">make_leg_id()</a></code>: filtering before it merges two occupations of one line and counts the ferry between them as survey effort.</p>
 <p>Segments are cut following the approach of Becker et al. (2010): divide continuous portions of survey effort into segments of approximately equal length, assign sightings to the segment they fall in, and take habitat covariates at each segment’s mid-point. Concretely, fit as many whole segments of the target length as a continuous track allows, then either give the remainder its own segment or absorb it into a randomly chosen one, depending on whether it clears half the target length.</p>
 <p>The remainder handling is a property of Becker’s <code>segchopr</code> implementation rather than of the published methods, which state the target length but not what happens to the leftover — see <a href="docs/06-references.html#what-the-published-methods-do-not-cover">docs/06-references.md</a> if you are writing this up.</p>
 </div>
 <div class="section level2">
 <h2 id="grounded-in-the-handbook">Grounded in the handbook<a class="anchor" aria-label="anchor" href="#grounded-in-the-handbook"></a>
 </h2>
-<p>Effort criteria, sighting filters, and validation all read from the code books in Kenney (2023), <em>The North Atlantic Right Whale Consortium Database: A Guide for Users and Contributors</em>, Version 8 — <code>LEGTYPE</code> (8.A.21), <code>LEGSTAGE</code> (8.A.20), <code>IDREL</code> (8.A.16), <code>VISIBLTY</code> (8.A.38), and the rest. <code><a href="https://rdrr.io/pkg/narwcr/man/narwc_codes.html" class="external-link">narwc_codes()</a></code> prints them.</p>
+<p>Effort criteria, sighting filters, and validation all read from the code books in Kenney (2023), <em>The North Atlantic Right Whale Consortium Database: A Guide for Users and Contributors</em>, Version 8 — <code>LEGTYPE</code> (8.A.21), <code>LEGSTAGE</code> (8.A.20), <code>IDREL</code> (8.A.16), <code>VISIBLTY</code> (8.A.38), and the rest. <code><a href="https://camilleross.org/narwcr/reference/narwc_codes.html" class="external-link">narwc_codes()</a></code> prints them.</p>
 <p>A few consequences worth knowing:</p>
 <ul>
 <li>
-<strong><code>VISIBLTY</code> carries two encodings.</strong> Since 2004 it is a distance in nautical miles; before that it was a code folded into the same field as a negative number, where <code>-1</code> means <em>clear for at least 2 nautical miles</em>. A plain <code>VISIBLTY &gt;= 2</code> test throws away every legacy record. <code><a href="https://rdrr.io/pkg/narwcr/man/visibility_ok.html" class="external-link">visibility_ok()</a></code> handles both.</li>
+<strong><code>VISIBLTY</code> carries two encodings.</strong> Since 2004 it is a distance in nautical miles; before that it was a code folded into the same field as a negative number, where <code>-1</code> means <em>clear for at least 2 nautical miles</em>. A plain <code>VISIBLTY &gt;= 2</code> test throws away every legacy record. <code><a href="https://camilleross.org/narwcr/reference/visibility_ok.html" class="external-link">visibility_ok()</a></code> handles both.</li>
 <li>
 <strong>Pilot sightings do not count.</strong> <code>LEGSTAGE == 6</code> marks a sighting by someone other than an on-duty observer, which handbook 4.2 says “cannot be included in a density estimate”. Excluded by default, with <code>LEGSTAGE == 7</code> (photographic) and <code>IDREL</code> 1 and 9.</li>
 </ul>

@@ -97,7 +97,7 @@ A `ggplot` object.
   Adjacent occupations take different colours, so a line that should be
   one occupation and is drawn in three — or three that are drawn as one
   — is visible immediately. This is the view that catches a bad
-  [`make_leg_id()`](https://rdrr.io/pkg/narwcr/man/make_leg_id.html),
+  [`make_leg_id()`](https://camilleross.org/narwcr/reference/make_leg_id.html),
   and a bad `LEGNO3` is the single most consequential thing that can go
   wrong: effort is grouped by it and segments are cut within it.
 
@@ -110,7 +110,7 @@ A `ggplot` object.
 - `"platform"`:
 
   Positions coloured by `PLATFORM_KIND` from
-  [`narwcr::classify_platform()`](https://rdrr.io/pkg/narwcr/man/classify_platform.html).
+  [`narwcr::classify_platform()`](https://camilleross.org/narwcr/reference/classify_platform.html).
   For an archive holding more than one kind of survey.
 
 - `"legstage"`:

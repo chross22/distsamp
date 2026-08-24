@@ -23,7 +23,7 @@ prepare_aerial(
 - dat:
 
   A NARWC data frame from
-  [`narwcr::read_narwc()`](https://rdrr.io/pkg/narwcr/man/read_narwc.html).
+  [`narwcr::read_narwc()`](https://camilleross.org/narwcr/reference/read_narwc.html).
 
 - platform:
 
@@ -37,7 +37,7 @@ prepare_aerial(
 
   Reconstruct the line state where no `LEGSTAGE` was written? Default
   `TRUE`. See
-  [`narwcr::fill_legstage()`](https://rdrr.io/pkg/narwcr/man/fill_legstage.html).
+  [`narwcr::fill_legstage()`](https://camilleross.org/narwcr/reference/fill_legstage.html).
 
 - correct:
 
@@ -45,7 +45,7 @@ prepare_aerial(
   or `NULL`. This is where a correction that only applies to the aerial
   records goes — an altitude recorded in feet, most often. It has to
   happen here:
-  [`flag_effort()`](https://rdrr.io/pkg/narwcr/man/flag_effort.html)
+  [`flag_effort()`](https://camilleross.org/narwcr/reference/flag_effort.html)
   reads `ALT`, so correcting afterwards leaves every record failing the
   altitude ceiling, and correcting before the platform filter scales
   ship altitudes that were already metres.
@@ -53,7 +53,7 @@ prepare_aerial(
 - effort_args:
 
   Named list passed to
-  [`narwcr::flag_effort()`](https://rdrr.io/pkg/narwcr/man/flag_effort.html),
+  [`narwcr::flag_effort()`](https://camilleross.org/narwcr/reference/flag_effort.html),
   for a programme whose criteria differ from the CETAP defaults.
 
 - quiet:
@@ -67,7 +67,7 @@ prepare_aerial(
 
 ## The order, and why it is not obvious
 
-- [`make_leg_id()`](https://rdrr.io/pkg/narwcr/man/make_leg_id.html)
+- [`make_leg_id()`](https://camilleross.org/narwcr/reference/make_leg_id.html)
   first:
 
   Everything downstream groups by `LEGNO3`.
@@ -81,13 +81,13 @@ prepare_aerial(
   it changed.
 
 - `classify_platform()` third, and the filter *after*
-  [`make_leg_id()`](https://rdrr.io/pkg/narwcr/man/make_leg_id.html):
+  [`make_leg_id()`](https://camilleross.org/narwcr/reference/make_leg_id.html):
 
   Removing records before occupations are built makes two occupations of
   one line adjacent, so they merge and the ferry between them becomes
   survey effort. Measured at 224.5 km where 4.4 km was right.
 
-- [`flag_effort()`](https://rdrr.io/pkg/narwcr/man/flag_effort.html)
+- [`flag_effort()`](https://camilleross.org/narwcr/reference/flag_effort.html)
   last:
 
   It reads `LEGTYPE`, `LEGSTAGE`, `ALT`, `BEAUFORT` and `VISIBLTY`, so
@@ -113,8 +113,8 @@ goes in `correct`, because where it happens changes what it does:
 which is the only place it can go: applying it earlier scales ship
 altitudes that were already metres, and applying it later leaves every
 record failing the altitude ceiling that
-[`flag_effort()`](https://rdrr.io/pkg/narwcr/man/flag_effort.html) has
-already tested.
+[`flag_effort()`](https://camilleross.org/narwcr/reference/flag_effort.html)
+has already tested.
 
 ## See also
 

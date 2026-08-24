@@ -22,16 +22,16 @@ point_to_point_effort(
   A data frame with `LATITUDE`, `LONGITUDE`, `OnOff.Effort`, and the
   grouping columns named in `by`. Records must already be in survey
   order;
-  [`read_narwc()`](https://rdrr.io/pkg/narwcr/man/read_narwc.html) does
-  not sort, so sort by `DATE`/`FILEID`/`EVENTNO` beforehand if you are
-  unsure.
+  [`read_narwc()`](https://camilleross.org/narwcr/reference/read_narwc.html)
+  does not sort, so sort by `DATE`/`FILEID`/`EVENTNO` beforehand if you
+  are unsure.
 
 - by:
 
   Character vector of columns identifying a continuous survey line.
   Defaults to `c("DATE", "FILEID", "LEGNO3")`, the line-occupation
   identifier produced by
-  [`make_leg_id()`](https://rdrr.io/pkg/narwcr/man/make_leg_id.html),
+  [`make_leg_id()`](https://camilleross.org/narwcr/reference/make_leg_id.html),
   qualified by the survey day.
 
   `DATE` is in the default because `LEGNO3` only increments when `LEGNO`
@@ -105,7 +105,7 @@ points" summed over the qualifying records.
 ## See also
 
 [`gc_distance()`](https://camilleross.org/distsamp/reference/gc_distance.md),
-[`make_leg_id()`](https://rdrr.io/pkg/narwcr/man/make_leg_id.html)
+[`make_leg_id()`](https://camilleross.org/narwcr/reference/make_leg_id.html)
 
 ## Examples
 

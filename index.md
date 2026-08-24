@@ -169,9 +169,9 @@ to say so.
 [`segment_survey()`](https://camilleross.org/distsamp/reference/segment_survey.md)
 checks the platform’s speed and refuses to segment a vessel track
 silently. Split with
-[`narwcr::classify_platform()`](https://rdrr.io/pkg/narwcr/man/classify_platform.html),
+[`narwcr::classify_platform()`](https://camilleross.org/narwcr/reference/classify_platform.html),
 *after*
-[`make_leg_id()`](https://rdrr.io/pkg/narwcr/man/make_leg_id.html):
+[`make_leg_id()`](https://camilleross.org/narwcr/reference/make_leg_id.html):
 filtering before it merges two occupations of one line and counts the
 ferry between them as survey effort.
 
@@ -196,7 +196,7 @@ books in Kenney (2023), *The North Atlantic Right Whale Consortium
 Database: A Guide for Users and Contributors*, Version 8 — `LEGTYPE`
 (8.A.21), `LEGSTAGE` (8.A.20), `IDREL` (8.A.16), `VISIBLTY` (8.A.38),
 and the rest.
-[`narwc_codes()`](https://rdrr.io/pkg/narwcr/man/narwc_codes.html)
+[`narwc_codes()`](https://camilleross.org/narwcr/reference/narwc_codes.html)
 prints them.
 
 A few consequences worth knowing:
@@ -205,7 +205,7 @@ A few consequences worth knowing:
   nautical miles; before that it was a code folded into the same field
   as a negative number, where `-1` means *clear for at least 2 nautical
   miles*. A plain `VISIBLTY >= 2` test throws away every legacy record.
-  [`visibility_ok()`](https://rdrr.io/pkg/narwcr/man/visibility_ok.html)
+  [`visibility_ok()`](https://camilleross.org/narwcr/reference/visibility_ok.html)
   handles both.
 - **Pilot sightings do not count.** `LEGSTAGE == 6` marks a sighting by
   someone other than an on-duty observer, which handbook 4.2 says

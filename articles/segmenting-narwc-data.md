@@ -20,7 +20,7 @@ Contributors*, Version 8. The output is a segment table you can hand to
 
 ## Reading data
 
-[`read_narwc()`](https://rdrr.io/pkg/narwcr/man/read_narwc.html)
+[`read_narwc()`](https://camilleross.org/narwcr/reference/read_narwc.html)
 standardises column names and types. It accepts the handbook’s canonical
 `LAT_DD`/`LONG_DD` as well as the `LATITUDE`/`LONGITUDE` spelling used
 in the extracts the database manager distributes.
@@ -71,8 +71,8 @@ Two things real extracts do that the bundled fixture does not.
 ### Columns from a particular survey programme
 
 Survey programmes add their own derived columns.
-[`read_narwc()`](https://rdrr.io/pkg/narwcr/man/read_narwc.html) keeps
-the handbook columns and drops the rest — but it tells you what it
+[`read_narwc()`](https://camilleross.org/narwcr/reference/read_narwc.html)
+keeps the handbook columns and drops the rest — but it tells you what it
 dropped, rather than discarding it silently:
 
 ``` r
@@ -93,7 +93,7 @@ kept <- read_narwc(ccs)
 #> Keep them with `profile = "ccs"`; see `narwc_profiles()`.
 ```
 
-[`narwc_profiles()`](https://rdrr.io/pkg/narwcr/man/narwc_profiles.html)
+[`narwc_profiles()`](https://camilleross.org/narwcr/reference/narwc_profiles.html)
 records what is known about those columns, per programme, including how
 confident that knowledge is:
 
@@ -137,8 +137,8 @@ programmes.
 NARWC often records a value once and leaves it blank until it changes —
 `LEGTYPE` is entered at the start of a census line and the rows beneath
 are empty until the leg type changes.
-[`fill_narwc()`](https://rdrr.io/pkg/narwcr/man/fill_narwc.html) carries
-that state forward:
+[`fill_narwc()`](https://camilleross.org/narwcr/reference/fill_narwc.html)
+carries that state forward:
 
 ``` r
 
@@ -387,7 +387,7 @@ segment_survey(dat, seg_length = 5, seed = 1, dist_method = "becker")$settings$d
 
 ## What counts as effort
 
-[`flag_effort()`](https://rdrr.io/pkg/narwcr/man/flag_effort.html)
+[`flag_effort()`](https://camilleross.org/narwcr/reference/flag_effort.html)
 decides which records are on effort. The defaults follow the CETAP
 standard: on a survey line (`LEGTYPE == 2`), Beaufort at most 3, below
 1,200 ft, and visibility at least 2 nautical miles.
@@ -524,7 +524,7 @@ code with the wrong book produces plausible distances that are wrong,
 and nothing downstream would notice — so with `scheme = "auto"` the book
 is chosen from the survey date, and with neither a date nor a scheme it
 errors rather than guess.
-[`narwc_strip_bins()`](https://rdrr.io/pkg/narwcr/man/narwc_strip_bins.html)
+[`narwc_strip_bins()`](https://camilleross.org/narwcr/reference/narwc_strip_bins.html)
 prints either book in full.
 
 **Exact positions, where `S_LAT`/`S_LONG` exist.** The perpendicular

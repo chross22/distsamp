@@ -19,13 +19,13 @@ track_bearing(dat, by = NULL, track_rows = NULL)
 
   Character vector of columns identifying one continuous occupation of a
   survey line. `NULL` (default) picks `c("FILEID", "LEGNO3")` if
-  [`make_leg_id()`](https://rdrr.io/pkg/narwcr/man/make_leg_id.html) has
-  been run, then `c("FILEID", "LEGNO")`, then `"FILEID"`, and prepends
-  `DATE` to whichever it picks when that column is present. Getting this
-  wrong joins the end of one line to the start of the next and produces
-  a bearing that belongs to neither — which is why `DATE` is included:
-  two days sharing a `LEGNO` are separated by `FILEID` alone, and some
-  extracts carry a constant `FILEID`.
+  [`make_leg_id()`](https://camilleross.org/narwcr/reference/make_leg_id.html)
+  has been run, then `c("FILEID", "LEGNO")`, then `"FILEID"`, and
+  prepends `DATE` to whichever it picks when that column is present.
+  Getting this wrong joins the end of one line to the start of the next
+  and produces a bearing that belongs to neither — which is why `DATE`
+  is included: two days sharing a `LEGNO` are separated by `FILEID`
+  alone, and some extracts carry a constant `FILEID`.
 
 - track_rows:
 

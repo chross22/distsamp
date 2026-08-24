@@ -39,8 +39,8 @@ and did we have to go back for it".
 
 A line can be started, abandoned for weather, and flown again hours
 later. Each attempt is an **occupation**, identified by `LEGNO3` from
-[`make_leg_id()`](https://rdrr.io/pkg/narwcr/man/make_leg_id.html); the
-**line** is `LEGNO` itself.
+[`make_leg_id()`](https://camilleross.org/narwcr/reference/make_leg_id.html);
+the **line** is `LEGNO` itself.
 
 `combine = "occupation"` (the default) gives one row per attempt.
 `combine = "line"` gives one row per line with its attempts summed,
@@ -68,7 +68,8 @@ made up of such a track then reports less effort than the survey gave
 it, or disappears from the summary entirely.
 
 So pass the point-level data after
-[`flag_effort()`](https://rdrr.io/pkg/narwcr/man/flag_effort.html) and
+[`flag_effort()`](https://camilleross.org/narwcr/reference/flag_effort.html)
+and
 [`point_to_point_effort()`](https://camilleross.org/distsamp/reference/point_to_point_effort.md)
 when the total has to be right. A message says which you gave it.
 
@@ -82,7 +83,7 @@ A Guide for Users and Contributors, Version 8*, section 8.A.19
 
 [`reflight_summary()`](https://camilleross.org/distsamp/reference/reflight_summary.md),
 [`track_effort()`](https://camilleross.org/distsamp/reference/track_effort.md),
-[`make_leg_id()`](https://rdrr.io/pkg/narwcr/man/make_leg_id.html)
+[`make_leg_id()`](https://camilleross.org/narwcr/reference/make_leg_id.html)
 
 ## Examples
 

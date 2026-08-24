@@ -58,7 +58,7 @@ Declination angles only exist from 2022. The archive’s older data
 records right-angle distance two other ways, and both are now
 interpreted.
 
-- [`narwc_strip_bins()`](https://rdrr.io/pkg/narwcr/man/narwc_strip_bins.html)
+- [`narwc_strip_bins()`](https://camilleross.org/narwcr/reference/narwc_strip_bins.html)
   and
   [`strip_distance()`](https://camilleross.org/distsamp/reference/strip_distance.md)
   decode `STRIP` (handbook 8.A.31), which gives an *interval* rather
@@ -181,8 +181,8 @@ says so where someone about to fit a model will see it.
 NARWC records a value once and leaves it blank until it changes —
 `LEGTYPE` is entered as `2` at the start of a census line and the rows
 beneath are empty until the leg type changes.
-[`fill_narwc()`](https://rdrr.io/pkg/narwcr/man/fill_narwc.html) carries
-that state forward.
+[`fill_narwc()`](https://camilleross.org/narwcr/reference/fill_narwc.html)
+carries that state forward.
 
 - **Grouped by `FILEID` and `DATE` by default.** The scripts this was
   ported from filled ungrouped, so a sea state from the last record of
@@ -192,13 +192,13 @@ that state forward.
 - **Sighting columns are refused, not merely left out of the default.**
   Carrying `SPECCODE` and `NUMBER` forward would replicate one group of
   three right whales onto every row until the next sighting.
-  [`narwc_never_fill()`](https://rdrr.io/pkg/narwcr/man/narwc_fill_columns.html)
+  [`narwc_never_fill()`](https://camilleross.org/narwcr/reference/narwc_fill_columns.html)
   lists what is refused and why; asking for one is an error.
 - **The report separates recovery from inference.** `"downup"` fills
   down and then up, so its backward fills are the values before the
   first record of a group — state that was never logged. Those are
   counted separately, because only the forward fills recover something.
-- [`narwc_fill_columns()`](https://rdrr.io/pkg/narwcr/man/narwc_fill_columns.html)
+- [`narwc_fill_columns()`](https://camilleross.org/narwcr/reference/narwc_fill_columns.html)
   is the default set, and documents the distinction between state that
   persists and measurements that belong to one record.
 
@@ -211,32 +211,32 @@ whole line “begin line” rather than `2`, and on-effort eligibility is
 
 A NARWC extract is not the only shape this data arrives in. Survey
 programmes add their own derived columns, and
-[`read_narwc()`](https://rdrr.io/pkg/narwcr/man/read_narwc.html) used to
-discard every column it did not recognise **without saying so** — a
-Center for Coastal Studies file lost `IS_LAT`, `IS_LONG`, and
+[`read_narwc()`](https://camilleross.org/narwcr/reference/read_narwc.html)
+used to discard every column it did not recognise **without saying so**
+— a Center for Coastal Studies file lost `IS_LAT`, `IS_LONG`, and
 `Tr_SIGHTING` silently, and `extra_columns` only helped if you already
 knew what to name.
 
-- [`read_narwc()`](https://rdrr.io/pkg/narwcr/man/read_narwc.html) now
-  reports dropped columns by name, and names the survey programme when
-  they match a registered one. `quiet = TRUE` suppresses it.
-- [`narwc_profiles()`](https://rdrr.io/pkg/narwcr/man/narwc_profiles.html)
+- [`read_narwc()`](https://camilleross.org/narwcr/reference/read_narwc.html)
+  now reports dropped columns by name, and names the survey programme
+  when they match a registered one. `quiet = TRUE` suppresses it.
+- [`narwc_profiles()`](https://camilleross.org/narwcr/reference/narwc_profiles.html)
   is the registry: programme, column, meaning, the role `distsamp` gives
   it, and how confident that meaning is. `read_narwc(profile = "ccs")`
   keeps a programme’s columns.
 - [`validate_narwc()`](https://camilleross.org/distsamp/reference/validate_narwc.md)
   gains `columns_outside_handbook`, for data frames that never went
   through
-  [`read_narwc()`](https://rdrr.io/pkg/narwcr/man/read_narwc.html).
+  [`read_narwc()`](https://camilleross.org/narwcr/reference/read_narwc.html).
 
 **A profile is never applied because a column name matched.**
 `Tr_SIGHTING` means “sighting made from the track-line” in a CCS file,
 and nothing stops another programme using that name for something else —
 a column name is not a contract between programmes.
-[`read_narwc()`](https://rdrr.io/pkg/narwcr/man/read_narwc.html) will
-say what a file looks like; naming the profile is the caller’s decision.
-Keeping a profile’s columns also does not interpret them: every registry
-entry is currently `role = "passthrough"`.
+[`read_narwc()`](https://camilleross.org/narwcr/reference/read_narwc.html)
+will say what a file looks like; naming the profile is the caller’s
+decision. Keeping a profile’s columns also does not interpret them:
+every registry entry is currently `role = "passthrough"`.
 
 CCS is the only profile registered so far, and is an exception rather
 than a representative case. Adding one needs a data dictionary, not just
@@ -253,7 +253,7 @@ Found by testing against real data rather than the fixture.
   `GMT`, `TIME_LOC`, `Field_SIGHTNO`, `Sea_State`, `Event_No`, `Bft`,
   `Spp`, `Hdg`, `Vis` and the rest.
 
-- **[`standardize_narwc_columns()`](https://rdrr.io/pkg/narwcr/man/standardize_narwc_columns.html)
+- **[`standardize_narwc_columns()`](https://camilleross.org/narwcr/reference/standardize_narwc_columns.html)
   is exported**, so this vocabulary can be shared rather than
   reinvented. `msomgom` had solved the same problem independently in
   `standardize_survey_columns()`, against real exports this table had
@@ -290,13 +290,14 @@ Found by testing against real data rather than the fixture.
 
 ### Reading from cloud storage
 
-- [`narwc_cloud_roots()`](https://rdrr.io/pkg/narwcr/man/narwc_cloud_roots.html)
+- [`narwc_cloud_roots()`](https://camilleross.org/narwcr/reference/narwc_cloud_roots.html)
   — where OneDrive and Google Drive sync to on this platform. Only
   documented locations are checked; nothing is searched for.
-- [`narwc_fetch()`](https://rdrr.io/pkg/narwcr/man/narwc_fetch.html) —
-  resolves a Google Drive id or URL, or a path within an authenticated
+- [`narwc_fetch()`](https://camilleross.org/narwcr/reference/narwc_fetch.html)
+  — resolves a Google Drive id or URL, or a path within an authenticated
   OneDrive or SharePoint drive, to a local file path, so it composes
-  with [`read_narwc()`](https://rdrr.io/pkg/narwcr/man/read_narwc.html).
+  with
+  [`read_narwc()`](https://camilleross.org/narwcr/reference/read_narwc.html).
   A local path is returned unchanged, so wrapping one is safe.
 
 **`distsamp` never handles credentials.** You authenticate in your own
@@ -311,8 +312,8 @@ is, and that is not something to guess at.
 
 Usually none of this is needed — both clients sync to a local folder,
 and a file inside one is an ordinary path
-[`read_narwc()`](https://rdrr.io/pkg/narwcr/man/read_narwc.html) already
-reads.
+[`read_narwc()`](https://camilleross.org/narwcr/reference/read_narwc.html)
+already reads.
 
 ### Survey lines, sequence checks, and a quadratic term removed
 
@@ -415,16 +416,18 @@ documentation.
 
 ### Features
 
-- [`read_narwc()`](https://rdrr.io/pkg/narwcr/man/read_narwc.html) and
+- [`read_narwc()`](https://camilleross.org/narwcr/reference/read_narwc.html)
+  and
   [`validate_narwc()`](https://camilleross.org/distsamp/reference/validate_narwc.md)
   — ingest and check data against the NARWC handbook (Kenney 2023,
   Version 7). Validation reports findings and never stops.
-- [`narwc_codes()`](https://rdrr.io/pkg/narwcr/man/narwc_codes.html) and
-  [`narwc_schema()`](https://rdrr.io/pkg/narwcr/man/narwc_schema.html) —
-  the handbook code books as data.
-- [`flag_effort()`](https://rdrr.io/pkg/narwcr/man/flag_effort.html),
-  [`visibility_ok()`](https://rdrr.io/pkg/narwcr/man/visibility_ok.html),
-  [`make_leg_id()`](https://rdrr.io/pkg/narwcr/man/make_leg_id.html),
+- [`narwc_codes()`](https://camilleross.org/narwcr/reference/narwc_codes.html)
+  and
+  [`narwc_schema()`](https://camilleross.org/narwcr/reference/narwc_schema.html)
+  — the handbook code books as data.
+- [`flag_effort()`](https://camilleross.org/narwcr/reference/flag_effort.html),
+  [`visibility_ok()`](https://camilleross.org/narwcr/reference/visibility_ok.html),
+  [`make_leg_id()`](https://camilleross.org/narwcr/reference/make_leg_id.html),
   [`flag_circling()`](https://camilleross.org/distsamp/reference/flag_circling.md)
   — on-effort determination with every threshold as an argument.
 - [`gc_distance()`](https://camilleross.org/distsamp/reference/gc_distance.md),

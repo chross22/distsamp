@@ -6,6 +6,11 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Segmenting NARWC line-transect data • distsamp</title>
+<!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="../favicon-96x96.png">
+<link rel="icon" type="”image/svg+xml”" href="../favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
+<link rel="icon" sizes="any" href="../favicon.ico">
+<link rel="manifest" href="../site.webmanifest">
 <script src="../lightswitch.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
@@ -93,14 +98,14 @@ you can hand to <code>Distance</code> or <code>dsm</code>.</p>
 <div class="section level2">
 <h2 id="reading-data">Reading data<a class="anchor" aria-label="anchor" href="#reading-data"></a>
 </h2>
-<p><code><a href="https://rdrr.io/pkg/narwcr/man/read_narwc.html" class="external-link">read_narwc()</a></code> standardises column names and types. It
+<p><code><a href="https://camilleross.org/narwcr/reference/read_narwc.html" class="external-link">read_narwc()</a></code> standardises column names and types. It
 accepts the handbook’s canonical
 <code>LAT_DD</code>/<code>LONG_DD</code> as well as the
 <code>LATITUDE</code>/<code>LONGITUDE</code> spelling used in the
 extracts the database manager distributes.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"narwc-example.csv"</span>, package <span class="op">=</span> <span class="st">"distsamp"</span><span class="op">)</span></span>
-<span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/narwcr/man/read_narwc.html" class="external-link">read_narwc</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span></span>
+<span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://camilleross.org/narwcr/reference/read_narwc.html" class="external-link">read_narwc</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span></span>
 <span><span class="co">#&gt; `read_narwc()` renamed 2 columns:</span></span>
 <span><span class="co">#&gt;   LAT_DD  -&gt; LATITUDE</span></span>
 <span><span class="co">#&gt;   LONG_DD -&gt; LONGITUDE</span></span>
@@ -143,7 +148,7 @@ item.</p>
 <h3 id="columns-from-a-particular-survey-programme">Columns from a particular survey programme<a class="anchor" aria-label="anchor" href="#columns-from-a-particular-survey-programme"></a>
 </h3>
 <p>Survey programmes add their own derived columns.
-<code><a href="https://rdrr.io/pkg/narwcr/man/read_narwc.html" class="external-link">read_narwc()</a></code> keeps the handbook columns and drops the rest
+<code><a href="https://camilleross.org/narwcr/reference/read_narwc.html" class="external-link">read_narwc()</a></code> keeps the handbook columns and drops the rest
 — but it tells you what it dropped, rather than discarding it
 silently:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
@@ -152,7 +157,7 @@ silently:</p>
 <span><span class="va">ccs</span><span class="op">$</span><span class="va">IS_LAT</span> <span class="op">&lt;-</span> <span class="va">ccs</span><span class="op">$</span><span class="va">LAT_DD</span></span>
 <span><span class="va">ccs</span><span class="op">$</span><span class="va">IS_LONG</span> <span class="op">&lt;-</span> <span class="va">ccs</span><span class="op">$</span><span class="va">LONG_DD</span></span>
 <span></span>
-<span><span class="va">kept</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/narwcr/man/read_narwc.html" class="external-link">read_narwc</a></span><span class="op">(</span><span class="va">ccs</span><span class="op">)</span></span>
+<span><span class="va">kept</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://camilleross.org/narwcr/reference/read_narwc.html" class="external-link">read_narwc</a></span><span class="op">(</span><span class="va">ccs</span><span class="op">)</span></span>
 <span><span class="co">#&gt; `read_narwc()` renamed 2 columns:</span></span>
 <span><span class="co">#&gt;   LAT_DD  -&gt; LATITUDE</span></span>
 <span><span class="co">#&gt;   LONG_DD -&gt; LONGITUDE</span></span>
@@ -161,10 +166,10 @@ silently:</p>
 <span><span class="co">#&gt;   IS_LAT, IS_LONG, Tr_SIGHTING</span></span>
 <span><span class="co">#&gt; 3 of these are declared by the "ccs" profile (Center for Coastal Studies, Cape Cod Bay).</span></span>
 <span><span class="co">#&gt; Keep them with `profile = "ccs"`; see `narwc_profiles()`.</span></span></code></pre></div>
-<p><code><a href="https://rdrr.io/pkg/narwcr/man/narwc_profiles.html" class="external-link">narwc_profiles()</a></code> records what is known about those
+<p><code><a href="https://camilleross.org/narwcr/reference/narwc_profiles.html" class="external-link">narwc_profiles()</a></code> records what is known about those
 columns, per programme, including how confident that knowledge is:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/narwcr/man/narwc_profiles.html" class="external-link">narwc_profiles</a></span><span class="op">(</span><span class="st">"ccs"</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"column"</span>, <span class="st">"role"</span>, <span class="st">"confidence"</span><span class="op">)</span><span class="op">]</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://camilleross.org/narwcr/reference/narwc_profiles.html" class="external-link">narwc_profiles</a></span><span class="op">(</span><span class="st">"ccs"</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"column"</span>, <span class="st">"role"</span>, <span class="st">"confidence"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 8 × 3</span></span></span>
 <span><span class="co">#&gt;   column      role        confidence </span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      </span></span>
@@ -178,7 +183,7 @@ columns, per programme, including how confident that knowledge is:</p>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">8</span> Time_UTC    passthrough unconfirmed</span></span></code></pre></div>
 <p>Naming the profile keeps them:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/narwcr/man/read_narwc.html" class="external-link">read_narwc</a></span><span class="op">(</span><span class="va">ccs</span>, profile <span class="op">=</span> <span class="st">"ccs"</span><span class="op">)</span><span class="op">)</span><span class="op">[</span><span class="fl">10</span><span class="op">:</span><span class="fl">14</span><span class="op">]</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu"><a href="https://camilleross.org/narwcr/reference/read_narwc.html" class="external-link">read_narwc</a></span><span class="op">(</span><span class="va">ccs</span>, profile <span class="op">=</span> <span class="st">"ccs"</span><span class="op">)</span><span class="op">)</span><span class="op">[</span><span class="fl">10</span><span class="op">:</span><span class="fl">14</span><span class="op">]</span></span>
 <span><span class="co">#&gt; `read_narwc()` renamed 2 columns:</span></span>
 <span><span class="co">#&gt;   LAT_DD  -&gt; LATITUDE</span></span>
 <span><span class="co">#&gt;   LONG_DD -&gt; LONGITUDE</span></span>
@@ -197,14 +202,14 @@ not a contract between programmes.</p>
 <p>NARWC often records a value once and leaves it blank until it changes
 — <code>LEGTYPE</code> is entered at the start of a census line and the
 rows beneath are empty until the leg type changes.
-<code><a href="https://rdrr.io/pkg/narwcr/man/fill_narwc.html" class="external-link">fill_narwc()</a></code> carries that state forward:</p>
+<code><a href="https://camilleross.org/narwcr/reference/fill_narwc.html" class="external-link">fill_narwc()</a></code> carries that state forward:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">gappy</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>  FILEID <span class="op">=</span> <span class="st">"A"</span>, DATE <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="st">"2024-04-01"</span><span class="op">)</span>, EVENTNO <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">6</span>,</span>
 <span>  LEGTYPE  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="cn">NA</span>, <span class="cn">NA</span>, <span class="cn">NA</span>, <span class="fl">1</span>, <span class="cn">NA</span><span class="op">)</span>,</span>
 <span>  BEAUFORT <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="cn">NA</span>, <span class="cn">NA</span>, <span class="fl">4</span>, <span class="cn">NA</span>, <span class="cn">NA</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/narwcr/man/fill_narwc.html" class="external-link">fill_narwc</a></span><span class="op">(</span><span class="va">gappy</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://camilleross.org/narwcr/reference/fill_narwc.html" class="external-link">fill_narwc</a></span><span class="op">(</span><span class="va">gappy</span><span class="op">)</span></span>
 <span><span class="co">#&gt; `fill_narwc()` filled 8 values, grouped by FILEID, DATE.</span></span>
 <span><span class="co">#&gt;   carried forward:  8</span></span>
 <span><span class="co">#&gt;   LEGTYPE 4, BEAUFORT 4</span></span>
@@ -229,7 +234,7 @@ mistake you can find later.</p>
 one group of three right whales onto every row until the next
 sighting:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/narwcr/man/fill_narwc.html" class="external-link">fill_narwc</a></span><span class="op">(</span><span class="va">gappy</span>, columns <span class="op">=</span> <span class="st">"NUMBER"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://camilleross.org/narwcr/reference/fill_narwc.html" class="external-link">fill_narwc</a></span><span class="op">(</span><span class="va">gappy</span>, columns <span class="op">=</span> <span class="st">"NUMBER"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;"> in `fill_narwc()`:</span></span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> These columns must not be carried forward: `NUMBER`.</span></span>
 <span><span class="co">#&gt; They are per-record measurements, not survey state. Filling a sighting column replicates one detection onto every row beneath it; filling a position or time fabricates a measurement. See `?narwc_fill_columns`.</span></span></code></pre></div>
@@ -403,16 +408,16 @@ law of cosines loses precision.</p>
 <div class="section level2">
 <h2 id="what-counts-as-effort">What counts as effort<a class="anchor" aria-label="anchor" href="#what-counts-as-effort"></a>
 </h2>
-<p><code><a href="https://rdrr.io/pkg/narwcr/man/flag_effort.html" class="external-link">flag_effort()</a></code> decides which records are on effort. The
+<p><code><a href="https://camilleross.org/narwcr/reference/flag_effort.html" class="external-link">flag_effort()</a></code> decides which records are on effort. The
 defaults follow the CETAP standard: on a survey line
 (<code>LEGTYPE == 2</code>), Beaufort at most 3, below 1,200 ft, and
 visibility at least 2 nautical miles.</p>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/narwcr/man/flag_effort.html" class="external-link">flag_effort</a></span><span class="op">(</span><span class="va">dat</span><span class="op">)</span><span class="op">$</span><span class="va">OnOff.Effort</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="fu"><a href="https://camilleross.org/narwcr/reference/flag_effort.html" class="external-link">flag_effort</a></span><span class="op">(</span><span class="va">dat</span><span class="op">)</span><span class="op">$</span><span class="va">OnOff.Effort</span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   0   1 </span></span>
 <span><span class="co">#&gt;  12 101</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/narwcr/man/flag_effort.html" class="external-link">flag_effort</a></span><span class="op">(</span><span class="va">dat</span>, max_beaufort <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">$</span><span class="va">OnOff.Effort</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="fu"><a href="https://camilleross.org/narwcr/reference/flag_effort.html" class="external-link">flag_effort</a></span><span class="op">(</span><span class="va">dat</span>, max_beaufort <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">$</span><span class="va">OnOff.Effort</span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   0 </span></span>
 <span><span class="co">#&gt; 113</span></span></code></pre></div>
@@ -423,7 +428,7 @@ number. <code>-1</code> means <em>clear for at least 2 nautical
 miles</em> — good conditions — so a plain <code>VISIBLTY &gt;= 2</code>
 test throws away every legacy record.</p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/narwcr/man/visibility_ok.html" class="external-link">visibility_ok</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">5</span>, <span class="fl">1.5</span>, <span class="op">-</span><span class="fl">1</span>, <span class="op">-</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://camilleross.org/narwcr/reference/visibility_ok.html" class="external-link">visibility_ok</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">5</span>, <span class="fl">1.5</span>, <span class="op">-</span><span class="fl">1</span>, <span class="op">-</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1]  TRUE FALSE  TRUE FALSE</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -519,13 +524,13 @@ code with the wrong book produces plausible distances that are wrong,
 and nothing downstream would notice — so with
 <code>scheme = "auto"</code> the book is chosen from the survey date,
 and with neither a date nor a scheme it errors rather than guess.
-<code><a href="https://rdrr.io/pkg/narwcr/man/narwc_strip_bins.html" class="external-link">narwc_strip_bins()</a></code> prints either book in full.</p>
+<code><a href="https://camilleross.org/narwcr/reference/narwc_strip_bins.html" class="external-link">narwc_strip_bins()</a></code> prints either book in full.</p>
 <p><strong>Exact positions, where <code>S_LAT</code>/<code>S_LONG</code>
 exist.</strong> The perpendicular distance can then be measured rather
 than inferred. <code><a href="../reference/exact_distance.html">exact_distance()</a></code> projects the sighting onto
 the track-line:</p>
 <div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">prepped</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/narwcr/man/flag_effort.html" class="external-link">flag_effort</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/narwcr/man/make_leg_id.html" class="external-link">make_leg_id</a></span><span class="op">(</span><span class="va">dat</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">prepped</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://camilleross.org/narwcr/reference/flag_effort.html" class="external-link">flag_effort</a></span><span class="op">(</span><span class="fu"><a href="https://camilleross.org/narwcr/reference/make_leg_id.html" class="external-link">make_leg_id</a></span><span class="op">(</span><span class="va">dat</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">ex</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/exact_distance.html">exact_distance</a></span><span class="op">(</span><span class="va">prepped</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/subset.html" class="external-link">subset</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="va">prepped</span><span class="op">[</span><span class="st">"SPECCODE"</span><span class="op">]</span>, <span class="va">ex</span><span class="op">)</span>, <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">distance</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    SPECCODE distance along  side bearing</span></span>
@@ -545,7 +550,7 @@ which is why the aircraft left it. <code><a href="../reference/circling_distance
 each back to the <code>LEGSTAGE == 3</code> break-off record and
 measures from there:</p>
 <div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">circ</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/circling_distance.html">circling_distance</a></span><span class="op">(</span><span class="fu"><a href="../reference/flag_circling.html">flag_circling</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/narwcr/man/make_leg_id.html" class="external-link">make_leg_id</a></span><span class="op">(</span><span class="va">dat</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">circ</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/circling_distance.html">circling_distance</a></span><span class="op">(</span><span class="fu"><a href="../reference/flag_circling.html">flag_circling</a></span><span class="op">(</span><span class="fu"><a href="https://camilleross.org/narwcr/reference/make_leg_id.html" class="external-link">make_leg_id</a></span><span class="op">(</span><span class="va">dat</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/subset.html" class="external-link">subset</a></span><span class="op">(</span><span class="va">circ</span>, <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">distance</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 1 × 7</span></span></span>
 <span><span class="co">#&gt;   distance along side  radial bearing anchor_event position_source</span></span>
@@ -756,9 +761,9 @@ thousand sighting rows in three million would not survive
 <p>Every stage is exported, so you can intervene between them:</p>
 <div class="sourceCode" id="cb41"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">step</span> <span class="op">&lt;-</span> <span class="va">dat</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/pkg/narwcr/man/make_leg_id.html" class="external-link">make_leg_id</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span>          <span class="co"># separate re-occupations of a line</span></span>
+<span>  <span class="fu"><a href="https://camilleross.org/narwcr/reference/make_leg_id.html" class="external-link">make_leg_id</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span>          <span class="co"># separate re-occupations of a line</span></span>
 <span>  <span class="fu"><a href="../reference/flag_circling.html">flag_circling</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span>        <span class="co"># mark records taken while circling</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/pkg/narwcr/man/flag_effort.html" class="external-link">flag_effort</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span>          <span class="co"># decide what is on effort</span></span>
+<span>  <span class="fu"><a href="https://camilleross.org/narwcr/reference/flag_effort.html" class="external-link">flag_effort</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span>          <span class="co"># decide what is on effort</span></span>
 <span>  <span class="fu"><a href="../reference/point_to_point_effort.html">point_to_point_effort</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span><span class="co"># great-circle distance along the track</span></span>
 <span>  <span class="fu"><a href="../reference/split_tracks.html">split_tracks</a></span><span class="op">(</span><span class="op">)</span>            <span class="co"># start a new track where effort breaks</span></span>
 <span></span>

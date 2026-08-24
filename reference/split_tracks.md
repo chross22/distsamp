@@ -15,9 +15,9 @@ split_tracks(dat)
 - dat:
 
   A data frame with `LEGNO3` (see
-  [`make_leg_id()`](https://rdrr.io/pkg/narwcr/man/make_leg_id.html)),
+  [`make_leg_id()`](https://camilleross.org/narwcr/reference/make_leg_id.html)),
   `OnOff.Effort` (see
-  [`flag_effort()`](https://rdrr.io/pkg/narwcr/man/flag_effort.html)),
+  [`flag_effort()`](https://camilleross.org/narwcr/reference/flag_effort.html)),
   and `DATE`, in survey order.
 
 ## Value
@@ -68,8 +68,8 @@ surface temperature data. *Marine Ecology Progress Series* 413:163-183.
 
 ## See also
 
-[`make_leg_id()`](https://rdrr.io/pkg/narwcr/man/make_leg_id.html),
-[`flag_effort()`](https://rdrr.io/pkg/narwcr/man/flag_effort.html),
+[`make_leg_id()`](https://camilleross.org/narwcr/reference/make_leg_id.html),
+[`flag_effort()`](https://camilleross.org/narwcr/reference/flag_effort.html),
 [`segment_survey()`](https://camilleross.org/distsamp/reference/segment_survey.md)
 
 ## Examples

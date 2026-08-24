@@ -1,6 +1,6 @@
 # Check survey data against the handbook and against distance sampling
 
-[`narwcr::validate_narwc()`](https://rdrr.io/pkg/narwcr/man/validate_narwc.html)
+[`narwcr::validate_narwc()`](https://camilleross.org/narwcr/reference/validate_narwc.html)
 with this package's checks added to the default, so that
 `validate_narwc(dat)` reports everything it reported before the reading
 layer was split into narwcr.
@@ -16,7 +16,7 @@ validate_narwc(dat, checks = c(narwcr::narwc_checks(), distsamp_checks()))
 - dat:
 
   A data frame of NARWC survey data, ideally from
-  [`narwcr::read_narwc()`](https://rdrr.io/pkg/narwcr/man/read_narwc.html).
+  [`narwcr::read_narwc()`](https://camilleross.org/narwcr/reference/read_narwc.html).
 
 - checks:
 
@@ -60,13 +60,13 @@ The handbook-general checks live in narwcr, and calling its
 `validate_narwc()` directly runs only those. Silently dropping four
 checks from a function people already call would be a regression, so
 this package keeps its own default. To run only the handbook rules, call
-[`narwcr::validate_narwc()`](https://rdrr.io/pkg/narwcr/man/validate_narwc.html).
+[`narwcr::validate_narwc()`](https://camilleross.org/narwcr/reference/validate_narwc.html).
 
 ## See also
 
 [`distsamp_checks()`](https://camilleross.org/distsamp/reference/distsamp_checks.md)
 for what this package adds,
-[`narwcr::narwc_checks()`](https://rdrr.io/pkg/narwcr/man/narwc_checks.html)
+[`narwcr::narwc_checks()`](https://camilleross.org/narwcr/reference/narwc_checks.html)
 for the handbook-general set.
 
 ## Examples

@@ -1,10 +1,10 @@
 # Diagnose common reasons a segmentation might be wrong before you trust it
 
 Runs the reading and segmentation pipeline —
-[`read_narwc()`](https://rdrr.io/pkg/narwcr/man/read_narwc.html),
+[`read_narwc()`](https://camilleross.org/narwcr/reference/read_narwc.html),
 [`validate_narwc()`](https://camilleross.org/distsamp/reference/validate_narwc.md),
-[`make_leg_id()`](https://rdrr.io/pkg/narwcr/man/make_leg_id.html),
-[`flag_effort()`](https://rdrr.io/pkg/narwcr/man/flag_effort.html),
+[`make_leg_id()`](https://camilleross.org/narwcr/reference/make_leg_id.html),
+[`flag_effort()`](https://camilleross.org/narwcr/reference/flag_effort.html),
 [`point_to_point_effort()`](https://camilleross.org/distsamp/reference/point_to_point_effort.md)
 and
 [`segment_survey()`](https://camilleross.org/distsamp/reference/segment_survey.md)
@@ -22,15 +22,15 @@ diagnose_pipeline(x, days = NULL, seg_length = 10, species = NULL, ...)
 - x:
 
   A path to a NARWC CSV, or a data frame. A path is read with
-  [`read_narwc()`](https://rdrr.io/pkg/narwcr/man/read_narwc.html); a
-  data frame is taken as already read.
+  [`read_narwc()`](https://camilleross.org/narwcr/reference/read_narwc.html);
+  a data frame is taken as already read.
 
 - days:
 
   Which survey days to diagnose, so a large extract can be checked in
   seconds before it is run in full. `"auto"` picks the day with the most
   census records carrying every criterion
-  [`flag_effort()`](https://rdrr.io/pkg/narwcr/man/flag_effort.html)
+  [`flag_effort()`](https://camilleross.org/narwcr/reference/flag_effort.html)
   needs; a number takes that many days from the start; a `Date` or date
   string takes exactly those days. `NULL` (default) uses everything.
 
@@ -61,8 +61,9 @@ diagnose_pipeline(x, days = NULL, seg_length = 10, species = NULL, ...)
 - ...:
 
   Passed to
-  [`read_narwc()`](https://rdrr.io/pkg/narwcr/man/read_narwc.html) when
-  `x` is a path — `profile`, `extra_columns`, `prefer_source` and so on.
+  [`read_narwc()`](https://camilleross.org/narwcr/reference/read_narwc.html)
+  when `x` is a path — `profile`, `extra_columns`, `prefer_source` and
+  so on.
 
 ## Value
 
