@@ -255,3 +255,37 @@ test_that("the diagnosis is run against the platform it was told", {
   )))
   expect_match(paste(air, collapse = "\n"), "not a survey aircraft")
 })
+
+
+# --- The narwcr a platform needs --------------------------------------------
+
+test_that("an older narwcr is named, not reported as an internal failure", {
+  # Dropping a criterion is narwcr's `max_alt_m = NULL`. An older narwcr
+  # computes `dat$ALT < NULL` and fails its own `length(ok) == n` assertion,
+  # which is a true statement about narwcr's internals and no help about the
+  # pin that caused it.
+  local_mocked_bindings(narwcr_can_drop_criteria = function() FALSE)
+  expect_error(
+    prepare_survey(vessel_line(), platform = "vessel", quiet = TRUE),
+    "installed narwcr cannot drop an effort criterion"
+  )
+  expect_error(
+    prepare_survey(vessel_line(), platform = "vessel", quiet = TRUE),
+    "max_alt_m"
+  )
+
+  # The aerial platform drops nothing, so it is unaffected.
+  expect_silent(
+    prepare_survey(straight_line(), platform = "aerial", quiet = TRUE)
+  )
+})
+
+test_that("an explicit threshold is a way past it", {
+  local_mocked_bindings(narwcr_can_drop_criteria = function() FALSE)
+  sea <- vessel_line()
+  sea$ALT <- 10
+  expect_no_error(
+    prepare_survey(sea, platform = "vessel", quiet = TRUE,
+                   effort_args = list(max_alt_m = 366))
+  )
+})

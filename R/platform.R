@@ -145,6 +145,52 @@ check_distance_sources <- function(sources, platform,
   )
 }
 
+# Effort flags, with a readable failure when the installed narwcr predates
+# skippable criteria.
+#
+# Dropping a criterion is `narwcr::flag_effort(max_alt_m = NULL)`, and an older
+# narwcr computes `dat$ALT < NULL` instead - a zero-length logical, which the
+# internal `stopifnot(length(ok) == n)` reports as `length(ok) == n is not
+# TRUE`. That is a true statement about narwcr's internals and no help at all
+# about the pin that caused it. This package's callers pin by commit, so a
+# narwcr from before this feature is an ordinary thing to be running.
+flag_effort_for_platform <- function(dat, effort_args,
+                                     call = rlang::caller_env()) {
+  drops <- vapply(effort_args, is.null, logical(1))
+  if (any(drops) && !narwcr_can_drop_criteria()) {
+    rlang::abort(
+      paste0(
+        "The installed narwcr cannot drop an effort criterion, which this ",
+        "platform needs: it passes ",
+        paste0("`", names(effort_args)[drops], " = NULL`", collapse = ", "),
+        ". Upgrade narwcr, or pass an explicit threshold in `effort_args` - ",
+        "noting that a missing value fails a criterion, so no ceiling lets a ",
+        "record with no ALT through."
+      ),
+      call = call
+    )
+  }
+  do.call(narwcr::flag_effort, c(list(dat), effort_args))
+}
+
+# Asked once per session, against a two-row frame rather than the formals: the
+# argument has always been there, and it is only what narwcr does with a NULL
+# that changed.
+narwcr_can_drop_criteria <- local({
+  answer <- NULL
+  function() {
+    if (!is.null(answer)) return(answer)
+    probe <- data.frame(LEGTYPE = c(2, 2), ALT = NA_real_)
+    ok <- tryCatch({
+      out <- suppressMessages(narwcr::flag_effort(probe, max_alt_m = NULL))
+      identical(as.integer(out$OnOff.Effort), c(1L, 1L))
+    }, error = function(e) FALSE)
+    answer <<- isTRUE(ok)
+    answer
+  }
+})
+
+
 # The speed band a platform is expected to be moving in, for the checks that
 # ask "is this the platform you said it was?". Bounds are knots, and match
 # `narwcr::classify_platform()`'s thresholds so the two never disagree.

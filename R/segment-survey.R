@@ -208,7 +208,7 @@ segment_survey <- function(dat,
 
   # 2. effort
   if (!"OnOff.Effort" %in% names(dat)) {
-    dat <- do.call(flag_effort, c(list(dat), effort_args))
+    dat <- flag_effort_for_platform(dat, effort_args)
   }
 
   # 3. along-track distance

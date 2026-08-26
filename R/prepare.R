@@ -164,7 +164,7 @@ prepare_survey <- function(dat, platform = c("aerial", "vessel", "ship", "all"),
   }
 
   if (!"OnOff.Effort" %in% names(dat)) {
-    dat <- do.call(narwcr::flag_effort, c(list(dat), effort_args))
+    dat <- flag_effort_for_platform(dat, effort_args)
   }
 
   if (!quiet && "OnOff.Effort" %in% names(dat)) {

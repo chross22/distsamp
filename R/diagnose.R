@@ -329,7 +329,7 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
   # --- Effort ---------------------------------------------------------------
   header("Effort")
   dat <- tryCatch(
-    do.call(narwcr::flag_effort, c(list(dat), defaults$effort_args)),
+    flag_effort_for_platform(dat, defaults$effort_args),
     error = function(e) {
       fail("flag_effort() failed: ", conditionMessage(e))
       NULL
