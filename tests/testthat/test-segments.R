@@ -154,24 +154,24 @@ test_that("seg_length must be a single positive number", {
 })
 
 # The platform guard ----------------------------------------------------------
+#
+# `vessel_line()` is in helper-fixture.R, shared with test-platform.R.
 
-vessel_line <- function(n = 30, legno = 1, date = "2024-04-01") {
-  # 5.3 m between fixes one second apart is about 10 knots.
-  d <- straight_line(n = n, step = 5.3 / 111120, legno = legno, date = date)
-  d$TIME <- 120000 + seq_len(n) - 1
-  d
-}
-
-test_that("segmenting a vessel track warns that this package is aerial", {
+test_that("segmenting a vessel track under the aerial platform warns", {
   expect_warning(
-    segment_survey(vessel_line(), seg_length = 1, seed = 1),
-    "aerial by construction"
+    segment_survey(vessel_line(n = 30), seg_length = 1, seed = 1),
+    "not moving at aerial survey speed"
   )
 })
 
 test_that("the warning counts the records and names the platform", {
-  expect_warning(segment_survey(vessel_line(), seg_length = 1, seed = 1),
+  expect_warning(segment_survey(vessel_line(n = 30), seg_length = 1, seed = 1),
                  "vessel: 30")
+})
+
+test_that("the warning says which platform argument would fix it", {
+  expect_warning(segment_survey(vessel_line(n = 30), seg_length = 1, seed = 1),
+                 "prepare_survey\\(platform = \"aerial\"\\)")
 })
 
 test_that("an aerial track is not warned about", {

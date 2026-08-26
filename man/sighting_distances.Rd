@@ -6,8 +6,9 @@
 \usage{
 sighting_distances(
   dat,
-  sources = c("angle", "exact", "strip"),
+  sources = NULL,
   units = c("m", "km", "nmi"),
+  platform = c("aerial", "vessel", "ship"),
   on_effort_only = TRUE,
   strip_scheme = "auto",
   strip_platform = "skymaster",
@@ -20,9 +21,14 @@ sighting_distances(
 make their source unavailable; nothing errors.}
 
 \item{sources}{Precedence order over \code{"angle"}, \code{"exact"}, \code{"strip"}, and
-\code{"circling"}. Defaults to \code{c("angle", "exact", "strip")}.}
+\code{"circling"}. \code{NULL} (default) takes the platform's order:
+\code{c("angle", "exact", "strip")} for an aircraft, \code{"exact"} for a vessel.}
 
 \item{units}{\code{"m"} (default), \code{"km"}, or \code{"nmi"}.}
+
+\item{platform}{\code{"aerial"} (default), \code{"vessel"}, or \code{"ship"} as a synonym
+for \code{"vessel"}. Decides the default \code{sources}, and which sources may be
+asked for at all. See \code{\link[=platform_defaults]{platform_defaults()}}.}
 
 \item{on_effort_only}{Restrict to on-effort census records. Default \code{TRUE}.}
 
@@ -62,6 +68,20 @@ Each has its own function; this assembles them.\tabular{lll}{
 
 \code{sources} is a precedence order, not a set: the first one that yields a
 distance for a record wins, and \code{distance_source} records which that was.
+}
+
+\section{Two of the four are aircraft measurements}{
+
+\code{"angle"} is an altitude divided by a tangent, and the \code{"strip"} code books
+are the Skymaster's and the AT-11's (8.A.31). Neither exists on a vessel.
+\code{platform = "vessel"} therefore leaves \code{"exact"} — a recorded sighting
+position projected onto the track, which is geometry rather than platform —
+and asking for either of the others errors rather than returning a column of
+\code{NA}. \code{"circling"} is a break-off from the census line and applies to both,
+but is opt-in for both too.
+
+Leave \code{sources} at \code{NULL} to take the platform's own order. Naming it
+overrides the platform, within what the platform can supply.
 }
 
 \section{Why the provenance column is not optional}{
@@ -115,6 +135,10 @@ table(out$distance_source, useNA = "no")
 # Prefer the exact position where both it and an angle exist
 rev_out <- sighting_distances(dat, sources = c("exact", "angle", "strip"))
 table(rev_out$distance_source, useNA = "no")
+
+# A vessel has only the position; the aircraft sources are not offered
+sea <- sighting_distances(dat, platform = "vessel")
+table(sea$distance_source, useNA = "no")
 
 }
 \seealso{

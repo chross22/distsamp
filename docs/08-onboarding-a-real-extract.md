@@ -224,6 +224,12 @@ an altitude criterion — is dropped rather than handled. `diagnose_pipeline()`
 prints the per-criterion breakdown, which is the only way to see which
 criterion excluded what.
 
+Where the shipboard records are the survey rather than a contaminant,
+`prepare_survey(platform = "vessel")` handles them instead of dropping them: it
+passes `max_alt_m = NULL`, which says the criterion does not apply, rather than
+a ceiling no record with a missing altitude can clear. See
+[09-shipboard-surveys.md](09-shipboard-surveys.md).
+
 ## 4b. Distances the schema does not name
 
 The handbook records a declination angle in `ANGLEL` or `ANGLER` by side. Some
@@ -294,7 +300,9 @@ single track, and none of them carry over.
 5. `fill_legstage()` — after 4, because it needs `LEGNO3`; before 7, because it
    is what makes records eligible.
 6. `classify_platform()` — split aerial from vessel, and filter *after*
-   `make_leg_id()`, never before.
+   `make_leg_id()`, never before. Decide which of the two you are analysing:
+   `platform` carries that decision through the effort criteria and the
+   distance sources together.
 7. Correct the altitude units if needed — after the platform split, since only
    the aerial records are in feet, and exactly once.
 8. `flag_effort()` — read the per-criterion breakdown.

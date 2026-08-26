@@ -94,7 +94,7 @@ stage seems to have lost something.}
 \item{\code{"positions"}}{Every position, uncoloured. The only view that cannot
 fail for want of a column: it needs \code{LATITUDE} and \code{LONGITUDE} and
 nothing else, so it works on a file that has not been through
-\code{\link[=prepare_aerial]{prepare_aerial()}}, or one whose columns are not what you expected.
+\code{\link[=prepare_survey]{prepare_survey()}}, or one whose columns are not what you expected.
 Where \code{"raw"} still asks for \code{LEGTYPE}, this asks for nothing. Add
 \code{sightings = TRUE} and it is the whole survey — effort and what was seen
 on it — in one map.}

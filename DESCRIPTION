@@ -1,13 +1,16 @@
 Package: distsamp
-Title: Segment Aerial Line-Transect Survey Data for Distance Sampling
+Title: Segment Line-Transect Survey Data for Distance Sampling
 Version: 0.1.0
 Authors@R:
     person("Camille", "Ross", email = "camille.ross@maine.edu", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-1428-2294"))
-Description: Turns marine mammal aerial line-transect survey data recorded in the
+Description: Turns marine mammal line-transect survey data recorded in the
     North Atlantic Right Whale Consortium (NARWC) sightings database format into
     effort segments and detection distances, ready for distance sampling and
-    density surface modeling. Reading and standardising an extract is done by
+    density surface modeling. Handles aerial and shipboard surveys, which differ
+    in the effort criteria that apply to them and in the right-angle distance
+    sources they can supply, and which a single extract can hold together with
+    nothing to say which is which. Reading and standardising an extract is done by
     the 'narwcr' package, which this one shares with other analyses of the same
     archive; what follows is specific to distance sampling.
     Accumulates great-circle effort, splits survey lines at breaks in

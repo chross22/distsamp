@@ -23,6 +23,16 @@
 #' Steps 1 and 2 are skipped when the input already carries `LEGNO3` or
 #' `OnOff.Effort` respectively, so you can substitute your own definitions.
 #'
+#' @section Aerial or vessel:
+#' Segmentation is platform-free — great-circle distance between fixes,
+#' splitting at breaks in effort, and cutting a track into lengths are geometry,
+#' and a ship's track segments the same way a plane's does. What is not
+#' platform-free is either end of it: the effort criteria that decide which
+#' records count, and the right-angle distance sources that exist. `platform`
+#' sets both at once, because setting one without the other is how a survey
+#' ends up with a vessel's records and an aircraft's criteria — which is a
+#' survey with no effort at all. See [platform_defaults()].
+#'
 #' @section Reproducibility:
 #' Segmentation makes two random choices: which segment absorbs a track's
 #' leftover distance, and whether a segment that cannot land exactly on its
@@ -40,10 +50,15 @@
 #' @param dist_method Great-circle distance method: `"haversine"` (default),
 #'   `"becker"`, or `"kenney"`. See [gc_distance()] and [dist_methods()].
 #'   Becker and Kenney are the same formula and give identical results.
+#' @param platform `"aerial"` (default), `"vessel"`, or `"ship"` as a synonym
+#'   for `"vessel"`. Sets the effort criteria and the distance sources
+#'   together, and decides which platform the speed check expects to find. See
+#'   [platform_defaults()].
 #' @param distance_sources Precedence order over the right-angle distance
-#'   sources, passed to [sighting_distances()]. Defaults to
-#'   `c("angle", "exact", "strip")`; `"circling"` is available but not on by
-#'   default. Each detection records which source supplied it, in
+#'   sources, passed to [sighting_distances()]. `NULL` (default) takes the
+#'   platform's order — `c("angle", "exact", "strip")` for an aircraft,
+#'   `"exact"` for a vessel. `"circling"` is available but not on by default
+#'   for either. Each detection records which source supplied it, in
 #'   `distance_source`.
 #' @param distance_units Units for perpendicular sighting distances computed
 #'   from `ANGLEL`/`ANGLER`: `"m"` (default) or `"km"`. Note that `seg_eff` is
@@ -59,7 +74,8 @@
 #'   they were counted with instead. See [attach_circling_sightings()].
 #'   `settings$circling_distance` records which was used.
 #' @param effort_args Named list of arguments for [flag_effort()], used only
-#'   when `dat` has no `OnOff.Effort` column.
+#'   when `dat` has no `OnOff.Effort` column. Merged over the platform's own
+#'   defaults, so naming an argument here overrides it.
 #' @param sighting_args Named list of arguments for [segment_sightings()].
 #'
 #' @return An object of class `distsamp_segments`: a list with
@@ -120,15 +136,30 @@ segment_survey <- function(dat,
                            circling = c("same_species", "all", "none"),
                            circling_distance = c("with_group", "break_off"),
                            distance_units = c("m", "km"),
-                           distance_sources = c("angle", "exact", "strip"),
+                           platform = c("aerial", "vessel", "ship"),
+                           distance_sources = NULL,
                            effort_args = list(),
                            sighting_args = list()) {
   dist_method <- dist_method_canonical(match.arg(dist_method))
   circling <- match.arg(circling)
   circling_distance <- match.arg(circling_distance)  # "inherit" errors below
   distance_units <- match.arg(distance_units)
+  platform <- resolve_platform(platform)
   stopifnot(is.data.frame(dat))
+  stopifnot(is.list(effort_args))
   stopifnot(is.numeric(seg_length), length(seg_length) == 1L, seg_length > 0)
+
+  # The effort criteria and the distance sources come from the same place, so
+  # they cannot be set to two different platforms' answers. Anything the caller
+  # named wins over both.
+  defaults <- platform_defaults(platform)
+  if (is.null(distance_sources)) {
+    distance_sources <- defaults$distance_sources
+  } else {
+    check_distance_sources(distance_sources, platform)
+  }
+  keep_names <- setdiff(names(defaults$effort_args), names(effort_args))
+  effort_args <- c(effort_args, defaults$effort_args[keep_names])
 
   settings <- list(
     seg_length = seg_length, species = species, seed = seed,
@@ -136,6 +167,7 @@ segment_survey <- function(dat,
     min_segment_km = min_segment_km, dist_method = dist_method,
     circling = circling, circling_distance = circling_distance,
     distance_units = distance_units,
+    platform = platform,
     distance_sources = distance_sources
   )
 
@@ -144,28 +176,29 @@ segment_survey <- function(dat,
     dat <- make_leg_id(dat)
   }
 
-  # This package is aerial by construction — the effort criteria are the
-  # handbook's aerial ones and `perp_distance()` is a declination angle from
-  # an aircraft. A NARWC extract can hold a shipboard survey alongside an
-  # aerial one with nothing to say so, and it segments without complaint into
-  # numbers that look entirely reasonable. Checked after the occupations are
-  # built, because that is what a platform is judged over.
+  # The effort criteria and the distance sources are now this platform's, so
+  # a record from a different one is being measured with the wrong ruler. A
+  # NARWC extract can hold a shipboard survey alongside an aerial one with
+  # nothing to say so, and it segments without complaint into numbers that
+  # look entirely reasonable. Checked after the occupations are built, because
+  # that is what a platform is judged over.
   if (all(c("LATITUDE", "LONGITUDE", "TIME") %in% names(dat))) {
     kind <- narwcr::classify_platform(dat)
-    other <- !is.na(kind) & kind != "aerial"
+    other <- !is.na(kind) & kind != defaults$kind
     if (any(other)) {
       counts <- table(droplevels(kind[other]))
       rlang::warn(paste0(
-        sum(other), " of ", nrow(dat), " records are not moving at aerial ",
-        "survey speed (", paste(names(counts), unname(counts), sep = ": ",
-                                collapse = ", "),
-        "). distsamp is aerial by construction, and a shipboard survey ",
-        "segmented here yields effort and distances that look reasonable and ",
-        "mean something else. `prepare_aerial()` splits them, in the order ",
-        "that has to hold: occupations, then the platform filter, then ",
-        "effort. Filtering before `make_leg_id()` makes two occupations of ",
-        "one line adjacent, so they merge and the ferry between them counts ",
-        "as survey effort."
+        sum(other), " of ", nrow(dat), " records are not moving at ",
+        defaults$kind, " survey speed (",
+        paste(names(counts), unname(counts), sep = ": ", collapse = ", "),
+        "). This call is segmenting them under the ", defaults$kind,
+        " platform's effort criteria and distance sources, which yields ",
+        "effort and distances that look reasonable and mean something else. ",
+        "`prepare_survey(platform = \"", defaults$kind, "\")` splits them, ",
+        "in the order that has to hold: occupations, then the platform ",
+        "filter, then effort. Filtering before `make_leg_id()` makes two ",
+        "occupations of one line adjacent, so they merge and the ferry ",
+        "between them counts as survey effort."
       ))
     }
   }
@@ -186,7 +219,7 @@ segment_survey <- function(dat,
   # detection, carrying `distance_source` with them.
   if (!"distance" %in% names(dat)) {
     dat <- sighting_distances(dat, sources = distance_sources,
-                              units = distance_units)
+                              units = distance_units, platform = platform)
   }
 
   # 4-5. continuous tracks and their totals

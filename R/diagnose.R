@@ -34,6 +34,11 @@
 #'   of records would report distances across gaps that are an artefact of the
 #'   sampling — a diagnosis of the subset rather than of the data. Every total
 #'   printed is then for the subset, and the header says so.
+#' @param platform `"aerial"` (default), `"vessel"`, or `"ship"` as a synonym
+#'   for `"vessel"`. The platform you believe the file holds. Every check that
+#'   depends on it — the altitude ceiling, the speed the platform should be
+#'   moving at, which distance sources can exist — is asked against this, and
+#'   it is passed on to [segment_survey()]. See [platform_defaults()].
 #' @param seg_length Segment length in km, passed to [segment_survey()].
 #'   Default `10`.
 #' @param species Passed to [segment_survey()]. Default `NULL`.
@@ -54,7 +59,10 @@
 #'
 #' @export
 diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
-                              ...) {
+                              platform = c("aerial", "vessel", "ship"), ...) {
+  platform <- resolve_platform(platform)
+  defaults <- platform_defaults(platform)
+  band <- platform_speed_band(platform)
   ok <- TRUE
   header <- function(s) cat("\n== ", s, " ==\n", sep = "")
   pass <- function(...) cat("  ok    ", ..., "\n", sep = "")
@@ -73,7 +81,8 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
   }
 
   subset_of <- NULL
-  cat("distsamp pipeline diagnosis\n")
+  cat("distsamp pipeline diagnosis, as a ", defaults$kind, " survey\n",
+      sep = "")
 
   # --- Reading --------------------------------------------------------------
   header("Reading")
@@ -204,9 +213,10 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
   }
 
   # --- Platform -------------------------------------------------------------
-  # distsamp is aerial by construction. A vessel record cannot meet an
-  # altitude criterion, so it is excluded from effort rather than reported as
-  # a different kind of survey.
+  # Reported against the platform the caller says this is. Under the aerial
+  # criteria a vessel record cannot meet the altitude ceiling, so it leaves
+  # effort silently rather than being reported as a different kind of survey;
+  # that is what this section exists to catch.
   header("Platform")
   if (!"PLATFORM" %in% names(dat)) {
     pass("no PLATFORM column; every record is treated as one platform")
@@ -222,21 +232,22 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
     if (length(tab) > 1) {
       kinds <- tryCatch(narwcr::classify_platform(dat), error = function(e) NULL)
       other <- if (is.null(kinds)) NULL else kinds[!is.na(kinds) &
-                                                     kinds != "aerial"]
+                                                     kinds != defaults$kind]
       if (is.null(kinds)) {
         pass(length(tab), " platforms. PLATFORM has no code book, so these may",
-             " be several aircraft or several kinds of platform; too little",
-             " position and time data here to tell which")
+             " be several ", band$several, " or several kinds of platform;",
+             " too little position and time data here to tell which")
       } else if (!length(other)) {
-        pass("all of them moving at aerial survey speed - several airframes,",
-             " not several kinds of platform")
+        pass("all of them moving at ", defaults$kind, " survey speed -",
+             " several ", band$several, ", not several kinds of platform")
       } else {
-        warn(length(other), " records are on a platform not moving at aerial",
-             " speed. `flag_effort()` cannot tell \"criterion failed\" from",
-             " \"criterion does not apply\", so those are dropped from effort",
-             " rather than handled. `prepare_aerial()` splits them after",
-             " `make_leg_id()`, which is the only order that does not merge",
-             " two occupations of one line into one")
+        warn(length(other), " records are on a platform not moving at ",
+             defaults$kind, " speed. `flag_effort()` cannot tell \"criterion",
+             " failed\" from \"criterion does not apply\", so those are",
+             " dropped from effort rather than handled.",
+             " `prepare_survey(platform = \"", defaults$kind, "\")` splits",
+             " them after `make_leg_id()`, which is the only order that does",
+             " not merge two occupations of one line into one")
       }
     }
   }
@@ -279,7 +290,15 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
   # so an altitude in the wrong unit presents as "nothing was on effort", and
   # the explanation is no use printed below the failure it caused.
   header("Altitude")
-  if (!"ALT" %in% names(dat)) {
+  if (platform == "vessel") {
+    # Not "ALT looks fine" and not silence. A vessel has no altitude, so the
+    # criterion does not apply and neither does the unit check that is the
+    # whole point of this section - saying so is what stops the reader
+    # wondering where it went.
+    pass("not a criterion for a vessel, and not checked. `flag_effort()` is",
+         " called with `max_alt_m = NULL`, because a missing ALT fails any",
+         " ceiling - see `platform_defaults(\"vessel\")`")
+  } else if (!"ALT" %in% names(dat)) {
     warn("no ALT column. `perp_distance()` needs it, so declination-angle",
          " distances are unavailable")
   } else {
@@ -309,10 +328,13 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
 
   # --- Effort ---------------------------------------------------------------
   header("Effort")
-  dat <- tryCatch(narwcr::flag_effort(dat), error = function(e) {
-    fail("flag_effort() failed: ", conditionMessage(e))
-    NULL
-  })
+  dat <- tryCatch(
+    do.call(narwcr::flag_effort, c(list(dat), defaults$effort_args)),
+    error = function(e) {
+      fail("flag_effort() failed: ", conditionMessage(e))
+      NULL
+    }
+  )
   if (is.null(dat)) {
     return(verdict(list(dat = dat, findings = findings)))
   }
@@ -330,15 +352,29 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
     absent <- function(nm) {
       if (!nm %in% names(dat)) nrow(dat) else sum(off & is.na(dat[[nm]]))
     }
-    culprits <- list(
-      c("BEAUFORT above 3", sum(off & !is.na(dat$BEAUFORT) & dat$BEAUFORT > 3)),
-      c("BEAUFORT missing", absent("BEAUFORT")),
-      c("ALT above 366 m", sum(off & !is.na(dat$ALT) & dat$ALT > 366)),
-      c("ALT missing", absent("ALT")),
-      c("VISIBLTY below 2", sum(off & !is.na(dat$VISIBLTY) & dat$VISIBLTY < 2)),
-      c("VISIBLTY missing", absent("VISIBLTY")),
-      c("LEGTYPE not 2", sum(off & !is.na(dat$LEGTYPE) & dat$LEGTYPE != 2)),
-      c("LEGTYPE missing", absent("LEGTYPE"))
+    culprits <- c(
+      list(
+        c("BEAUFORT above 3",
+          sum(off & !is.na(dat$BEAUFORT) & dat$BEAUFORT > 3)),
+        c("BEAUFORT missing", absent("BEAUFORT"))
+      ),
+      # Naming ALT here on a vessel would be listing a criterion that was
+      # never applied, against records it did not exclude.
+      if (platform == "vessel") list() else list(
+        c("ALT above 366 m", sum(off & !is.na(dat$ALT) & dat$ALT > 366)),
+        c("ALT missing", absent("ALT"))
+      ),
+      list(
+        c("VISIBLTY below 2",
+          sum(off & !is.na(dat$VISIBLTY) & dat$VISIBLTY < 2)),
+        c("VISIBLTY missing", absent("VISIBLTY")),
+        # 5 and 6 are the shipboard codes, but they are a platform of
+        # opportunity rather than a designed line, so they are off effort for
+        # a vessel exactly as they are for an aircraft. See
+        # `platform_defaults()`.
+        c("LEGTYPE not 2", sum(off & !is.na(dat$LEGTYPE) & dat$LEGTYPE != 2)),
+        c("LEGTYPE missing", absent("LEGTYPE"))
+      )
     )
     culprits <- Filter(function(p) as.integer(p[2]) > 0, culprits)
     if (length(culprits)) {
@@ -405,12 +441,10 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
     }
   }
 
-  # Is this an aerial survey at all? distsamp is aerial by construction - the
-  # effort criteria are the handbook's aerial ones and `perp_distance()` is a
-  # declination from an aircraft - but nothing in the data announces the
-  # platform, and a vessel track runs through the whole pipeline returning
-  # numbers that look entirely reasonable. Speed is the one thing that cannot
-  # be mistaken.
+  # Is this the platform the caller said it was? Nothing in the data announces
+  # one, and a track of either kind runs through the whole pipeline returning
+  # numbers that look entirely reasonable under the other one's criteria and
+  # distance sources. Speed is the one thing that cannot be mistaken.
   if (all(c("TIME", "LATITUDE", "LONGITUDE") %in% names(dat)) && nrow(dat) > 2) {
     tt <- sprintf("%06d", ifelse(is.na(dat$TIME), 0, round(dat$TIME)))
     tsec <- as.numeric(substr(tt, 1, 2)) * 3600 +
@@ -423,16 +457,19 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
     use <- !is.na(gap) & gap > 0 & gap < 300 & !is.na(step)
     if (sum(use) > 20) {
       kn <- stats::median(step[use] / gap[use]) * 1.94384
-      if (kn < 40) {
+      if (kn < band$min || kn > band$max) {
+        seen <- if (kn < 2) "a platform barely moving" else
+          if (kn < 40) "a vessel" else "a survey aircraft"
         warn("the platform is moving at a median ", round(kn),
-             " knots. That is a vessel, not a survey aircraft - and distsamp",
-             " is aerial by construction: the effort criteria are the",
-             " handbook's aerial ones and `perp_distance()` is a declination",
-             " angle from an aircraft. These numbers will look reasonable and",
-             " mean something else")
+             " knots. That is ", seen, ", not ", band$what, " - and this run",
+             " is applying the ", defaults$kind, " platform's effort criteria",
+             " and distance sources to it. These numbers will look reasonable",
+             " and mean something else. `platform = \"",
+             if (kn < 40) "vessel" else "aerial", "\"` is what this file",
+             " looks like")
       } else {
-        pass("median speed ", round(kn), " knots, consistent with a survey",
-             " aircraft")
+        pass("median speed ", round(kn), " knots, consistent with ",
+             band$what)
       }
     }
   }
@@ -449,17 +486,31 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
       if (!all(cols %in% names(dat))) return(0L)
       sum(is_sighting & Reduce(`|`, lapply(cols, function(c) !is.na(dat[[c]]))))
     }
-    for (src in list(
-      list(n = have(c("ANGLEL", "ANGLER")), what = "a declination angle"),
-      list(n = have(c("S_LAT", "S_LONG")), what = "an exact position"),
-      list(n = have("STRIP"), what = "a strip code")
-    )) {
+    # Only the sources this platform can use. A declination angle counted on a
+    # vessel reads as a distance that is available, and it is not: it is an
+    # altitude divided by a tangent, on a platform with no altitude.
+    usable <- list(
+      angle = list(n = have(c("ANGLEL", "ANGLER")),
+                   what = "a declination angle"),
+      exact = list(n = have(c("S_LAT", "S_LONG")),
+                   what = "an exact position"),
+      strip = list(n = have("STRIP"), what = "a strip code")
+    )[defaults$distance_sources]
+    for (src in usable) {
       if (src$n) pass(src$n, " with ", src$what) else
         pass("none with ", src$what)
     }
-    if (!have(c("ANGLEL", "ANGLER")) && !have(c("S_LAT", "S_LONG")) &&
-        !have("STRIP")) {
-      warn("no sighting carries any of the three distance sources, so no",
+    if (platform == "vessel") {
+      aerial_only <- have(c("ANGLEL", "ANGLER")) + have("STRIP")
+      if (aerial_only) {
+        pass(aerial_only, " sighting record(s) carry a declination angle or a",
+             " strip code as well. Both are aircraft measurements and are not",
+             " read here - see `platform_defaults(\"vessel\")`")
+      }
+    }
+    if (!sum(vapply(usable, function(src) src$n, integer(1)))) {
+      warn("no sighting carries any distance source this platform can use",
+           " (", paste(defaults$distance_sources, collapse = ", "), "), so no",
            " detection function can be fitted from this file")
     }
   }
@@ -467,7 +518,8 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
   # --- Segments -------------------------------------------------------------
   header("Segments")
   seg <- tryCatch(
-    segment_survey(dat, seg_length = seg_length, species = species),
+    segment_survey(dat, seg_length = seg_length, species = species,
+                   platform = platform),
     error = function(e) {
       fail("segment_survey() failed: ", conditionMessage(e))
       NULL

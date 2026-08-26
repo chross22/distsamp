@@ -5,8 +5,8 @@
 [![check-citations](https://github.com/chross22/distsamp/actions/workflows/check-citations.yaml/badge.svg)](https://github.com/chross22/distsamp/actions/workflows/check-citations.yaml)
 <!-- badges: end -->
 
-Segment aerial line-transect marine mammal survey data for distance sampling and
-density surface modeling.
+Segment line-transect marine mammal survey data — aerial or shipboard — for
+distance sampling and density surface modeling.
 
 Takes survey data in the format of the North Atlantic Right Whale Consortium
 (NARWC) sightings database and produces effort segments — each with a location,
@@ -99,16 +99,17 @@ wrong:
 
 ```r
 dat <- narwcr::read_narwc("extract.csv")
-air <- prepare_aerial(dat)
+air <- prepare_survey(dat)
 segs <- segment_survey(air, seg_length = 10, seed = 1)
 ```
 
-`prepare_aerial()` builds line occupations, reconstructs the line state where
+`prepare_survey()` builds line occupations, reconstructs the line state where
 the file recorded it only at change points, classifies the platform by speed,
-filters to the aerial records, and flags effort — in that order. Every step is
-also exported, so you can run them by hand and intervene between them; the
-wrapper exists because the order is not obvious and getting it wrong costs
+filters to the records of that platform, and flags effort — in that order. Every
+step is also exported, so you can run them by hand and intervene between them;
+the wrapper exists because the order is not obvious and getting it wrong costs
 records silently. Its help says which step depends on which, and why.
+(`prepare_aerial()` is the same function under its old name, and still works.)
 
 Two things it deliberately leaves to you, because they are assertions about a
 particular file rather than facts about NARWC data: mapping a declination angle
@@ -150,15 +151,31 @@ answer. [docs/08-onboarding-a-real-extract.md](docs/08-onboarding-a-real-extract
 is the order to bring a new dataset in, and the traps in it are quoted with the
 magnitudes they actually caused.
 
-## Aerial by construction
+## Aerial by default, shipboard on request
 
-The effort criteria are the handbook's aerial ones and `perp_distance()` is a
-declination angle from an aircraft, so a shipboard survey does not belong here —
-but a NARWC extract can hold both with nothing in the data to say so.
-`segment_survey()` checks the platform's speed and refuses to segment a vessel
-track silently. Split with `narwcr::classify_platform()`, *after*
-`make_leg_id()`: filtering before it merges two occupations of one line and
-counts the ferry between them as survey effort.
+A NARWC extract can hold an aerial and a shipboard survey together with nothing
+in the data to say which is which, and the two are not interchangeable: the
+handbook's altitude ceiling is an aircraft criterion, and `perp_distance()` is a
+declination angle from an aircraft. `platform = "vessel"` (or `"ship"`) sets the
+effort criteria and the distance sources together, because setting one without
+the other produces a survey with no effort at all, or a detection function
+fitted to nothing:
+
+```r
+sea  <- prepare_survey(dat, platform = "vessel")
+segs <- segment_survey(sea, seg_length = 10, platform = "vessel", seed = 1)
+```
+
+`platform_defaults("vessel")` prints everything that decides.
+[docs/09-shipboard-surveys.md](docs/09-shipboard-surveys.md) explains why the
+altitude criterion is *dropped* rather than raised, why the two aircraft
+distance sources become an error rather than an `NA`, and why `LEGTYPE` 5 and 6
+are still off effort.
+
+Whichever you pick, `segment_survey()` checks the platform's speed and refuses
+to segment the other kind silently. Split with `narwcr::classify_platform()`,
+*after* `make_leg_id()`: filtering before it merges two occupations of one line
+and counts the ferry between them as survey effort.
 
 Segments are cut following the approach of Becker et al. (2010): divide
 continuous portions of survey effort into segments of approximately equal length,
@@ -240,7 +257,7 @@ That returns three entries — the package, the segmentation method it implement
 and the data format — because a methods section usually needs all three:
 
 ```
-Ross, C. distsamp: Segment Aerial Line-Transect Survey Data for Distance
+Ross, C. distsamp: Segment Line-Transect Survey Data for Distance
 Sampling. R package. https://github.com/chross22/distsamp
 
 Becker, E.A., Forney, K.A., Ferguson, M.C., Foley, D.G., Smith, R.C., Barlow, J.
