@@ -287,11 +287,23 @@ dist_method_canonical <- function(method) {
 #' @return `dat` with two columns added or replaced:
 #'   \describe{
 #'     \item{`pt2pt.effort`}{Distance in km from this record to the next
-#'       on-effort record within the same line; `0` at line ends and across
-#'       off-effort gaps.}
+#'       record, when that record is on effort, in the same line, and the
+#'       next row of the frame; `0` at line ends, across off-effort gaps, and
+#'       where another line's records come between two records of this one.}
 #'     \item{`Effort`}{Total on-effort distance of the line this record belongs
 #'       to, repeated on every record of the line.}
 #'   }
+#'
+#' @section Interrupted lines:
+#' A step is only ever taken to the *next row*. Grouping by `by` alone is not
+#' enough: a `LEGNO3` that recurs later in the day - a line resumed after a
+#' detour onto another line, or a label shared by two occupations - would
+#' otherwise pair the last record before the interruption with the first
+#' record after it, and count the straight line between them as effort while
+#' the records in between are counted again under their own line. On the
+#' NARWC 2011-2023 aerial extract that jump was 38% of all effort (median
+#' 29 km, up to 137 km per jump). The records between are counted under the
+#' line they belong to, so nothing flown is lost.
 #'
 #' @references
 #' Kenney, R.D. and Winn, H.E. (1986) Cetacean high-use habitats of the
@@ -327,9 +339,13 @@ point_to_point_effort <- function(dat,
     return(dat)
   }
 
+  dat$.row <- seq_len(nrow(dat))
   out <- dplyr::group_by(dat, dplyr::across(dplyr::all_of(by)))
   out <- dplyr::mutate(
     out,
+    # The group's next record must also be the frame's next row; see
+    # "Interrupted lines". Otherwise it is the far side of another line.
+    .contiguous = dplyr::lead(.data$.row) == .data$.row + 1L,
     .next_lat = dplyr::lead(.data$LATITUDE),
     .next_lon = dplyr::lead(.data$LONGITUDE),
     .next_on  = dplyr::lead(.data$OnOff.Effort),
@@ -346,7 +362,8 @@ point_to_point_effort <- function(dat,
       )
     },
     pt2pt.effort = ifelse(
-      !is.na(.data$.next_on) & .data$OnOff.Effort == 1 & .data$.next_on == 1,
+      !is.na(.data$.next_on) & .data$OnOff.Effort == 1 & .data$.next_on == 1 &
+        .data$.contiguous,
       .data$.step,
       0
     ),
@@ -363,7 +380,7 @@ point_to_point_effort <- function(dat,
   # counted, and reported, rather than absorbed.
   if (source == "recorded") {
     blank <- !is.na(out$.next_on) & out$OnOff.Effort == 1 &
-      out$.next_on == 1 & is.na(out$.step)
+      out$.next_on == 1 & out$.contiguous & is.na(out$.step)
     if (any(blank)) {
       rlang::warn(paste0(
         sum(blank), " on-effort interval", if (sum(blank) > 1) "s" else "",
@@ -384,7 +401,8 @@ point_to_point_effort <- function(dat,
   }
 
   out <- dplyr::select(
-    out, -dplyr::all_of(c(".next_lat", ".next_lon", ".next_on", ".step"))
+    out, -dplyr::all_of(c(".next_lat", ".next_lon", ".next_on", ".step",
+                          ".row", ".contiguous"))
   )
   class(out) <- unique(c(setdiff(class(dat), class(out)), class(out)))
   out

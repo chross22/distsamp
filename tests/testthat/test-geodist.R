@@ -230,3 +230,29 @@ test_that("a complete TRKDIST is not warned about", {
   dat$TRKDIST <- c(NA, rep(0.01 * KM_PER_DEG * 1000, 4))
   expect_no_warning(point_to_point_effort(dat, source = "recorded"))
 })
+
+test_that("a line interrupted by another line does not count the jump", {
+  # The NARWC failure: a LEGNO3 that recurs after another line. Grouping by
+  # line alone made lead() pair the last record before the interruption with
+  # the first after it, and the straight line between them - 38% of the
+  # 2011-2023 aerial effort - was counted while the records between were
+  # counted again under their own line.
+  a1 <- straight_line(n = 11, lat0 = 43, legno = 1)
+  b  <- straight_line(n = 11, lat0 = 42, lon = -68, legno = 2)
+  a2 <- straight_line(n = 11, lat0 = 41, legno = 1)
+  b$EVENTNO <- b$EVENTNO + 100
+  a2$EVENTNO <- a2$EVENTNO + 200
+  dat <- dplyr::bind_rows(a1, b, a2)
+  dat$OnOff.Effort <- 1
+  dat$LEGNO3 <- c(rep("A", 11), rep("B", 11), rep("A", 11))
+
+  out <- point_to_point_effort(dat)
+  correct <- 3 * 10 * 0.01 * KM_PER_DEG
+  expect_equal(sum(out$pt2pt.effort), correct)
+  expect_equal(out$pt2pt.effort[11], 0)
+  expect_false(any(c(".row", ".contiguous") %in% names(out)))
+
+  # Contiguous records of one line are untouched.
+  expect_equal(sum(point_to_point_effort(dat[1:11, ])$pt2pt.effort),
+               10 * 0.01 * KM_PER_DEG)
+})

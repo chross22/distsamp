@@ -55,8 +55,9 @@ between two lines is discarded rather than counted.}
 \code{dat} with two columns added or replaced:
 \describe{
 \item{\code{pt2pt.effort}}{Distance in km from this record to the next
-on-effort record within the same line; \code{0} at line ends and across
-off-effort gaps.}
+record, when that record is on effort, in the same line, and the
+next row of the frame; \code{0} at line ends, across off-effort gaps, and
+where another line's records come between two records of this one.}
 \item{\code{Effort}}{Total on-effort distance of the line this record belongs
 to, repeated on every record of the line.}
 }
@@ -79,6 +80,19 @@ dat <- point_to_point_effort(dat)
 sum(dat$pt2pt.effort)
 
 }
+\section{Interrupted lines}{
+
+A step is only ever taken to the \emph{next row}. Grouping by \code{by} alone is not
+enough: a \code{LEGNO3} that recurs later in the day - a line resumed after a
+detour onto another line, or a label shared by two occupations - would
+otherwise pair the last record before the interruption with the first
+record after it, and count the straight line between them as effort while
+the records in between are counted again under their own line. On the
+NARWC 2011-2023 aerial extract that jump was 38\% of all effort (median
+29 km, up to 137 km per jump). The records between are counted under the
+line they belong to, so nothing flown is lost.
+}
+
 \references{
 Kenney, R.D. and Winn, H.E. (1986) Cetacean high-use habitats of the
 northeast United States continental shelf. \emph{Fishery Bulletin} 84(2):345-357.
