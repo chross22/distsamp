@@ -83,7 +83,7 @@ or keep metres and tell `Distance` about it via `convert_units`. For effort in
 km, distance in m, and area in km², that conversion factor is:
 
 ```{r}
-# (m -> km) * 2 sides * (km effort)
+# distance in m, effort in km, area in km^2: m -> km
 convert_units <- 0.001
 ```
 
@@ -144,7 +144,8 @@ head(flat)
 ```{r, eval = FALSE}
 library(Distance)
 
-df <- ds(flat, key = "hn", truncation = "10%", formula = ~ wt_beaufort)
+df <- ds(flat, key = "hn", truncation = "10%", formula = ~ wt_beaufort,
+         convert_units = 0.001)   # distances in m, effort in km
 
 summary(df)
 plot(df)
@@ -240,17 +241,20 @@ segment.data <- data.frame(
   beaufort     = segs$segments$wt_beaufort
 )
 
+# The detections the detection function was actually fitted to, after
+# truncation, so `object` matches.
+fitted <- df$ddf$data
 observation.data <- data.frame(
-  object       = seq_len(nrow(df_data)),
-  Sample.Label = df_data$seg_id,
-  size         = df_data$size,
-  distance     = df_data$distance
+  object       = fitted$object,
+  Sample.Label = fitted$Sample.Label,
+  size         = fitted$size,
+  distance     = fitted$distance
 )
 ```
 
-`object` is just a detection identifier; `dsm` uses it to link a detection to
-its row in the fitted detection function, so it must match the row order of the
-data you passed to `ds()`.
+`object` is the detection identifier from `detection_data()`; `dsm` uses it to
+link a detection to its row in the fitted detection function. Taking the rows
+from `df$ddf$data` keeps the two in step after truncation.
 
 ### Project the coordinates first
 
@@ -284,7 +288,8 @@ mod <- dsm(
   segment.data = segment.data,
   observation.data = observation.data,
   family = tw(),          # Tweedie handles the zero inflation
-  method = "REML"
+  method = "REML",
+  convert.units = 0.001   # distances in m, effort in km
 )
 
 summary(mod)

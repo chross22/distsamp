@@ -48,14 +48,16 @@
 #' rows are dropped, and counted in the report.
 #'
 #' @section Circling detections:
-#' Excluded by default, and the reason is stronger than "the position is off the
-#' track". A circling detection's `distance` is not measured at all: it is
-#' inherited from the on-effort sighting these animals were counted with, which
-#' is already a row in this table. Keeping both puts the same perpendicular
-#' distance into the detection function twice and weights it twice.
-#' `include_circling = TRUE` does keep them — a choice worth stating in a
-#' methods section rather than making silently — but it is a choice about
-#' double-counting, not about which positions are trustworthy.
+#' Excluded by default. Under the default
+#' `segment_survey(circling_distance = "with_group")` there are none to exclude:
+#' the animals were added to the on-effort group they were counted with, which
+#' is already a row here. Under `"break_off"` a circling detection's `distance`
+#' is either a perpendicular distance from a position fixed minutes after the
+#' detection (`distance_source == "circling"`), or, with no exact position, a
+#' great-circle distance from the break-off that is not perpendicular at all
+#' (`"break_off"`). Neither is measured at the moment of detection. `include_circling = TRUE` does keep
+#' them — a choice worth stating in a methods section rather than making
+#' silently.
 #'
 #' Note that this is independent of whether circling sightings count towards
 #' abundance in a density surface model, which they should and do; that is
@@ -96,7 +98,9 @@
 #' @param quiet Suppress the report of what was dropped. Default `FALSE`.
 #'
 #' @return A tibble in `Distance` flatfile shape, with a `distance_units`
-#'   attribute.
+#'   attribute. It has a `distance` column for exact distances, or
+#'   `distbegin`/`distend` for binned ones, never both:
+#'   `Distance::ds()` treats the presence of the bin columns as binned data.
 #'
 #' @references
 #' Miller, D.L., Rexstad, E., Thomas, L., Marshall, L. and Laake, J.L. (2019)
@@ -204,6 +208,18 @@ detection_data <- function(x, area, region = NULL, truncation = NULL,
   }
 
   out <- assemble_flatfile(base, det, covariates)
+
+  # `Distance::ds()` decides between exact and binned distances from the column
+  # names alone: if `distbegin` and `distend` are present it treats the data as
+  # binned and drops `distance`, whatever the columns hold. So the flatfile
+  # carries only the columns of the kind it has. A table of exact distances
+  # with all-NA bin columns could not be fitted at all.
+  if (has_bin && !has_point) {
+    out$distance <- NULL
+  } else if (!has_bin) {
+    out$distbegin <- NULL
+    out$distend <- NULL
+  }
   if (!quiet) report_detection_data(dropped, out, units)
   attr(out, "distance_units") <- units
   out

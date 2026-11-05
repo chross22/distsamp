@@ -34,12 +34,20 @@ name by name.
 
 ## The altitude criterion is dropped, not raised
 
-This is the part that is easy to get wrong and impossible to see. `flag_effort()`
-fails a record whose criterion is missing, so a vessel record — which has no
-`ALT`, because it has no altitude to have — fails the ceiling **at any height**.
-`max_alt_m = Inf` does not rescue it. `narwcr::flag_effort()` now accepts
-`max_alt_m = NULL`, meaning the criterion does not apply, and that is what the
-vessel defaults pass.
+This is the part that is easy to get wrong and impossible to see.
+`flag_effort()` fails a record whose criterion is missing, so a vessel record
+with no `ALT` fails the ceiling **at any height** — `max_alt_m = Inf` rescues
+nothing. `narwcr::flag_effort()` now accepts `max_alt_m = NULL`, meaning the
+criterion does not apply, and that is what the vessel defaults pass.
+
+**Measure what it costs on your file rather than assuming.** Not every vessel
+record has an empty `ALT`. Some programmes write the observer's eye height
+there — a few metres, which clears an aircraft's 366 m ceiling comfortably — so
+most of the shipboard survey passes and the problem stays invisible until you
+notice the records that *are* empty have gone. On one real extract of 1,037,180
+vessel records the median `ALT` was 9.7 m and 338,562 were `NA`: dropping the
+criterion recovered 32% of the vessel effort and took eligible sightings from
+464 to 741.
 
 `na_action = "pass"` would also let those records through, and it is the wrong
 tool: it lets *every* missing criterion through with them, so a record with no

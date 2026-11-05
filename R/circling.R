@@ -44,7 +44,9 @@ flag_circling <- function(dat) {
 
   if ("LEGSTAGE" %in% names(dat)) {
     group <- if ("LEGNO3" %in% names(dat)) {
-      paste(dat$DATE %||% "", dat$LEGNO3)
+      # `[[`, not `$`: on a tibble `$` warns for a missing column on its way
+      # to returning NULL.
+      paste(dat[["DATE"]] %||% "", dat$LEGNO3)
     } else {
       rep("all", nrow(dat))
     }
@@ -94,34 +96,62 @@ flag_circling <- function(dat) {
 #' belong to the segment.
 #'
 #' `mode = "same_species"` implements that rule: a circling sighting is attached
-#' only when the preceding segment already holds an on-effort sighting of the
-#' same species. It is the default.
+#' only when an on-effort group of the same species was seen before the
+#' break-off (see "Which group"). It is the default.
+#'
+#' @section Which group:
+#' The group circled animals are counted with is the most recent on-effort
+#' sighting of the same species that is
+#'
+#' * in the same line occupation (`DATE`, `FILEID`, `LEGNO3`);
+#' * after the previous resume (`LEGSTAGE == 4`) on that line, so a group
+#'   circled earlier cannot collect animals from a later circle; and
+#' * within `max_gap_km` of the point where the aircraft broke off.
+#'
+#' It may sit in an earlier segment than the circling record. Segment
+#' boundaries know nothing of circling, and an earlier version that searched
+#' only the segment in progress dropped the circled animals whenever a boundary
+#' fell between the sighting and the break-off.
 #'
 #' @section Which distance:
 #' "Counted with the original on-effort group" is also a statement about
-#' distance, and `distance = "inherit"` reads it as one: the animals take that
-#' group's perpendicular distance, which was measured from the line at the
-#' moment of break-off.
+#' distance. `distance = "with_group"` (the default) reads it literally: if
+#' these animals are counted with the original group then they *are* that
+#' group, and a group has one distance, one detection probability and one row.
+#' The animals are added to its `NUMBER` and no second observation is made.
+#' Nothing is inherited or constructed. What this does not remove is the
+#' judgement underneath: it is right only where the animals really are that
+#' group or associated with it, which is what `mode = "same_species"` is
+#' testing.
 #'
-#' `distance = "break_off"` reads the sighting as its own: the great-circle
-#' distance from where the aircraft left the line to where the animals were
-#' logged. That is a real measurement of a real thing, and it is the honest
-#' answer to "how far off the track were they" — but it is a slant distance
-#' from an off-effort position minutes after the fact, not a perpendicular
-#' distance, and a group circled twice before logging is further from the
-#' break-off than it ever was from the line.
+#' `distance = "break_off"` reads the sighting as its own, with a distance
+#' from the census line at the break-off:
 #'
-#' The two will not agree, and which is nearer the truth depends on how the
-#' circle was actually flown, which the records do not record.
+#' * Where the record carries an exact position (`S_LAT`/`S_LONG`), that
+#'   position is projected perpendicularly onto the census line through the
+#'   break-off, by [circling_distance()], and marked
+#'   `distance_source == "circling"`. This is a perpendicular distance, though
+#'   the position is fixed minutes after the detection.
+#' * Otherwise it falls back to the great-circle distance from where the
+#'   aircraft left the line to where the record was logged, marked
+#'   `distance_source == "break_off"`. That is a slant distance from an
+#'   off-effort position, not a perpendicular one, and a group circled twice
+#'   before logging is further from the break-off than it ever was from the
+#'   line. The logged position during a circle is the aircraft's, not the
+#'   animal's.
 #'
-#' `distance = "with_group"` declines the question. If these animals are
-#' counted with the original group then they *are* that group, and a group has
-#' one distance, one detection probability and one row — so the animals are
-#' added to its `NUMBER` and no second observation is made. That removes the
-#' objection to inheriting, which is that a row appears carrying a distance it
-#' was never seen at. What it does not remove is the judgement underneath: it
-#' is right only where the animals really are that group or associated with it,
-#' which is what `mode = "same_species"` is testing.
+#' `"with_group"` and `"break_off"` will not agree, and which is nearer the
+#' truth depends on how the circle was actually flown, which the records do not
+#' record.
+#'
+#' An earlier `distance = "inherit"` gave the circling record a row of its own
+#' carrying the on-effort group's perpendicular distance. It produced the same
+#' estimate as `"with_group"`, segment for segment, while adding a row that
+#' claimed a distance nothing was detected at, and it was removed. Naming it
+#' now errors with that explanation.
+#'
+#' This function sets an attached record's distance itself, replacing any
+#' `distance` it arrived with.
 #'
 #' Run them and compare if it matters to your estimate; `break_off_distance` is
 #' on every attached record whichever is chosen, so the comparison needs no
@@ -136,21 +166,28 @@ flag_circling <- function(dat) {
 #' @param mode `"same_species"` (default), `"all"`, or `"none"`; see Details.
 #' @param distance What an attached record carries.
 #'
-#'   `"inherit"` (default) gives it the perpendicular distance of the on-effort
-#'   group these animals were counted with, marked
-#'   `distance_source == "circling"`. `"break_off"` gives it the measured
-#'   great-circle distance from the point on the line where the aircraft broke
-#'   off, marked `distance_source == "break_off"`. Both make it an observation
-#'   of its own on a density surface.
+#'   `"with_group"` (default) makes it no observation at all: the animals are
+#'   added to the `NUMBER` of the on-effort sighting they were counted with,
+#'   and the record is marked `circling_counted = FALSE` so
+#'   [segment_sightings()] does not count them twice. Nothing is inherited or
+#'   constructed.
 #'
-#'   `"with_group"` makes it no observation at all: the animals are added to
-#'   the `NUMBER` of the on-effort sighting they were counted with, and the
-#'   record is marked `circling_counted = FALSE` so [segment_sightings()] does
-#'   not count them twice. Nothing is inherited or constructed.
+#'   `"break_off"` makes it an observation of its own on a density surface.
+#'   Its distance is the perpendicular distance of its exact position
+#'   (`S_LAT`/`S_LONG`) from the census line where one exists, marked
+#'   `distance_source == "circling"`, and otherwise the great-circle distance
+#'   from the point on the line where the aircraft broke off, marked
+#'   `distance_source == "break_off"`.
 #'
-#'   `break_off_distance` is computed under all three, so the size of the
+#'   `break_off_distance` is computed under both, so the size of the
 #'   disagreement is visible whichever is chosen. No option puts a circling
 #'   record into a detection function — [detection_data()] excludes them all.
+#' @param max_gap_km Furthest, in km, that the on-effort group may have been
+#'   seen from the point where the aircraft left the line. Default `5`;
+#'   [segment_survey()] passes `seg_length`. See "Which group".
+#' @param units Units of `distance` under `distance = "break_off"`: `"m"`
+#'   (default) or `"km"`, matching [segment_survey()]'s `distance_units`.
+#'   `break_off_distance` is always metres.
 #'
 #' @return `chopped` with the attachable circling records appended, carrying the
 #'   `seg_id`, `seg_no`, and `seg_eff` of the segment they were attached to and
@@ -196,22 +233,29 @@ flag_circling <- function(dat) {
 attach_circling_sightings <- function(chopped, dat,
                                       mode = c("same_species", "all", "none"),
                                       distance = c("with_group",
-                                                   "break_off")) {
+                                                   "break_off"),
+                                      units = c("m", "km"),
+                                      max_gap_km = 5) {
   mode <- match.arg(mode)
-  # Named before match.arg(), which would otherwise report a removed option as
-  # simply not one of the choices - true, and no help at all to anyone whose
-  # script or notes still say it.
-  if (identical(distance, "inherit") ||
-      (length(distance) == 1L && identical(distance, "inherit"))) {
-    rlang::abort(paste0(
-      "`distance = \"inherit\"` was removed. It gave the circling record an ",
-      "observation of\nits own carrying the on-effort group's perpendicular ",
-      "distance - which produced the\nexact same estimate as ",
-      "`\"with_group\"`, segment for segment, while adding a row that\n",
-      "claimed a distance nothing was detected at. Use `\"with_group\"`."
-    ))
-  }
+  units <- match.arg(units)
+  stopifnot(is.numeric(max_gap_km), length(max_gap_km) == 1L,
+            !is.na(max_gap_km), max_gap_km >= 0)
+  reject_removed_inherit(distance, "distance")
   distance <- match.arg(distance)
+
+  # A circle logged as a single record does not split the track: track
+  # splitting treats one off-effort record between on-effort ones as on effort,
+  # so cut_segments() keeps it. A circling sighting kept that way was counted
+  # as an ordinary sighting and then again when attached below - and counted
+  # even under `mode = "none"`. Attachment is the only way a circling sighting
+  # reaches a segment, so any already there is removed first. Its effort is
+  # zero (it is off effort), so no segment changes length.
+  if ("CIRCLE" %in% names(chopped) && "SPECCODE" %in% names(chopped)) {
+    leaked <- !is.na(chopped$CIRCLE) & chopped$CIRCLE == 1 &
+      !is.na(chopped$SPECCODE) & chopped$SPECCODE != ""
+    chopped <- chopped[!leaked, , drop = FALSE]
+  }
+
   if (mode == "none" || is_empty_df(chopped)) {
     return(chopped)
   }
@@ -219,26 +263,17 @@ attach_circling_sightings <- function(chopped, dat,
     return(chopped)
   }
 
-  cand <- dat[
+  cand_rows <- which(
     !is.na(dat$CIRCLE) & dat$CIRCLE == 1 &
-      !is.na(dat$SPECCODE) & dat$SPECCODE != "", ,
-    drop = FALSE
-  ]
+      !is.na(dat$SPECCODE) & dat$SPECCODE != ""
+  )
+  cand <- dat[cand_rows, , drop = FALSE]
   if (!nrow(cand)) {
     return(chopped)
   }
 
-  # Where each segment ended, so a circling sighting can be traced back to the
-  # segment that was in progress immediately before the break-off.
-  #
-  # The last record's position comes with it. That record is where the aircraft
-  # was when it left the line, and the distance from it to the circling
-  # position is the only distance about a circling sighting that is measured
-  # rather than inherited.
-  # `na.last = FALSE`, so a record with no event number sorts first and can
-  # never be taken as the one the aircraft broke off from. Its position would
-  # then be measured from, and there is nothing to say it is where the aircraft
-  # was.
+  # Each segment's identity, for copying onto the records attached to it.
+  # `na.last = FALSE`, so a record with no event number never sets a bound.
   by_event <- chopped[order(chopped$EVENTNO, na.last = FALSE), , drop = FALSE]
   bounds <- dplyr::summarise(
     dplyr::group_by(by_event, .data$DATE, .data$seg_id),
@@ -247,57 +282,128 @@ attach_circling_sightings <- function(chopped, dat,
     new_trackno = dplyr::first(.data$new_trackno),
     first_event = min(.data$EVENTNO, na.rm = TRUE),
     last_event = max(.data$EVENTNO, na.rm = TRUE),
-    break_lat = dplyr::last(.data$LATITUDE),
-    break_lon = dplyr::last(.data$LONGITUDE),
     .groups = "drop"
   )
 
-  # Each candidate attaches to the segment that was in progress immediately
-  # before it: the one on the same day with the largest `last_event` not past
-  # the candidate's own.
-  #
-  # Done as a rolling lookup per day rather than a scan per candidate. Scanning
-  # `bounds` and `chopped` once for every circling sighting made this
-  # O(candidates x records), which is invisible when circling is rare and
-  # quadratic when it is not - and on right whale surveys it is not.
-  target <- rep(NA_integer_, nrow(cand))
-  cand_day <- as.character(cand$DATE)
-  bound_day <- as.character(bounds$DATE)
-
-  for (day in unique(cand_day)) {
-    b <- which(bound_day == day)
-    if (!length(b)) next
-    ord <- b[order(bounds$last_event[b])]
-    i <- which(cand_day == day)
-    pos <- findInterval(cand$EVENTNO[i], bounds$last_event[ord])
-    hit <- pos >= 1L
-    target[i[hit]] <- ord[pos[hit]]
+  # Line occupation of each record, so nothing is looked for across lines.
+  occ_cols <- intersect(c("DATE", "FILEID", "LEGNO3"), names(dat))
+  occ_key <- function(df) {
+    do.call(paste, c(lapply(occ_cols, function(nm) as.character(df[[nm]])),
+                     sep = "\r"))
   }
+  cand_occ <- occ_key(cand)
+  cand_ev <- as.numeric(cand$EVENTNO)
+
+  # The break-off each candidate belongs to: the latest `LEGSTAGE == 3` at or
+  # before it in its occupation. And the previous resume (`LEGSTAGE == 4`)
+  # before that break-off, which bounds how far back its group is looked for.
+  # Without `LEGSTAGE`, or with no break-off record, the candidate's own event
+  # stands in for the break-off and there is no lower bound.
+  ref_ev <- cand_ev
+  floor_ev <- rep(-Inf, nrow(cand))
+  if ("LEGSTAGE" %in% names(dat)) {
+    dat_occ <- occ_key(dat)
+    dat_ev <- as.numeric(dat$EVENTNO)
+    stage <- dat$LEGSTAGE
+    for (k in unique(cand_occ)) {
+      i <- which(cand_occ == k)
+      in_occ <- dat_occ == k & !is.na(dat_ev) & !is.na(stage)
+      brk <- sort(dat_ev[in_occ & stage == 3])
+      res <- sort(dat_ev[in_occ & stage == 4])
+      at <- findInterval(cand_ev[i], brk)
+      ref_ev[i] <- ifelse(at >= 1L, brk[pmax(at, 1L)], cand_ev[i])
+      r <- findInterval(ref_ev[i], res, left.open = TRUE)
+      floor_ev[i] <- ifelse(r >= 1L, res[pmax(r, 1L)], -Inf)
+    }
+  }
+
+  # The anchor: the last on-effort record at or before the break-off, on the
+  # same day. With a break-off record on effort, that is the break-off record
+  # itself. The candidate joins the anchor's segment, and distances are
+  # measured from the anchor's position.
+  #
+  # Anchored on the break-off rather than on segment ends. A circle logged as
+  # a single record does not split the track, so the break-off and the resume
+  # can share a segment whose last event is after the circle; looking for the
+  # segment that ended before the circle then picked the one before that, and
+  # measured from its far end.
+  #
+  # One `findInterval()` per day. A per-candidate scan makes this
+  # O(candidates x records), which is invisible while circling is rare and
+  # quadratic when it is not - and on right whale surveys it is not.
+  anchor <- rep(NA_integer_, nrow(cand))
+  cand_day <- as.character(cand$DATE)
+  ch_day <- as.character(chopped$DATE)
+  for (day in unique(cand_day)) {
+    rows <- which(ch_day == day & !is.na(chopped$EVENTNO))
+    if (!length(rows)) next
+    rows <- rows[order(chopped$EVENTNO[rows])]
+    i <- which(cand_day == day)
+    pos <- findInterval(ref_ev[i], as.numeric(chopped$EVENTNO[rows]))
+    hit <- pos >= 1L
+    anchor[i[hit]] <- rows[pos[hit]]
+  }
+  target <- match(chopped$seg_id[anchor], bounds$seg_id)
+  break_lat <- chopped$LATITUDE[anchor]
+  break_lon <- chopped$LONGITUDE[anchor]
 
   sel <- !is.na(target)
 
   # The on-effort sighting each candidate belongs to, where there is one: the
-  # LAST of its own species in the target segment, by event order. A segment
-  # can hold several, and the group most recently seen is the one the aircraft
-  # turned back for - taking whichever row happened to come first in the frame
-  # would make the inherited distance depend on row order, which is not a fact
-  # about the survey.
+  # LAST of its own species seen from the line before the break-off, in the
+  # same line occupation, and since the aircraft last rejoined that line. The
+  # group most recently seen is the one the aircraft turned back for - taking
+  # whichever row happened to come first in the frame would make the result
+  # depend on row order, which is not a fact about the survey.
   #
-  # `match()` takes the first hit, so the lookup is built in reverse. This row
-  # is the source of the inherited distance below, and of the same-species
-  # rule: no row, no attachment.
+  # Searched over the occupation, not the segment. Segment boundaries are
+  # placed by the segmentation and know nothing of circling, so one can fall
+  # between a sighting and the break-off it prompted. Searching only the
+  # segment in progress then found no group, and under `"same_species"` the
+  # circled animals were dropped: neither counted with their group nor
+  # attached anywhere.
   #
-  # One vectorised call over all candidates, and it has to stay that way. The
-  # membership test this replaced carried the same warning: doing it per
-  # candidate makes the function O(candidates x records), which is invisible
-  # while circling is rare and quadratic when it is not - and on right whale
-  # surveys it is not.
-  seen <- which(!is.na(chopped$SPECCODE) & chopped$SPECCODE != "")
-  seen <- seen[order(chopped$EVENTNO[seen], decreasing = TRUE)]
-  origin <- seen[match(
-    paste(bounds$seg_id[target], cand$SPECCODE, sep = "\r"),
-    paste(chopped$seg_id[seen], chopped$SPECCODE[seen], sep = "\r")
-  )]
+  # Bounded below by the previous resume (`LEGSTAGE == 4`), so a group circled
+  # earlier on the same line cannot collect animals from a later circle. With
+  # no `LEGSTAGE` there is no such bound and the whole occupation is searched.
+  #
+  # This row is where `with_group` adds the animals, and the same-species rule:
+  # no row, no attachment.
+  #
+  # Done with one `findInterval()` per occupation and species, and it has to
+  # stay vectorised. A per-candidate scan makes this O(candidates x records),
+  # which is invisible while circling is rare and quadratic when it is not -
+  # and on right whale surveys it is not.
+  seen <- which(!is.na(chopped$SPECCODE) & chopped$SPECCODE != "" &
+                  !is.na(chopped$EVENTNO))
+  seen_key <- paste(occ_key(chopped)[seen], chopped$SPECCODE[seen], sep = "\r")
+  cand_key <- paste(cand_occ, cand$SPECCODE, sep = "\r")
+  origin <- rep(NA_integer_, nrow(cand))
+  for (k in intersect(unique(cand_key), seen_key)) {
+    rows <- seen[seen_key == k]
+    rows <- rows[order(chopped$EVENTNO[rows])]
+    ev <- as.numeric(chopped$EVENTNO[rows])
+    i <- which(cand_key == k)
+    at <- findInterval(ref_ev[i], ev)
+    hit <- at >= 1L
+    hit[hit] <- ev[at[hit]] > floor_ev[i][hit]
+    origin[i[hit]] <- rows[at[hit]]
+  }
+
+  # And near enough to the break-off to be what the aircraft turned back for.
+  # The occupation bound alone would let a group seen 20 km back collect the
+  # animals; the old per-segment search prevented that, but only by accident
+  # of where the boundaries fell. Measured from the sighting's record to where
+  # the aircraft left the line.
+  near <- !is.na(origin) & !is.na(target)
+  if (any(near)) {
+    gap <- gc_distance(
+      chopped$LATITUDE[origin[near]], chopped$LONGITUDE[origin[near]],
+      break_lat[near], break_lon[near]
+    )
+    far <- is.na(gap) | gap > max_gap_km
+    origin[which(near)[far]] <- NA_integer_
+  }
 
   if (mode == "same_species") {
     # Handbook 4.2 / the CETAP rule: a circling sighting joins the segment only
@@ -356,7 +462,7 @@ attach_circling_sightings <- function(chopped, dat,
   extra$distance_source <- NA_character_
 
   extra$break_off_distance <- gc_distance(
-    bounds$break_lat[at], bounds$break_lon[at],
+    break_lat[sel], break_lon[sel],
     extra$LATITUDE, extra$LONGITUDE
   ) * 1000
 
@@ -375,10 +481,24 @@ attach_circling_sightings <- function(chopped, dat,
   # is a slant distance from an off-effort position and is not perpendicular to
   # anything. `detection_data()` excludes both on `CIRCLE == 1`.
   if (identical(distance, "break_off")) {
-    extra$distance <- extra$break_off_distance
+    scale <- if (units == "km") 1 / 1000 else 1
+    extra$distance <- extra$break_off_distance * scale
     extra$side <- NA_character_
     extra$distance_source <- ifelse(is.na(extra$distance), NA_character_,
                                     "break_off")
+
+    # Where the animals' own position was recorded, project it onto the census
+    # line instead. That is a perpendicular distance, which the slant distance
+    # from the break-off is not; the slant one stays as the fallback, and in
+    # `break_off_distance` either way.
+    if (all(c("S_LAT", "S_LONG") %in% names(dat))) {
+      perp <- circling_distance(dat, units = units)[cand_rows[sel], ,
+                                                   drop = FALSE]
+      has <- !is.na(perp$distance)
+      extra$distance[has] <- perp$distance[has]
+      extra$side[has] <- perp$side[has]
+      extra$distance_source[has] <- "circling"
+    }
   }
 
   # `with_group` takes "counted with the original on-effort group" literally.
@@ -449,4 +569,22 @@ attach_circling_sightings <- function(chopped, dat,
   keep <- union(intersect(names(chopped), names(extra)), added)
   out <- dplyr::bind_rows(chopped, extra[, keep])
   dplyr::arrange(out, .data$DATE, .data$seg_id, .data$EVENTNO)
+}
+
+
+# Named before match.arg(), which would otherwise report a removed option as
+# simply not one of the choices - true, and no help at all to anyone whose
+# script or notes still say it. Shared with segment_survey(), whose own
+# match.arg() runs first and would otherwise answer for it.
+reject_removed_inherit <- function(distance, arg) {
+  if (identical(distance, "inherit")) {
+    rlang::abort(paste0(
+      "`", arg, " = \"inherit\"` was removed. It gave the circling record an ",
+      "observation of\nits own carrying the on-effort group's perpendicular ",
+      "distance - which produced the\nexact same estimate as ",
+      "`\"with_group\"`, segment for segment, while adding a row that\n",
+      "claimed a distance nothing was detected at. Use `\"with_group\"`."
+    ))
+  }
+  invisible(distance)
 }

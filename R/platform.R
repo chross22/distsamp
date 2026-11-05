@@ -16,12 +16,20 @@
 #' @section What changes with the platform:
 #' \describe{
 #'   \item{Effort criteria}{The handbook's altitude ceiling (8.A.1) is an
-#'     aircraft criterion. A vessel record carries no `ALT`, and a missing
-#'     value fails a criterion, so the ceiling puts every vessel record off
-#'     effort at any height — `max_alt_m = Inf` does not rescue them. The
-#'     vessel defaults drop the criterion instead
+#'     aircraft criterion, and it cannot be widened into one that applies to a
+#'     ship — a record with no `ALT` fails it at any height, because a missing
+#'     value fails a criterion, so `max_alt_m = Inf` rescues nothing. The
+#'     vessel defaults drop it instead
 #'     (`narwcr::flag_effort(max_alt_m = NULL)`). Sea state and visibility
-#'     apply to both, and are left alone.}
+#'     apply to both, and are left alone.
+#'
+#'   How much this costs depends on the file, so measure it rather than
+#'   assume it. Some programmes leave `ALT` empty on their vessel records
+#'   and every one of them is excluded; others write the observer's eye
+#'   height there, which passes an aircraft's ceiling comfortably and hides
+#'   the problem until the records that *are* empty go missing. On one real
+#'   extract of 1,037,180 vessel records, 338,562 had no `ALT` — 32% of the
+#'   vessel effort, and 277 of 741 eligible sightings.}
 #'   \item{Right-angle distance sources}{`"angle"` is \eqn{h/\tan\theta} from
 #'     an aircraft altitude, and the `"strip"` code books are the Skymaster's
 #'     and the AT-11's (8.A.31). Neither means anything on a vessel, so the

@@ -214,7 +214,12 @@ test_that("a vessel-speed track is flagged as not an aerial survey", {
     (dat$TIME %% 10000) %/% 100 * 60 + dat$TIME %% 100,
     origin = "1970-01-01", tz = "UTC"), "%H%M%S"))
 
-  out <- capture.output(diagnose_pipeline(dat, seg_length = 1))
+  # segment_survey() raises its own warning about the same records; this test
+  # is about the diagnosis, so that one is expected rather than leaked.
+  expect_warning(
+    out <- capture.output(diagnose_pipeline(dat, seg_length = 1)),
+    "not moving at aerial survey speed"
+  )
   expect_true(any(grepl("WARN.*knots. That is a vessel", out)))
 })
 

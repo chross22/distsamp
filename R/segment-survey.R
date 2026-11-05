@@ -10,6 +10,7 @@
 #'
 #' @section Pipeline:
 #' 1. [make_leg_id()] — separate re-occupations of the same survey line.
+#'    Then `narwcr::fill_legstage()`, unless `LEGSTAGE_FILLED` shows it has run.
 #' 2. [flag_effort()] — decide which records are on effort.
 #' 3. [point_to_point_effort()] — great-circle distance between consecutive
 #'    on-effort positions.
@@ -57,9 +58,12 @@
 #' @param distance_sources Precedence order over the right-angle distance
 #'   sources, passed to [sighting_distances()]. `NULL` (default) takes the
 #'   platform's order — `c("angle", "exact", "strip")` for an aircraft,
-#'   `"exact"` for a vessel. `"circling"` is available but not on by default
-#'   for either. Each detection records which source supplied it, in
-#'   `distance_source`.
+#'   `"exact"` for a vessel. Each detection records which source supplied it,
+#'   in `distance_source`. `"circling"` is accepted but has no effect here and
+#'   warns: circling records reach the output only through
+#'   [attach_circling_sightings()], which sets their distance from
+#'   `circling_distance`. `circling_distance = "break_off"` already uses the
+#'   perpendicular distance wherever an exact position exists.
 #' @param distance_units Units for perpendicular sighting distances computed
 #'   from `ANGLEL`/`ANGLER`: `"m"` (default) or `"km"`. Note that `seg_eff` is
 #'   always in km — see [perp_distance()].
@@ -67,12 +71,16 @@
 #'   census track: `"same_species"` (default), `"all"`, or `"none"`. See
 #'   [attach_circling_sightings()].
 #' @param circling_distance What an attached circling record carries:
-#'   `"inherit"` (default), the perpendicular distance of the on-effort group
-#'   it was counted with; `"break_off"`, the measured great-circle distance
-#'   from where the aircraft left the line; or `"with_group"`, which gives it
-#'   no distance and no detection of its own, adding the animals to the group
-#'   they were counted with instead. See [attach_circling_sightings()].
+#'   `"with_group"` (default) gives it no distance and no detection of its
+#'   own, adding the animals to the group they were counted with instead;
+#'   `"break_off"` makes it a detection of its own, at the perpendicular
+#'   distance of its exact position (`S_LAT`/`S_LONG`) from the census line
+#'   where one exists, and otherwise at the great-circle distance from where
+#'   the aircraft left the line. See [attach_circling_sightings()].
 #'   `settings$circling_distance` records which was used.
+#' @param circling_max_gap_km Furthest, in km, that the on-effort group may
+#'   have been seen from the break-off for circled animals to be counted with
+#'   it. `NULL` (default) uses `seg_length`. See [attach_circling_sightings()].
 #' @param effort_args Named list of arguments for [flag_effort()], used only
 #'   when `dat` has no `OnOff.Effort` column. Merged over the platform's own
 #'   defaults, so naming an argument here overrides it.
@@ -135,6 +143,7 @@ segment_survey <- function(dat,
                                            "eab", "rdk"),
                            circling = c("same_species", "all", "none"),
                            circling_distance = c("with_group", "break_off"),
+                           circling_max_gap_km = NULL,
                            distance_units = c("m", "km"),
                            platform = c("aerial", "vessel", "ship"),
                            distance_sources = NULL,
@@ -142,7 +151,8 @@ segment_survey <- function(dat,
                            sighting_args = list()) {
   dist_method <- dist_method_canonical(match.arg(dist_method))
   circling <- match.arg(circling)
-  circling_distance <- match.arg(circling_distance)  # "inherit" errors below
+  reject_removed_inherit(circling_distance, "circling_distance")
+  circling_distance <- match.arg(circling_distance)
   distance_units <- match.arg(distance_units)
   platform <- resolve_platform(platform)
   stopifnot(is.data.frame(dat))
@@ -158,6 +168,20 @@ segment_survey <- function(dat,
   } else {
     check_distance_sources(distance_sources, platform)
   }
+  # A circling record's distance is set when it is attached, not here: it is
+  # off effort, so cut_segments() drops it and attach_circling_sightings()
+  # brings it back with the distance `circling_distance` names. Asking for the
+  # source would compute a number that never reaches the output.
+  if ("circling" %in% distance_sources) {
+    rlang::warn(paste0(
+      "`distance_sources` includes \"circling\", which has no effect in ",
+      "`segment_survey()`: circling records get their distance from ",
+      "`circling_distance` when they are attached. ",
+      "`circling_distance = \"break_off\"` uses the perpendicular distance ",
+      "of an exact position (S_LAT/S_LONG) wherever one exists."
+    ))
+    distance_sources <- setdiff(distance_sources, "circling")
+  }
   keep_names <- setdiff(names(defaults$effort_args), names(effort_args))
   effort_args <- c(effort_args, defaults$effort_args[keep_names])
 
@@ -166,6 +190,7 @@ segment_survey <- function(dat,
     seg_tol_frac = seg_tol_frac, min_track_km = min_track_km,
     min_segment_km = min_segment_km, dist_method = dist_method,
     circling = circling, circling_distance = circling_distance,
+    circling_max_gap_km = circling_max_gap_km %||% seg_length,
     distance_units = distance_units,
     platform = platform,
     distance_sources = distance_sources
@@ -174,6 +199,15 @@ segment_survey <- function(dat,
   # 1. line occupations
   if (!"LEGNO3" %in% names(dat)) {
     dat <- make_leg_id(dat)
+  }
+
+  # The line state, where the file records it only when it changes. Distances
+  # are measured only on records in state 2 (handbook 8.A.31), so a mid-line
+  # sighting with no LEGSTAGE of its own would get none. prepare_survey() does
+  # this too, and marks it with LEGSTAGE_FILLED, which is how it is not done
+  # twice.
+  if ("LEGSTAGE" %in% names(dat) && !"LEGSTAGE_FILLED" %in% names(dat)) {
+    dat <- narwcr::fill_legstage(dat)
   }
 
   # The effort criteria and the distance sources are now this platform's, so
@@ -238,7 +272,9 @@ segment_survey <- function(dat,
   # Bring back sightings made while circling off the census track, attributing
   # them to the segment that was in progress at the break-off.
   chopped <- attach_circling_sightings(chopped, dat, mode = circling,
-                                       distance = circling_distance)
+                                       distance = circling_distance,
+                                       units = distance_units,
+                                       max_gap_km = settings$circling_max_gap_km)
 
   # 8-9. per-segment products
   mids <- segment_midpoints(chopped)

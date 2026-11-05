@@ -265,7 +265,8 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
   # the transit out and the ferry between lines.
   occs <- unique(stats::na.omit(dat$LEGNO3))
   pass(length(occs), " line occupation(s) over ",
-       length(unique(dat$DATE)), " survey day(s), ",
+       if ("DATE" %in% names(dat)) length(unique(dat$DATE)) else "an unknown number of",
+       " survey day(s), ",
        sum(is.na(dat$LEGNO3)), " record(s) on no line")
 
   kind <- table(sub("_[0-9]+$", "", occs))

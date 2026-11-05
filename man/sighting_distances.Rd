@@ -108,7 +108,11 @@ for exactly that purpose.
 on-effort detections and dropping them thins the near-zero end of the distance
 distribution — but the position is fixed after the animal has moved, so they
 are a weaker source. Ask for them deliberately, and see
-\code{\link[=circling_distance]{circling_distance()}}.
+\code{\link[=circling_distance]{circling_distance()}}. \code{\link[=segment_survey]{segment_survey()}} does not take this source from
+\code{distance_sources}, and warns if it is asked for: a circling record's
+distance is set when it is attached, and
+\code{segment_survey(circling_distance = "break_off")} uses this same
+computation wherever an exact position exists.
 }
 
 \section{Restricted to census records}{

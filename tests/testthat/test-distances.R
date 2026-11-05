@@ -95,7 +95,7 @@ test_that("the fixture's detections carry the expected distances", {
   expect_true(any(abs(with_dist$distance - 229) < 1e-8))
 })
 
-test_that("a circling detection is measured from the break-off, never guessed", {
+test_that("a circling detection is measured from the line, never guessed", {
   # `break_off` is the only option that makes a circling detection at all. The
   # default counts those animals into the group they were found with, which is
   # covered in test-attach-circling.R.
@@ -105,17 +105,30 @@ test_that("a circling detection is measured from the break-off, never guessed", 
   det <- segs$detections
   circ <- det[!is.na(det$circling) & det$circling == 1, ]
   expect_gt(nrow(circ), 0)
-
-  # Measured from where the aircraft left the line - not computed from an
-  # angle, because none was taken, and not copied from another sighting.
   expect_false(anyNA(circ$distance))
-  expect_equal(circ$distance, circ$break_off_distance)
-  expect_true(all(circ$distance_source == "break_off"))
   expect_true(all(circ$break_off_distance > 0))
 
-  # It is not perpendicular to anything, so there is no side of the line for
-  # it to be on.
-  expect_true(all(is.na(circ$side)))
+  # The fixture's circling sighting carries an exact position, placed 250 m to
+  # the right of the census line (data-raw/make-fixture.R). That is projected
+  # onto the line - not computed from an angle, because none was taken, and
+  # not copied from another sighting - and it is shorter than the slant
+  # distance from the break-off, which `break_off_distance` still carries.
+  expect_true(all(circ$distance_source == "circling"))
+  expect_equal(circ$distance, 250, tolerance = 1e-3)
+  expect_true(all(circ$side == "right"))
+  expect_true(all(circ$break_off_distance > circ$distance))
+
+  # Without the exact position it falls back to the slant distance, which is
+  # perpendicular to nothing and so has no side.
+  bare <- example_data()
+  bare$S_LAT[!is.na(bare$LEGTYPE) & bare$LEGTYPE == 4] <- NA
+  segs2 <- segment_survey(bare, seg_length = 5, seed = 1,
+                          circling = "same_species",
+                          circling_distance = "break_off")
+  c2 <- segs2$detections[segs2$detections$circling %in% 1, ]
+  expect_true(all(c2$distance_source == "break_off"))
+  expect_equal(c2$distance, c2$break_off_distance)
+  expect_true(all(is.na(c2$side)))
 
   # And a sighting made from the line has no break-off to be measured from.
   on_line <- det[!is.na(det$circling) & det$circling == 0, ]
