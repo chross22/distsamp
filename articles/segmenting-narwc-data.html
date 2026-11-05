@@ -86,7 +86,7 @@
 </h2>
 <p>Density surface modelling needs survey effort chopped into short,
 roughly equal pieces — segments — each with a location, an amount of
-effort, and a count of what was seen along it. This package takes aerial
+effort, and a count of what was seen along it. This package takes
 line-transect survey data in the format of the North Atlantic Right
 Whale Consortium (NARWC) sightings database and produces exactly
 that.</p>
@@ -479,8 +479,8 @@ wants.</p>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> 2024-04-01_2_2 2024-04-01 RIWH         2    132.         <span style="color: #BB0000;">NA</span>      <span style="color: #BB0000;">NA</span> left </span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> 2024-04-01_2_2 2024-04-01 RIWH         1    397.         <span style="color: #BB0000;">NA</span>      <span style="color: #BB0000;">NA</span> right</span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> 2024-04-01_2_2 2024-04-01 FIWH         3    629.         <span style="color: #BB0000;">NA</span>      <span style="color: #BB0000;">NA</span> right</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> 2024-04-01_4_2 2024-04-01 RIWH         4     61.4        <span style="color: #BB0000;">NA</span>      <span style="color: #BB0000;">NA</span> left </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> 2024-04-01_4_2 2024-04-01 RIWH         1    855.         <span style="color: #BB0000;">NA</span>      <span style="color: #BB0000;">NA</span> right</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> 2024-04-01_4_2 2024-04-01 RIWH         3     61.4        <span style="color: #BB0000;">NA</span>      <span style="color: #BB0000;">NA</span> left </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> 2024-04-01_4_2 2024-04-01 RIWH         2    855.         <span style="color: #BB0000;">NA</span>      <span style="color: #BB0000;">NA</span> right</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># ℹ 5 more variables: distance_source &lt;chr&gt;, EVENTNO &lt;dbl&gt;, SIGHTNO &lt;dbl&gt;,</span></span></span>
 <span><span class="co">#&gt; <span style="color: #949494;">#   circling &lt;int&gt;, break_off_distance &lt;dbl&gt;</span></span></span></code></pre></div>
 <p>The geometry is handbook 8.A.2: the angle is measured below the
@@ -565,7 +565,7 @@ deliberate, stated choice.</p>
 <p>Two things to watch:</p>
 <p><strong>Units.</strong> <code>ALT</code> is in metres, so distances
 are metres by default, but <code>seg_eff</code> is in kilometres.
-Passing both to <code>Distance::ds()</code> without reconciling them
+Passing both to <code><a href="https://rdrr.io/pkg/Distance/man/ds.html" class="external-link">Distance::ds()</a></code> without reconciling them
 scales density by 1000. Use <code>distance_units = "km"</code>, or
 supply <code>convert_units</code>.</p>
 <div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
@@ -630,7 +630,7 @@ segment that takes the remainder — but mass outside the band is not.</p>
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">segs</span>, what <span class="op">=</span> <span class="st">"distances"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="segmenting-narwc-data_files/figure-html/unnamed-chunk-33-1.png" class="r-plt" alt="" width="576"></p>
 <p>The detection-function diagnostic, worth looking at before
-<code>Distance::ds()</code> is called. Look for a shoulder near zero and
+<code><a href="https://rdrr.io/pkg/Distance/man/ds.html" class="external-link">Distance::ds()</a></code> is called. Look for a shoulder near zero and
 a tail that falls away.</p>
 <p>Two cautions on reading it. A dip in the first bin need not be a
 sampling artefact: an aircraft cannot see the water directly beneath it,
@@ -707,17 +707,17 @@ consistent:</p>
 </h2>
 <p>The fixture is clean. A real NARWC extract is not, and the steps
 between reading one and segmenting it have an order that is quiet when
-you get it wrong. <code><a href="../reference/prepare_aerial.html">prepare_aerial()</a></code> runs them:</p>
+you get it wrong. <code><a href="../reference/prepare_survey.html">prepare_survey()</a></code> runs them:</p>
 <div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">air</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/prepare_aerial.html">prepare_aerial</a></span><span class="op">(</span><span class="va">dat</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">air</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/prepare_survey.html">prepare_survey</a></span><span class="op">(</span><span class="va">dat</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>records <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">air</span><span class="op">)</span>, on_effort <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">air</span><span class="op">$</span><span class="va">OnOff.Effort</span> <span class="op">==</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   records on_effort </span></span>
 <span><span class="co">#&gt;       113       101</span></span></code></pre></div>
 <p>It builds line occupations, reconstructs the line state where the
 file recorded it only at change points, classifies the platform by
-speed, keeps the aerial records, and flags effort — in that order.
-<code><a href="../reference/prepare_aerial.html">?prepare_aerial</a></code> says which step depends on which. Two
-examples of why the order is not cosmetic:</p>
+speed, keeps the records of that platform, and flags effort — in that
+order. <code><a href="../reference/prepare_survey.html">?prepare_survey</a></code> says which step depends on which.
+Two examples of why the order is not cosmetic:</p>
 <ul>
 <li>Filtering out a vessel leg <em>before</em> occupations are built
 makes two occupations of one survey line adjacent, so they merge and the

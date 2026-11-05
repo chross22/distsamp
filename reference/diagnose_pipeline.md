@@ -14,7 +14,14 @@ run once against a new dataset, before any of its numbers are used.
 ## Usage
 
 ``` r
-diagnose_pipeline(x, days = NULL, seg_length = 10, species = NULL, ...)
+diagnose_pipeline(
+  x,
+  days = NULL,
+  seg_length = 10,
+  species = NULL,
+  platform = c("aerial", "vessel", "ship"),
+  ...
+)
 ```
 
 ## Arguments
@@ -58,6 +65,17 @@ diagnose_pipeline(x, days = NULL, seg_length = 10, species = NULL, ...)
   [`segment_survey()`](https://camilleross.org/distsamp/reference/segment_survey.md).
   Default `NULL`.
 
+- platform:
+
+  `"aerial"` (default), `"vessel"`, or `"ship"` as a synonym for
+  `"vessel"`. The platform you believe the file holds. Every check that
+  depends on it — the altitude ceiling, the speed the platform should be
+  moving at, which distance sources can exist — is asked against this,
+  and it is passed on to
+  [`segment_survey()`](https://camilleross.org/distsamp/reference/segment_survey.md).
+  See
+  [`platform_defaults()`](https://camilleross.org/distsamp/reference/platform_defaults.md).
+
 - ...:
 
   Passed to
@@ -100,7 +118,7 @@ of
 ``` r
 path <- system.file("extdata", "narwc-example.csv", package = "distsamp")
 invisible(diagnose_pipeline(path, seg_length = 5))
-#> distsamp pipeline diagnosis
+#> distsamp pipeline diagnosis, as a aerial survey
 #> 
 #> == Reading ==
 #>   ok    113 records, 30 columns

@@ -131,7 +131,7 @@ A `ggplot` object.
   Every position, uncoloured. The only view that cannot fail for want of
   a column: it needs `LATITUDE` and `LONGITUDE` and nothing else, so it
   works on a file that has not been through
-  [`prepare_aerial()`](https://camilleross.org/distsamp/reference/prepare_aerial.md),
+  [`prepare_survey()`](https://camilleross.org/distsamp/reference/prepare_survey.md),
   or one whose columns are not what you expected. Where `"raw"` still
   asks for `LEGTYPE`, this asks for nothing. Add `sightings = TRUE` and
   it is the whole survey — effort and what was seen on it — in one map.

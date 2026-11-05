@@ -55,8 +55,9 @@ archive's sources is available, and records which one was used.</p>
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">sighting_distances</span><span class="op">(</span></span>
 <span>  <span class="va">dat</span>,</span>
-<span>  sources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"angle"</span>, <span class="st">"exact"</span>, <span class="st">"strip"</span><span class="op">)</span>,</span>
+<span>  sources <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  units <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"m"</span>, <span class="st">"km"</span>, <span class="st">"nmi"</span><span class="op">)</span>,</span>
+<span>  platform <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"aerial"</span>, <span class="st">"vessel"</span>, <span class="st">"ship"</span><span class="op">)</span>,</span>
 <span>  on_effort_only <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  strip_scheme <span class="op">=</span> <span class="st">"auto"</span>,</span>
 <span>  strip_platform <span class="op">=</span> <span class="st">"skymaster"</span>,</span>
@@ -76,11 +77,18 @@ make their source unavailable; nothing errors.</p></dd>
 
 <dt id="arg-sources">sources<a class="anchor" aria-label="anchor" href="#arg-sources"></a></dt>
 <dd><p>Precedence order over <code>"angle"</code>, <code>"exact"</code>, <code>"strip"</code>, and
-<code>"circling"</code>. Defaults to <code>c("angle", "exact", "strip")</code>.</p></dd>
+<code>"circling"</code>. <code>NULL</code> (default) takes the platform's order:
+<code>c("angle", "exact", "strip")</code> for an aircraft, <code>"exact"</code> for a vessel.</p></dd>
 
 
 <dt id="arg-units">units<a class="anchor" aria-label="anchor" href="#arg-units"></a></dt>
 <dd><p><code>"m"</code> (default), <code>"km"</code>, or <code>"nmi"</code>.</p></dd>
+
+
+<dt id="arg-platform">platform<a class="anchor" aria-label="anchor" href="#arg-platform"></a></dt>
+<dd><p><code>"aerial"</code> (default), <code>"vessel"</code>, or <code>"ship"</code> as a synonym
+for <code>"vessel"</code>. Decides the default <code>sources</code>, and which sources may be
+asked for at all. See <code><a href="platform_defaults.html">platform_defaults()</a></code>.</p></dd>
 
 
 <dt id="arg-on-effort-only">on_effort_only<a class="anchor" aria-label="anchor" href="#arg-on-effort-only"></a></dt>
@@ -125,6 +133,20 @@ Each has its own function; this assembles them.</p><table class="table table"><t
 distance for a record wins, and <code>distance_source</code> records which that was.</p>
     </div>
     <div class="section level2">
+    <h2 id="two-of-the-four-are-aircraft-measurements">Two of the four are aircraft measurements<a class="anchor" aria-label="anchor" href="#two-of-the-four-are-aircraft-measurements"></a></h2>
+
+
+<p><code>"angle"</code> is an altitude divided by a tangent, and the <code>"strip"</code> code books
+are the Skymaster's and the AT-11's (8.A.31). Neither exists on a vessel.
+<code>platform = "vessel"</code> therefore leaves <code>"exact"</code> — a recorded sighting
+position projected onto the track, which is geometry rather than platform —
+and asking for either of the others errors rather than returning a column of
+<code>NA</code>. <code>"circling"</code> is a break-off from the census line and applies to both,
+but is opt-in for both too.</p>
+<p>Leave <code>sources</code> at <code>NULL</code> to take the platform's own order. Naming it
+overrides the platform, within what the platform can supply.</p>
+    </div>
+    <div class="section level2">
     <h2 id="why-the-provenance-column-is-not-optional">Why the provenance column is not optional<a class="anchor" aria-label="anchor" href="#why-the-provenance-column-is-not-optional"></a></h2>
 
 
@@ -150,7 +172,11 @@ for exactly that purpose.</p>
 on-effort detections and dropping them thins the near-zero end of the distance
 distribution — but the position is fixed after the animal has moved, so they
 are a weaker source. Ask for them deliberately, and see
-<code><a href="circling_distance.html">circling_distance()</a></code>.</p>
+<code><a href="circling_distance.html">circling_distance()</a></code>. <code><a href="segment_survey.html">segment_survey()</a></code> does not take this source from
+<code>distance_sources</code>, and warns if it is asked for: a circling record's
+distance is set when it is attached, and
+<code>segment_survey(circling_distance = "break_off")</code> uses this same
+computation wherever an exact position exists.</p>
     </div>
     <div class="section level2">
     <h2 id="restricted-to-census-records">Restricted to census records<a class="anchor" aria-label="anchor" href="#restricted-to-census-records"></a></h2>
@@ -205,6 +231,13 @@ those records are off effort by definition.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> angle exact </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     5     3 </span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># A vessel has only the position; the aircraft sources are not offered</span></span></span>
+<span class="r-in"><span><span class="va">sea</span> <span class="op">&lt;-</span> <span class="fu">sighting_distances</span><span class="op">(</span><span class="va">dat</span>, platform <span class="op">=</span> <span class="st">"vessel"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">sea</span><span class="op">$</span><span class="va">distance_source</span>, useNA <span class="op">=</span> <span class="st">"no"</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> exact </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     3 </span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

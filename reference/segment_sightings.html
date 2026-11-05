@@ -132,15 +132,19 @@ Prefer the weighted value as a detection covariate.</p>
 <p>The <code>detections</code> table has one row per qualifying sighting rather than per
 segment, carrying the perpendicular distance from <code><a href="sighting_distances.html">sighting_distances()</a></code> when
 <code>ANGLEL</code>/<code>ANGLER</code> are available. That is the shape a detection function wants:
-pass it to <code>Distance::ds()</code>, keyed back to the segments by <code>seg_id</code>.</p>
-<p>A sighting recorded while circling carries the perpendicular distance of the
-on-effort group it was counted with, marked <code>distance_source == "circling"</code>,
-and the measured <code>break_off_distance</code> from the point on the line where the
-aircraft broke off. The first is what lets it count towards the segment's
-abundance, which needs a detection probability; the second is what lets you
-judge whether the attachment was reasonable. Neither belongs in a detection
-function — the inherited one is already in it, under the sighting it was
-inherited from — and <code><a href="detection_data.html">detection_data()</a></code> excludes them by default.</p>
+pass it to <code><a href="https://rdrr.io/pkg/Distance/man/ds.html" class="external-link">Distance::ds()</a></code>, keyed back to the segments by <code>seg_id</code>.</p>
+<p>A sighting recorded while circling depends on
+<code>attach_circling_sightings(distance = )</code>. Under <code>"with_group"</code> (the default)
+its animals were added to the on-effort group it was counted with, it is
+marked <code>circling_counted = FALSE</code>, and it is skipped here, so it is not a
+detection at all. Under <code>"break_off"</code> it is a detection of its own: at the
+perpendicular distance of its exact position from the census line
+(<code>distance_source == "circling"</code>) where one was recorded, and otherwise at
+the great-circle distance from where the aircraft broke off
+(<code>distance_source == "break_off"</code>). The first is fixed minutes after the
+detection and the second is not perpendicular, so <code><a href="detection_data.html">detection_data()</a></code>
+excludes circling detections by default. <code>break_off_distance</code> is carried
+either way, for judging whether the attachment was reasonable.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>

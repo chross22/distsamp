@@ -74,8 +74,8 @@ segs$detections[, c("seg_id", "SPECCODE", "size", "distance", "side")]
 #> 1 2024-04-01_2_1 RIWH         1    229   right
 #> 2 2024-04-01_2_2 RIWH         2    132.  left 
 #> 3 2024-04-01_2_2 RIWH         1    397.  right
-#> 4 2024-04-01_4_2 RIWH         4     61.4 left 
-#> 5 2024-04-01_4_2 RIWH         1    855.  right
+#> 4 2024-04-01_4_2 RIWH         3     61.4 left 
+#> 5 2024-04-01_4_2 RIWH         2    855.  right
 #> 6 2024-04-02_1_3 RIWH         4    160.  left
 ```
 
@@ -115,7 +115,7 @@ effort in km, distance in m, and area in km², that conversion factor is:
 
 ``` r
 
-# (m -> km) * 2 sides * (km effort)
+# distance in m, effort in km, area in km^2: m -> km
 convert_units <- 0.001
 ```
 
@@ -142,10 +142,12 @@ What you find changes what you fit:
   mile to either side of the survey line”. That argues for
   `ds(left = ...)`, not for assuming the animals were not there.
 - **A peak away from zero** is what the gamma key function describes. It
-  is not available in `Distance::ds()`, which offers `hn`, `hr`, and
-  `unif` only; it lives in `mrds::ddf(key = "gamma")`. Note that a gamma
-  key and a left truncation model the same phenomenon, so using both
-  counts the blind spot twice.
+  is not available in
+  [`Distance::ds()`](https://rdrr.io/pkg/Distance/man/ds.html), which
+  offers `hn`, `hr`, and `unif` only; it lives in
+  `mrds::ddf(key = "gamma")`. Note that a gamma key and a left
+  truncation model the same phenomenon, so using both counts the blind
+  spot twice.
 - **A long flat tail** is the case for truncating harder.
 - **A distance the aircraft could not possibly have seen** is not a wide
   detection, it is a broken one — a sighting matched to the wrong
@@ -164,9 +166,9 @@ been invisible.
 
 ## Fitting a detection function
 
-`Distance::ds()` wants a data frame with a `distance` column, optionally
-with `size` and detection covariates. `segs$detections` is already that
-shape.
+[`Distance::ds()`](https://rdrr.io/pkg/Distance/man/ds.html) wants a
+data frame with a `distance` column, optionally with `size` and
+detection covariates. `segs$detections` is already that shape.
 
 [`detection_data()`](https://camilleross.org/distsamp/reference/detection_data.md)
 assembles that table for you:
@@ -181,23 +183,24 @@ flat <- detection_data(
 #> `detection_data()`: 20 segments, 6 detections (m).
 #>   g(0) = 1 is assumed; see `?detection_data`.
 head(flat)
-#> # A tibble: 6 × 11
-#>   Region.Label  Area Sample.Label Effort object distance distbegin distend  size
-#>   <chr>        <dbl> <chr>         <dbl>  <int>    <dbl>     <dbl>   <dbl> <dbl>
-#> 1 all           5811 2024-04-01_…   7.78      1     229         NA      NA     1
-#> 2 all           5811 2024-04-01_…   5.56      2     132.        NA      NA     2
-#> 3 all           5811 2024-04-01_…   5.56      3     397.        NA      NA     1
-#> 4 all           5811 2024-04-01_…   3.33     NA      NA         NA      NA    NA
-#> 5 all           5811 2024-04-01_…   5.56     NA      NA         NA      NA    NA
-#> 6 all           5811 2024-04-01_…   4.44     NA      NA         NA      NA    NA
-#> # ℹ 2 more variables: distance_source <chr>, wt_beaufort <dbl>
+#> # A tibble: 6 × 9
+#>   Region.Label  Area Sample.Label   Effort object distance  size distance_source
+#>   <chr>        <dbl> <chr>           <dbl>  <int>    <dbl> <dbl> <chr>          
+#> 1 all           5811 2024-04-01_2_1   7.78      1     229      1 angle          
+#> 2 all           5811 2024-04-01_2_2   5.56      2     132.     2 angle          
+#> 3 all           5811 2024-04-01_2_2   5.56      3     397.     1 angle          
+#> 4 all           5811 2024-04-01_2_3   3.33     NA      NA     NA NA             
+#> 5 all           5811 2024-04-01_2_4   5.56     NA      NA     NA NA             
+#> 6 all           5811 2024-04-01_4_1   4.44     NA      NA     NA NA             
+#> # ℹ 1 more variable: wt_beaufort <dbl>
 ```
 
 ``` r
 
 library(Distance)
 
-df <- ds(flat, key = "hn", truncation = "10%", formula = ~ wt_beaufort)
+df <- ds(flat, key = "hn", truncation = "10%", formula = ~ wt_beaufort,
+         convert_units = 0.001)   # distances in m, effort in km
 
 summary(df)
 plot(df)
@@ -261,8 +264,9 @@ table(flat$distance_source, useNA = "no")
 takes a `truncation` argument that drops detections beyond it and leaves
 their segments in place with effort intact — effort searched is effort
 searched whether or not anything was seen within the truncation
-distance. Pass the same value to `ds()`, or you will fit the model to
-one set of detections and scale abundance by another.
+distance. Pass the same value to
+[`ds()`](https://rdrr.io/pkg/Distance/man/ds.html), or you will fit the
+model to one set of detections and scale abundance by another.
 
 ``` r
 
@@ -315,17 +319,22 @@ segment.data <- data.frame(
   beaufort     = segs$segments$wt_beaufort
 )
 
+# The detections the detection function was actually fitted to, after
+# truncation, so `object` matches.
+fitted <- df$ddf$data
 observation.data <- data.frame(
-  object       = seq_len(nrow(df_data)),
-  Sample.Label = df_data$seg_id,
-  size         = df_data$size,
-  distance     = df_data$distance
+  object       = fitted$object,
+  Sample.Label = fitted$Sample.Label,
+  size         = fitted$size,
+  distance     = fitted$distance
 )
 ```
 
-`object` is just a detection identifier; `dsm` uses it to link a
-detection to its row in the fitted detection function, so it must match
-the row order of the data you passed to `ds()`.
+`object` is the detection identifier from
+[`detection_data()`](https://camilleross.org/distsamp/reference/detection_data.md);
+`dsm` uses it to link a detection to its row in the fitted detection
+function. Taking the rows from `df$ddf$data` keeps the two in step after
+truncation.
 
 ### Project the coordinates first
 
@@ -369,7 +378,8 @@ mod <- dsm(
   segment.data = segment.data,
   observation.data = observation.data,
   family = tw(),          # Tweedie handles the zero inflation
-  method = "REML"
+  method = "REML",
+  convert.units = 0.001   # distances in m, effort in km
 )
 
 summary(mod)
@@ -420,18 +430,20 @@ neither is anything downstream of it.
 ``` r
 
 str(segs$settings)
-#> List of 11
-#>  $ seg_length       : num 5
-#>  $ species          : chr "RIWH"
-#>  $ seed             : num 1
-#>  $ seg_tol_frac     : num 0.5
-#>  $ min_track_km     : num 1
-#>  $ min_segment_km   : num 1
-#>  $ dist_method      : chr "haversine"
-#>  $ circling         : chr "same_species"
-#>  $ circling_distance: chr "with_group"
-#>  $ distance_units   : chr "m"
-#>  $ distance_sources : chr [1:3] "angle" "exact" "strip"
+#> List of 13
+#>  $ seg_length         : num 5
+#>  $ species            : chr "RIWH"
+#>  $ seed               : num 1
+#>  $ seg_tol_frac       : num 0.5
+#>  $ min_track_km       : num 1
+#>  $ min_segment_km     : num 1
+#>  $ dist_method        : chr "haversine"
+#>  $ circling           : chr "same_species"
+#>  $ circling_distance  : chr "with_group"
+#>  $ circling_max_gap_km: num 5
+#>  $ distance_units     : chr "m"
+#>  $ platform           : chr "aerial"
+#>  $ distance_sources   : chr [1:3] "angle" "exact" "strip"
 ```
 
 Suggested methods wording is in `docs/06-references.md` in the package

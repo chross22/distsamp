@@ -138,7 +138,7 @@
       </dl></div><div class="section level2">
       <h2 id="distances-and-geometry">Distances and geometry<a class="anchor" aria-label="anchor" href="#distances-and-geometry"></a></h2>
 
-      <div class="section-desc"><p>Perpendicular distance is what a detection function consumes. Where the survey recorded declination angles, it can be computed exactly.</p></div>
+      <div class="section-desc"><p>Perpendicular distance is what a detection function consumes. Where the survey recorded declination angles, it can be computed exactly; a shipboard survey has the sighting position instead.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -164,7 +164,7 @@
           <code><a href="detection_data.html">detection_data()</a></code>
 
         </dt>
-        <dd>Build a flatfile for <code>Distance::ds()</code></dd>
+        <dd>Build a flatfile for <code><a href="https://rdrr.io/pkg/Distance/man/ds.html" class="external-link">Distance::ds()</a></code></dd>
 
         <dt>
 
@@ -231,7 +231,7 @@
       </dl></div><div class="section level2">
       <h2 id="circling-and-reflights">Circling and reflights<a class="anchor" aria-label="anchor" href="#circling-and-reflights"></a></h2>
 
-      <div class="section-desc"><p>An aircraft that circles a sighting is no longer on effort. These find those passages and attach their sightings to the right segment.</p></div>
+      <div class="section-desc"><p>A platform that breaks off to circle a sighting is no longer on effort. These find those passages and attach their sightings to the right segment.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -284,7 +284,7 @@
       </dl></div><div class="section level2">
       <h2 id="preparing-and-inspecting">Preparing and inspecting<a class="anchor" aria-label="anchor" href="#preparing-and-inspecting"></a></h2>
 
-      <div class="section-desc"><p>Aerial-specific preparation, a pipeline diagnosis that reports rather than stops, and plots for looking at what came out.</p></div>
+      <div class="section-desc"><p>Getting an extract ready to segment, a pipeline diagnosis that reports rather than stops, and plots for looking at what came out.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -314,6 +314,13 @@
 
         <dt>
 
+          <code><a href="platform_defaults.html">platform_defaults()</a></code>
+
+        </dt>
+        <dd>The platforms this package can segment</dd>
+
+        <dt>
+
           <code><a href="plot.distsamp_segments.html">plot(<i>&lt;distsamp_segments&gt;</i>)</a></code>
 
         </dt>
@@ -335,7 +342,7 @@
 
         <dt>
 
-          <code><a href="prepare_aerial.html">prepare_aerial()</a></code>
+          <code><a href="prepare_survey.html">prepare_survey()</a></code> <code><a href="prepare_survey.html">prepare_aerial()</a></code>
 
         </dt>
         <dd>Get a NARWC extract ready to segment</dd>

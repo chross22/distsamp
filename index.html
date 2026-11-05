@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Segment Aerial Line-Transect Survey Data for Distance Sampling • distsamp</title>
+<title>Segment Line-Transect Survey Data for Distance Sampling • distsamp</title>
 <!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="favicon-96x96.png">
 <link rel="icon" type="”image/svg+xml”" href="favicon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
@@ -15,9 +15,9 @@
 <link href="deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Segment Aerial Line-Transect Survey Data for Distance Sampling">
-<meta name="description" content="Turns marine mammal aerial line-transect survey data recorded in the North Atlantic Right Whale Consortium (NARWC) sightings database format into effort segments and detection distances, ready for distance sampling and density surface modeling. Reading and standardising an extract is done by the narwcr package, which this one shares with other analyses of the same archive; what follows is specific to distance sampling. Accumulates great-circle effort, splits survey lines at breaks in effort, and chops continuous tracklines into segments of a target length following the approach of Becker et al. (2010) &lt;doi:10.3354/meps08696&gt;, within the segmented line-transect framework of Hedley and Buckland (2004) &lt;doi:10.1198/1085711043578&gt; and Miller et al. (2013) &lt;doi:10.1111/2041-210X.12105&gt;. Resolves right-angle distances from every source the archive records, whether declination angles, the two STRIP interval code books, exact sighting positions, or a break-off to circle, recording which supplied each detection; and assembles them into the flatfile that Distance accepts.">
-<meta property="og:description" content="Turns marine mammal aerial line-transect survey data recorded in the North Atlantic Right Whale Consortium (NARWC) sightings database format into effort segments and detection distances, ready for distance sampling and density surface modeling. Reading and standardising an extract is done by the narwcr package, which this one shares with other analyses of the same archive; what follows is specific to distance sampling. Accumulates great-circle effort, splits survey lines at breaks in effort, and chops continuous tracklines into segments of a target length following the approach of Becker et al. (2010) &lt;doi:10.3354/meps08696&gt;, within the segmented line-transect framework of Hedley and Buckland (2004) &lt;doi:10.1198/1085711043578&gt; and Miller et al. (2013) &lt;doi:10.1111/2041-210X.12105&gt;. Resolves right-angle distances from every source the archive records, whether declination angles, the two STRIP interval code books, exact sighting positions, or a break-off to circle, recording which supplied each detection; and assembles them into the flatfile that Distance accepts.">
+<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Segment Line-Transect Survey Data for Distance Sampling">
+<meta name="description" content="Turns marine mammal line-transect survey data recorded in the North Atlantic Right Whale Consortium (NARWC) sightings database format into effort segments and detection distances, ready for distance sampling and density surface modeling. Handles aerial and shipboard surveys, which differ in the effort criteria that apply to them and in the right-angle distance sources they can supply, and which a single extract can hold together with nothing to say which is which. Reading and standardising an extract is done by the narwcr package, which this one shares with other analyses of the same archive; what follows is specific to distance sampling. Accumulates great-circle effort, splits survey lines at breaks in effort, and chops continuous tracklines into segments of a target length following the approach of Becker et al. (2010) &lt;doi:10.3354/meps08696&gt;, within the segmented line-transect framework of Hedley and Buckland (2004) &lt;doi:10.1198/1085711043578&gt; and Miller et al. (2013) &lt;doi:10.1111/2041-210X.12105&gt;. Resolves right-angle distances from every source the archive records, whether declination angles, the two STRIP interval code books, exact sighting positions, or a break-off to circle, recording which supplied each detection; and assembles them into the flatfile that Distance accepts.">
+<meta property="og:description" content="Turns marine mammal line-transect survey data recorded in the North Atlantic Right Whale Consortium (NARWC) sightings database format into effort segments and detection distances, ready for distance sampling and density surface modeling. Handles aerial and shipboard surveys, which differ in the effort criteria that apply to them and in the right-angle distance sources they can supply, and which a single extract can hold together with nothing to say which is which. Reading and standardising an extract is done by the narwcr package, which this one shares with other analyses of the same archive; what follows is specific to distance sampling. Accumulates great-circle effort, splits survey lines at breaks in effort, and chops continuous tracklines into segments of a target length following the approach of Becker et al. (2010) &lt;doi:10.3354/meps08696&gt;, within the segmented line-transect framework of Hedley and Buckland (2004) &lt;doi:10.1198/1085711043578&gt; and Miller et al. (2013) &lt;doi:10.1111/2041-210X.12105&gt;. Resolves right-angle distances from every source the archive records, whether declination angles, the two STRIP interval code books, exact sighting positions, or a break-off to circle, recording which supplied each detection; and assembles them into the flatfile that Distance accepts.">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -71,151 +71,159 @@
 </h1></div>
 <!-- badges: start -->
 
-<p>Segment aerial line-transect marine mammal survey data for distance sampling and density surface modeling.</p>
-<p>Takes survey data in the format of the North Atlantic Right Whale Consortium (NARWC) sightings database and produces effort segments — each with a location, an amount of effort, and counts of what was seen along it — ready for <code>Distance</code> and <code>dsm</code>.</p>
-<blockquote>
-<p><strong>The input format is specified by the NARWC users’ guide:</strong> Kenney, R.D. (2023) <em>The North Atlantic Right Whale Consortium Database: A Guide for Users and Contributors, Version 8.</em> NARWC Reference Document 2023-01. <strong><a href="https://www.narwc.org/uploads/1/1/6/6/116623219/narwc_users_guide__v8_.pdf" class="external-link">Read the handbook (PDF)</a></strong> · <a href="https://www.narwc.org/sightings-database.html" class="external-link">database landing page</a></p>
-<p>Every code book, column definition, and effort rule in this package cites a section of it. Chapter 8 sections are numbered alphabetically by variable, so <strong>they shift between versions</strong> — <code>distsamp</code> cites Version 8 throughout. See <a href="docs/06-references.html">docs/06-references.md</a> for what each section is relied on for.</p>
-</blockquote>
+<p>Segments NARWC line-transect survey data for distance sampling and density surface models (<code>Distance</code>, <code>dsm</code>).</p>
+<p>Input format: Kenney, R.D. (2023) <em>The North Atlantic Right Whale Consortium Database: A Guide for Users and Contributors, Version 8.</em> <a href="https://www.narwc.org/uploads/1/1/6/6/116623219/narwc_users_guide__v8_.pdf" class="external-link">Handbook (PDF)</a>.</p>
 <div class="section level2">
 <h2 id="install">Install<a class="anchor" aria-label="anchor" href="#install"></a>
 </h2>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># install.packages("remotes")</span></span>
-<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"chross22/distsamp"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"chross22/distsamp"</span><span class="op">)</span></span></code></pre></div>
+<p>Depends on <a href="https://github.com/chross22/narwcr" class="external-link">narwcr</a>, installed automatically.</p>
 </div>
 <div class="section level2">
-<h2 id="use">Use<a class="anchor" aria-label="anchor" href="#use"></a>
+<h2 id="example-data">Example data<a class="anchor" aria-label="anchor" href="#example-data"></a>
 </h2>
-<blockquote>
-<p><strong>The bundled example is mock data.</strong> <code>narwc-example.csv</code> is a <em>synthetic</em> two-day survey generated by <code>data-raw/make-fixture.R</code>, modelled on the hypothetical survey in Figure 2 of the handbook. No real NARWC records are distributed with this package, and none have been used to develop it — every number below is invented. Right whale sighting data is not ours to redistribute; request it from the <a href="https://www.narwc.org/sightings-database.html" class="external-link">NARWC</a>.</p>
-</blockquote>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/chross22/distsamp" class="external-link">distsamp</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Synthetic example data - see the note above</span></span>
-<span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"narwc-example.csv"</span>, package <span class="op">=</span> <span class="st">"distsamp"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://camilleross.org/narwcr/reference/read_narwc.html" class="external-link">read_narwc</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span>          <span class="co"># standardise names and types</span></span>
-<span><span class="fu"><a href="reference/validate_narwc.html">validate_narwc</a></span><span class="op">(</span><span class="va">dat</span><span class="op">)</span>              <span class="co"># report problems, never stop</span></span>
-<span></span>
-<span><span class="va">segs</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/segment_survey.html">segment_survey</a></span><span class="op">(</span><span class="va">dat</span>, seg_length <span class="op">=</span> <span class="fl">5</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
-<span><span class="va">segs</span></span>
-<span><span class="co">#&gt; &lt;distsamp_segments&gt;</span></span>
-<span><span class="co">#&gt;   segments:  20</span></span>
-<span><span class="co">#&gt;   tracks:    7</span></span>
-<span><span class="co">#&gt;   total effort: 92.23 km</span></span>
-<span><span class="co">#&gt;   segment length: median 4.44 km, range 2.22-7.78 km</span></span>
-<span><span class="co">#&gt;   target length: 5 km   seed: 1</span></span>
-<span><span class="co">#&gt;   species:   FIWH, RIWH, SEWH</span></span>
-<span></span>
-<span><span class="fu"><a href="reference/segments_wide.html">segments_wide</a></span><span class="op">(</span><span class="va">segs</span><span class="op">)</span>              <span class="co"># one count column per species, for dsm</span></span>
-<span><span class="va">segs</span><span class="op">$</span><span class="va">detections</span>                  <span class="co"># one row per sighting, with perpendicular distance</span></span></code></pre></div>
-<p>Two vignettes:</p>
+<code class="sourceCode R"><span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"narwc-example.csv"</span>, package <span class="op">=</span> <span class="st">"distsamp"</span><span class="op">)</span></span></code></pre></div>
+<p>Synthetic. No real NARWC records are included.</p>
+</div>
+<div class="section level2">
+<h2 id="read">Read<a class="anchor" aria-label="anchor" href="#read"></a>
+</h2>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/vignette.html" class="external-link">vignette</a></span><span class="op">(</span><span class="st">"segmenting-narwc-data"</span>, package <span class="op">=</span> <span class="st">"distsamp"</span><span class="op">)</span>   <span class="co"># the full walkthrough</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/vignette.html" class="external-link">vignette</a></span><span class="op">(</span><span class="st">"from-segments-to-density"</span>, package <span class="op">=</span> <span class="st">"distsamp"</span><span class="op">)</span> <span class="co"># handing off to Distance and dsm</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/chross22/distsamp" class="external-link">distsamp</a></span><span class="op">)</span></span>
+<span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://camilleross.org/narwcr/reference/read_narwc.html" class="external-link">read_narwc</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="what-it-does">What it does<a class="anchor" aria-label="anchor" href="#what-it-does"></a>
+<h2 id="prepare">Prepare<a class="anchor" aria-label="anchor" href="#prepare"></a>
 </h2>
-<pre><code>read_narwc  -&gt;  validate_narwc
-     |
-make_leg_id  -&gt;  flag_circling  -&gt;  flag_effort  -&gt;  point_to_point_effort
-     |
-split_tracks  -&gt;  track_effort  -&gt;  plan_segments  -&gt;  cut_segments
-     |
-attach_circling_sightings  -&gt;  segment_midpoints  -&gt;  segment_sightings</code></pre>
-<p>Where the survey recorded <code>ANGLEL</code>/<code>ANGLER</code> declination angles, perpendicular distances are computed too, and <code>segs$detections</code> comes out in the shape a detection function wants.</p>
-<p><code><a href="reference/segment_survey.html">segment_survey()</a></code> runs all of it. Every stage is also exported, so you can intervene between them.</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/prepare_survey.html">prepare_survey</a></span><span class="op">(</span><span class="va">dat</span>, platform <span class="op">=</span> <span class="st">"aerial"</span><span class="op">)</span></span></code></pre></div>
+<p>Builds line occupations, fills <code>LEGSTAGE</code>, filters by platform, flags effort.</p>
 </div>
 <div class="section level2">
-<h2 id="getting-an-extract-ready">Getting an extract ready<a class="anchor" aria-label="anchor" href="#getting-an-extract-ready"></a>
+<h2 id="check">Check<a class="anchor" aria-label="anchor" href="#check"></a>
 </h2>
-<p>Reading a file is not the same as being ready to segment one. Four steps sit in between, and their order matters in ways that are quiet when you get them wrong:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu">narwcr</span><span class="fu">::</span><span class="fu"><a href="https://camilleross.org/narwcr/reference/read_narwc.html" class="external-link">read_narwc</a></span><span class="op">(</span><span class="st">"extract.csv"</span><span class="op">)</span></span>
-<span><span class="va">air</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/prepare_aerial.html">prepare_aerial</a></span><span class="op">(</span><span class="va">dat</span><span class="op">)</span></span>
-<span><span class="va">segs</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/segment_survey.html">segment_survey</a></span><span class="op">(</span><span class="va">air</span>, seg_length <span class="op">=</span> <span class="fl">10</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
-<p><code><a href="reference/prepare_aerial.html">prepare_aerial()</a></code> builds line occupations, reconstructs the line state where the file recorded it only at change points, classifies the platform by speed, filters to the aerial records, and flags effort — in that order. Every step is also exported, so you can run them by hand and intervene between them; the wrapper exists because the order is not obvious and getting it wrong costs records silently. Its help says which step depends on which, and why.</p>
-<p>Two things it deliberately leaves to you, because they are assertions about a particular file rather than facts about NARWC data: mapping a declination angle out of a column the handbook does not name, and correcting an altitude recorded in feet. Both are covered in <a href="docs/08-onboarding-a-real-extract.html">docs/08-onboarding-a-real-extract.md</a>.</p>
+<code class="sourceCode R"><span><span class="fu"><a href="reference/validate_narwc.html">validate_narwc</a></span><span class="op">(</span><span class="va">dat</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/diagnose_pipeline.html">diagnose_pipeline</a></span><span class="op">(</span><span class="va">dat</span>, seg_length <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/plot_survey.html">plot_survey</a></span><span class="op">(</span><span class="va">dat</span>, <span class="st">"occupations"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="before-you-trust-the-numbers">Before you trust the numbers<a class="anchor" aria-label="anchor" href="#before-you-trust-the-numbers"></a>
+<h2 id="segment">Segment<a class="anchor" aria-label="anchor" href="#segment"></a>
 </h2>
-<p>The failure this package guards against is not the one that errors. It is the one that returns a plausible number: effort that includes the ferry between two survey days, an altitude read as metres when the column was recorded in feet, a shipboard survey segmented as though it were flown.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="reference/diagnose_pipeline.html">diagnose_pipeline</a></span><span class="op">(</span><span class="va">air</span>, days <span class="op">=</span> <span class="st">"auto"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="reference/plot_survey.html">plot_survey</a></span><span class="op">(</span><span class="va">air</span>, <span class="st">"occupations"</span><span class="op">)</span></span></code></pre></div>
-<p>runs the whole pipeline against one representative survey day and reports what it finds — merged days, an implausible altitude, a platform moving at ten knots, which criterion excluded which records, and how the recorded along-track distance compares with the reconstructed one. <code>days</code> also takes a count or specific dates.</p>
-<p><code><a href="reference/plot_survey.html">plot_survey()</a></code> is the same question as a picture: it draws the survey at whatever stage it has reached, and a survey line drawn in three pieces — or three drawn as one — is visible on a map and invisible in a table. <code>"positions"</code> is the view that needs nothing but coordinates, so it draws even on a file none of this has touched; add <code>sightings = TRUE</code> and it shows where the aircraft went and what was seen from it, in one map.</p>
-<p>A decade of survey on one map is a smear, so every plotting function takes <code>dates</code>, <code>years</code>, and <code>months</code> — <code>years = 2019, months = 8</code> is August 2019. <code><a href="reference/filter_days.html">filter_days()</a></code> is that selection on its own.</p>
-<p>Each of these checks exists because a real extract produced a believable wrong answer. <a href="docs/08-onboarding-a-real-extract.html">docs/08-onboarding-a-real-extract.md</a> is the order to bring a new dataset in, and the traps in it are quoted with the magnitudes they actually caused.</p>
+<code class="sourceCode R"><span><span class="va">segs</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/segment_survey.html">segment_survey</a></span><span class="op">(</span><span class="va">dat</span>, seg_length <span class="op">=</span> <span class="fl">5</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">segs</span><span class="op">$</span><span class="va">segments</span>     <span class="co"># one row per segment</span></span>
+<span><span class="va">segs</span><span class="op">$</span><span class="va">detections</span>   <span class="co"># one row per sighting, with distance</span></span>
+<span><span class="fu"><a href="reference/segments_wide.html">segments_wide</a></span><span class="op">(</span><span class="va">segs</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">segs</span>, what <span class="op">=</span> <span class="st">"segments"</span><span class="op">)</span></span></code></pre></div>
+<p><code>seed</code> makes the segmentation reproducible.</p>
 </div>
 <div class="section level2">
-<h2 id="aerial-by-construction">Aerial by construction<a class="anchor" aria-label="anchor" href="#aerial-by-construction"></a>
+<h2 id="detection-table">Detection table<a class="anchor" aria-label="anchor" href="#detection-table"></a>
 </h2>
-<p>The effort criteria are the handbook’s aerial ones and <code><a href="reference/perp_distance.html">perp_distance()</a></code> is a declination angle from an aircraft, so a shipboard survey does not belong here — but a NARWC extract can hold both with nothing in the data to say so. <code><a href="reference/segment_survey.html">segment_survey()</a></code> checks the platform’s speed and refuses to segment a vessel track silently. Split with <code><a href="https://camilleross.org/narwcr/reference/classify_platform.html" class="external-link">narwcr::classify_platform()</a></code>, <em>after</em> <code><a href="https://camilleross.org/narwcr/reference/make_leg_id.html" class="external-link">make_leg_id()</a></code>: filtering before it merges two occupations of one line and counts the ferry between them as survey effort.</p>
-<p>Segments are cut following the approach of Becker et al. (2010): divide continuous portions of survey effort into segments of approximately equal length, assign sightings to the segment they fall in, and take habitat covariates at each segment’s mid-point. Concretely, fit as many whole segments of the target length as a continuous track allows, then either give the remainder its own segment or absorb it into a randomly chosen one, depending on whether it clears half the target length.</p>
-<p>The remainder handling is a property of Becker’s <code>segchopr</code> implementation rather than of the published methods, which state the target length but not what happens to the leftover — see <a href="docs/06-references.html#what-the-published-methods-do-not-cover">docs/06-references.md</a> if you are writing this up.</p>
-</div>
-<div class="section level2">
-<h2 id="grounded-in-the-handbook">Grounded in the handbook<a class="anchor" aria-label="anchor" href="#grounded-in-the-handbook"></a>
-</h2>
-<p>Effort criteria, sighting filters, and validation all read from the code books in Kenney (2023), <em>The North Atlantic Right Whale Consortium Database: A Guide for Users and Contributors</em>, Version 8 — <code>LEGTYPE</code> (8.A.21), <code>LEGSTAGE</code> (8.A.20), <code>IDREL</code> (8.A.16), <code>VISIBLTY</code> (8.A.38), and the rest. <code><a href="https://camilleross.org/narwcr/reference/narwc_codes.html" class="external-link">narwc_codes()</a></code> prints them.</p>
-<p>A few consequences worth knowing:</p>
-<ul>
-<li>
-<strong><code>VISIBLTY</code> carries two encodings.</strong> Since 2004 it is a distance in nautical miles; before that it was a code folded into the same field as a negative number, where <code>-1</code> means <em>clear for at least 2 nautical miles</em>. A plain <code>VISIBLTY &gt;= 2</code> test throws away every legacy record. <code><a href="https://camilleross.org/narwcr/reference/visibility_ok.html" class="external-link">visibility_ok()</a></code> handles both.</li>
-<li>
-<strong>Pilot sightings do not count.</strong> <code>LEGSTAGE == 6</code> marks a sighting by someone other than an on-duty observer, which handbook 4.2 says “cannot be included in a density estimate”. Excluded by default, with <code>LEGSTAGE == 7</code> (photographic) and <code>IDREL</code> 1 and 9.</li>
-</ul>
-<p><code><a href="articles/segmenting-narwc-data.html">vignette("segmenting-narwc-data")</a></code> covers the rest: what counts as effort, what counts as a sighting, how declination angles give perpendicular distance, and why circling sightings count conditionally.</p>
-</div>
-<div class="section level2">
-<h2 id="reproducibility">Reproducibility<a class="anchor" aria-label="anchor" href="#reproducibility"></a>
-</h2>
-<p>Segmentation makes two random choices. Pass a <code>seed</code> and a run repeats exactly; your session’s own random stream is never disturbed. Record the seed — without it the segmentation is not reproducible.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="reference/segment_survey.html">segment_survey</a></span><span class="op">(</span><span class="va">dat</span>, seg_length <span class="op">=</span> <span class="fl">5</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">flat</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/detection_data.html">detection_data</a></span><span class="op">(</span><span class="va">segs</span>, area <span class="op">=</span> <span class="fl">5811</span><span class="op">)</span>   <span class="co"># area in km^2</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="distance-methods">Distance methods<a class="anchor" aria-label="anchor" href="#distance-methods"></a>
+<h2 id="fit">Fit<a class="anchor" aria-label="anchor" href="#fit"></a>
 </h2>
-<p><code><a href="reference/dist_methods.html">dist_methods()</a></code> lists them. <code>"becker"</code> and <code>"kenney"</code> are the same formula and return identical values; the default <code>"haversine"</code> uses the same sphere but is numerically stable at the short ranges between consecutive survey records, where the law of cosines loses precision. <code><a href="articles/segmenting-narwc-data.html">vignette("segmenting-narwc-data")</a></code> covers when that matters.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/DistanceDevelopment/Distance/" class="external-link">Distance</a></span><span class="op">)</span></span>
+<span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/Distance/man/ds.html" class="external-link">ds</a></span><span class="op">(</span><span class="va">flat</span>, key <span class="op">=</span> <span class="st">"hn"</span>, convert_units <span class="op">=</span> <span class="fl">0.001</span><span class="op">)</span>   <span class="co"># m distances, km effort</span></span></code></pre></div>
+<p>Full steps to an abundance estimate: <a href="docs/11-distance-sampling-steps.html">docs/11-distance-sampling-steps.md</a>.</p>
+</div>
+<div class="section level2">
+<h2 id="shipboard-surveys">Shipboard surveys<a class="anchor" aria-label="anchor" href="#shipboard-surveys"></a>
+</h2>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">sea</span>  <span class="op">&lt;-</span> <span class="fu"><a href="reference/prepare_survey.html">prepare_survey</a></span><span class="op">(</span><span class="va">dat</span>, platform <span class="op">=</span> <span class="st">"vessel"</span><span class="op">)</span></span>
+<span><span class="va">segs</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/segment_survey.html">segment_survey</a></span><span class="op">(</span><span class="va">sea</span>, seg_length <span class="op">=</span> <span class="fl">10</span>, platform <span class="op">=</span> <span class="st">"vessel"</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/platform_defaults.html">platform_defaults</a></span><span class="op">(</span><span class="st">"vessel"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="units">Units<a class="anchor" aria-label="anchor" href="#units"></a>
+</h2>
+<table class="table">
+<thead><tr>
+<th>Column</th>
+<th>Unit</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><code>seg_eff</code></td>
+<td>km</td>
+</tr>
+<tr>
+<td><code>distance</code></td>
+<td>m (default) or km (<code>distance_units = "km"</code>)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section level2">
+<h2 id="other-functions">Other functions<a class="anchor" aria-label="anchor" href="#other-functions"></a>
+</h2>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://camilleross.org/narwcr/reference/narwc_codes.html" class="external-link">narwc_codes</a></span><span class="op">(</span><span class="st">"LEGTYPE"</span><span class="op">)</span>            <span class="co"># handbook code books</span></span>
+<span><span class="fu"><a href="reference/filter_days.html">filter_days</a></span><span class="op">(</span><span class="va">dat</span>, years <span class="op">=</span> <span class="fl">2024</span><span class="op">)</span>    <span class="co"># subset by date</span></span>
+<span><span class="fu"><a href="reference/dist_methods.html">dist_methods</a></span><span class="op">(</span><span class="op">)</span>                    <span class="co"># along-track distance formulas</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="documentation">Documentation<a class="anchor" aria-label="anchor" href="#documentation"></a>
 </h2>
-<p><code>docs/</code> covers how this was built: <a href="docs/01-plan.html">the plan</a>, <a href="docs/02-implementation.html">implementation notes</a>, <a href="docs/03-bug-fixes.html">defects found in the original code</a>, <a href="docs/04-verification.html">verification</a>, <a href="docs/05-next-steps.html">next steps</a>, <a href="docs/06-references.html">references</a> — including how to cite this in a methods section — <a href="docs/07-fitting-architecture.html">where fitting lives</a>, and <a href="docs/08-onboarding-a-real-extract.html">onboarding a real extract</a>.</p>
-<p>This package was rewritten from a set of internal research scripts. Those are not distributed — they contain collaborators’ working notes and local paths. <code>docs/</code> records what was carried over, what was fixed, and why.</p>
+<table class="table">
+<colgroup>
+<col width="50%">
+<col width="50%">
+</colgroup>
+<thead><tr>
+<th>Topic</th>
+<th>File</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>Analysis steps</td>
+<td><a href="docs/11-distance-sampling-steps.html">docs/11-distance-sampling-steps.md</a></td>
+</tr>
+<tr>
+<td>Code guide</td>
+<td><a href="docs/10-code-guide.html">docs/10-code-guide.md</a></td>
+</tr>
+<tr>
+<td>New dataset</td>
+<td><a href="docs/08-onboarding-a-real-extract.html">docs/08-onboarding-a-real-extract.md</a></td>
+</tr>
+<tr>
+<td>Shipboard surveys</td>
+<td><a href="docs/09-shipboard-surveys.html">docs/09-shipboard-surveys.md</a></td>
+</tr>
+<tr>
+<td>Defects fixed from original code</td>
+<td><a href="docs/03-bug-fixes.html">docs/03-bug-fixes.md</a></td>
+</tr>
+<tr>
+<td>References</td>
+<td><a href="docs/06-references.html">docs/06-references.md</a></td>
+</tr>
+<tr>
+<td>All documents</td>
+<td><a href="docs/README.html">docs/README.md</a></td>
+</tr>
+</tbody>
+</table>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/vignette.html" class="external-link">vignette</a></span><span class="op">(</span><span class="st">"segmenting-narwc-data"</span>, package <span class="op">=</span> <span class="st">"distsamp"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/vignette.html" class="external-link">vignette</a></span><span class="op">(</span><span class="st">"from-segments-to-density"</span>, package <span class="op">=</span> <span class="st">"distsamp"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="citing-distsamp">Citing distsamp<a class="anchor" aria-label="anchor" href="#citing-distsamp"></a>
 </h2>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/citation.html" class="external-link">citation</a></span><span class="op">(</span><span class="st">"distsamp"</span><span class="op">)</span></span></code></pre></div>
-<p>That returns three entries — the package, the segmentation method it implements, and the data format — because a methods section usually needs all three:</p>
-<pre><code>Ross, C. distsamp: Segment Aerial Line-Transect Survey Data for Distance
-Sampling. R package. https://github.com/chross22/distsamp
-
-Becker, E.A., Forney, K.A., Ferguson, M.C., Foley, D.G., Smith, R.C., Barlow, J.
-and Redfern, J.V. (2010) Comparing California Current cetacean-habitat models
-developed using in situ and remotely sensed sea surface temperature data. Marine
-Ecology Progress Series 413:163-183. doi:10.3354/meps08696
-
-Kenney, R.D. (2023) The North Atlantic Right Whale Consortium Database: A Guide
-for Users and Contributors, Version 8. NARWC Reference Document 2023-01.</code></pre>
-<p>The package version comes from <code>DESCRIPTION</code> at install time, so it is always the version you actually have.</p>
-<p>Record the <code>seed</code> you used — without it the segmentation is not reproducible.</p>
-<p>Suggested methods-section wording is in <a href="docs/06-references.html#6-how-to-cite-the-package">docs/06-references.md</a>, along with a note on which parts of the algorithm are attributable to the published methods and which are properties of Becker’s implementation.</p>
-<hr>
-</div>
-<div class="section level2">
-<h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
-</h2>
-<p>Every source this package leans on, and what each is relied on for, is in <a href="docs/06-references.html">docs/06-references.md</a> — the segmentation method (Becker et al. 2010), the database guide (Kenney 2023), the distance formula (Kenney and Winn 1986), and the rest. Keeping one list rather than two means the README cannot drift out of step with it.</p>
-<p>They are checked monthly by CI: DOIs still resolve and still describe the paper cited, hosted PDFs are still there, and the NARWC handbook is still at the version cited. Run it yourself with <code>Rscript tools/check-citations.R</code>.</p>
+<p>Returns the package, the segmentation method (Becker et al. 2010) and the data format (Kenney 2023). Report the <code>seed</code> used.</p>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">

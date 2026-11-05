@@ -66,7 +66,9 @@ progress when the aircraft broke off.</p>
 <span>  <span class="va">chopped</span>,</span>
 <span>  <span class="va">dat</span>,</span>
 <span>  mode <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"same_species"</span>, <span class="st">"all"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
-<span>  distance <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"with_group"</span>, <span class="st">"break_off"</span><span class="op">)</span></span>
+<span>  distance <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"with_group"</span>, <span class="st">"break_off"</span><span class="op">)</span>,</span>
+<span>  units <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"m"</span>, <span class="st">"km"</span><span class="op">)</span>,</span>
+<span>  max_gap_km <span class="op">=</span> <span class="fl">5</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -89,19 +91,32 @@ segmentation left out, with <code>CIRCLE</code> from <code><a href="flag_circlin
 
 <dt id="arg-distance">distance<a class="anchor" aria-label="anchor" href="#arg-distance"></a></dt>
 <dd><p>What an attached record carries.</p>
-<p><code>"inherit"</code> (default) gives it the perpendicular distance of the on-effort
-group these animals were counted with, marked
-<code>distance_source == "circling"</code>. <code>"break_off"</code> gives it the measured
-great-circle distance from the point on the line where the aircraft broke
-off, marked <code>distance_source == "break_off"</code>. Both make it an observation
-of its own on a density surface.</p>
-<p><code>"with_group"</code> makes it no observation at all: the animals are added to
-the <code>NUMBER</code> of the on-effort sighting they were counted with, and the
-record is marked <code>circling_counted = FALSE</code> so <code><a href="segment_sightings.html">segment_sightings()</a></code> does
-not count them twice. Nothing is inherited or constructed.</p>
-<p><code>break_off_distance</code> is computed under all three, so the size of the
+<p><code>"with_group"</code> (default) makes it no observation at all: the animals are
+added to the <code>NUMBER</code> of the on-effort sighting they were counted with,
+and the record is marked <code>circling_counted = FALSE</code> so
+<code><a href="segment_sightings.html">segment_sightings()</a></code> does not count them twice. Nothing is inherited or
+constructed.</p>
+<p><code>"break_off"</code> makes it an observation of its own on a density surface.
+Its distance is the perpendicular distance of its exact position
+(<code>S_LAT</code>/<code>S_LONG</code>) from the census line where one exists, marked
+<code>distance_source == "circling"</code>, and otherwise the great-circle distance
+from the point on the line where the aircraft broke off, marked
+<code>distance_source == "break_off"</code>.</p>
+<p><code>break_off_distance</code> is computed under both, so the size of the
 disagreement is visible whichever is chosen. No option puts a circling
 record into a detection function — <code><a href="detection_data.html">detection_data()</a></code> excludes them all.</p></dd>
+
+
+<dt id="arg-units">units<a class="anchor" aria-label="anchor" href="#arg-units"></a></dt>
+<dd><p>Units of <code>distance</code> under <code>distance = "break_off"</code>: <code>"m"</code>
+(default) or <code>"km"</code>, matching <code><a href="segment_survey.html">segment_survey()</a></code>'s <code>distance_units</code>.
+<code>break_off_distance</code> is always metres.</p></dd>
+
+
+<dt id="arg-max-gap-km">max_gap_km<a class="anchor" aria-label="anchor" href="#arg-max-gap-km"></a></dt>
+<dd><p>Furthest, in km, that the on-effort group may have been
+seen from the point where the aircraft left the line. Default <code>5</code>;
+<code><a href="segment_survey.html">segment_survey()</a></code> passes <code>seg_length</code>. See "Which group".</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -122,34 +137,59 @@ unassociated group of the same species. Groups of <em>other</em> species, not
 originally seen from the track-line, are new off-effort sightings and do not
 belong to the segment.</p>
 <p><code>mode = "same_species"</code> implements that rule: a circling sighting is attached
-only when the preceding segment already holds an on-effort sighting of the
-same species. It is the default.</p>
+only when an on-effort group of the same species was seen before the
+break-off (see "Which group"). It is the default.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="which-group">Which group<a class="anchor" aria-label="anchor" href="#which-group"></a></h2>
+
+
+<p>The group circled animals are counted with is the most recent on-effort
+sighting of the same species that is</p><ul><li><p>in the same line occupation (<code>DATE</code>, <code>FILEID</code>, <code>LEGNO3</code>);</p></li>
+<li><p>after the previous resume (<code>LEGSTAGE == 4</code>) on that line, so a group
+circled earlier cannot collect animals from a later circle; and</p></li>
+<li><p>within <code>max_gap_km</code> of the point where the aircraft broke off.</p></li>
+</ul><p>It may sit in an earlier segment than the circling record. Segment
+boundaries know nothing of circling, and an earlier version that searched
+only the segment in progress dropped the circled animals whenever a boundary
+fell between the sighting and the break-off.</p>
     </div>
     <div class="section level2">
     <h2 id="which-distance">Which distance<a class="anchor" aria-label="anchor" href="#which-distance"></a></h2>
 
 
 <p>"Counted with the original on-effort group" is also a statement about
-distance, and <code>distance = "inherit"</code> reads it as one: the animals take that
-group's perpendicular distance, which was measured from the line at the
-moment of break-off.</p>
-<p><code>distance = "break_off"</code> reads the sighting as its own: the great-circle
-distance from where the aircraft left the line to where the animals were
-logged. That is a real measurement of a real thing, and it is the honest
-answer to "how far off the track were they" — but it is a slant distance
-from an off-effort position minutes after the fact, not a perpendicular
-distance, and a group circled twice before logging is further from the
-break-off than it ever was from the line.</p>
-<p>The two will not agree, and which is nearer the truth depends on how the
-circle was actually flown, which the records do not record.</p>
-<p><code>distance = "with_group"</code> declines the question. If these animals are
-counted with the original group then they <em>are</em> that group, and a group has
-one distance, one detection probability and one row — so the animals are
-added to its <code>NUMBER</code> and no second observation is made. That removes the
-objection to inheriting, which is that a row appears carrying a distance it
-was never seen at. What it does not remove is the judgement underneath: it
-is right only where the animals really are that group or associated with it,
-which is what <code>mode = "same_species"</code> is testing.</p>
+distance. <code>distance = "with_group"</code> (the default) reads it literally: if
+these animals are counted with the original group then they <em>are</em> that
+group, and a group has one distance, one detection probability and one row.
+The animals are added to its <code>NUMBER</code> and no second observation is made.
+Nothing is inherited or constructed. What this does not remove is the
+judgement underneath: it is right only where the animals really are that
+group or associated with it, which is what <code>mode = "same_species"</code> is
+testing.</p>
+<p><code>distance = "break_off"</code> reads the sighting as its own, with a distance
+from the census line at the break-off:</p><ul><li><p>Where the record carries an exact position (<code>S_LAT</code>/<code>S_LONG</code>), that
+position is projected perpendicularly onto the census line through the
+break-off, by <code><a href="circling_distance.html">circling_distance()</a></code>, and marked
+<code>distance_source == "circling"</code>. This is a perpendicular distance, though
+the position is fixed minutes after the detection.</p></li>
+<li><p>Otherwise it falls back to the great-circle distance from where the
+aircraft left the line to where the record was logged, marked
+<code>distance_source == "break_off"</code>. That is a slant distance from an
+off-effort position, not a perpendicular one, and a group circled twice
+before logging is further from the break-off than it ever was from the
+line. The logged position during a circle is the aircraft's, not the
+animal's.</p></li>
+</ul><p><code>"with_group"</code> and <code>"break_off"</code> will not agree, and which is nearer the
+truth depends on how the circle was actually flown, which the records do not
+record.</p>
+<p>An earlier <code>distance = "inherit"</code> gave the circling record a row of its own
+carrying the on-effort group's perpendicular distance. It produced the same
+estimate as <code>"with_group"</code>, segment for segment, while adding a row that
+claimed a distance nothing was detected at, and it was removed. Naming it
+now errors with that explanation.</p>
+<p>This function sets an attached record's distance itself, replacing any
+<code>distance</code> it arrived with.</p>
 <p>Run them and compare if it matters to your estimate; <code>break_off_distance</code> is
 on every attached record whichever is chosen, so the comparison needs no
 re-segmentation to see the size of it.</p>

@@ -65,7 +65,10 @@ detection_data(
 ## Value
 
 A tibble in `Distance` flatfile shape, with a `distance_units`
-attribute.
+attribute. It has a `distance` column for exact distances, or
+`distbegin`/`distend` for binned ones, never both:
+[`Distance::ds()`](https://rdrr.io/pkg/Distance/man/ds.html) treats the
+presence of the bin columns as binned data.
 
 ## The shape
 
@@ -98,14 +101,16 @@ within the truncation distance, so removing the segment as well would
 remove the denominator along with the numerator and bias density upward.
 
 Truncation is reported rather than silent. It also has to match what you
-pass to `ds()`; passing `truncation` here and a different value there
-fits the model to one set of detections and scales abundance by another.
+pass to [`ds()`](https://rdrr.io/pkg/Distance/man/ds.html); passing
+`truncation` here and a different value there fits the model to one set
+of detections and scales abundance by another.
 
 ## Binned distances cannot be mixed with exact ones
 
 `STRIP` gives an interval, not a point, so those rows carry `distbegin`
-and `distend` and no `distance`. A single `ds()` call cannot fit both —
-the likelihoods differ — so a table containing both is a survey era
+and `distend` and no `distance`. A single
+[`ds()`](https://rdrr.io/pkg/Distance/man/ds.html) call cannot fit both
+— the likelihoods differ — so a table containing both is a survey era
 boundary rather than a model set. `mixed = "error"` (the default)
 refuses it; `mixed = "warn"` lets it through for inspection. Split on
 `distance_source` and fit each era separately.
@@ -116,15 +121,17 @@ to it. Those rows are dropped, and counted in the report.
 
 ## Circling detections
 
-Excluded by default, and the reason is stronger than "the position is
-off the track". A circling detection's `distance` is not measured at
-all: it is inherited from the on-effort sighting these animals were
-counted with, which is already a row in this table. Keeping both puts
-the same perpendicular distance into the detection function twice and
-weights it twice. `include_circling = TRUE` does keep them — a choice
-worth stating in a methods section rather than making silently — but it
-is a choice about double-counting, not about which positions are
-trustworthy.
+Excluded by default. Under the default
+`segment_survey(circling_distance = "with_group")` there are none to
+exclude: the animals were added to the on-effort group they were counted
+with, which is already a row here. Under `"break_off"` a circling
+detection's `distance` is either a perpendicular distance from a
+position fixed minutes after the detection
+(`distance_source == "circling"`), or, with no exact position, a
+great-circle distance from the break-off that is not perpendicular at
+all (`"break_off"`). Neither is measured at the moment of detection.
+`include_circling = TRUE` does keep them — a choice worth stating in a
+methods section rather than making silently.
 
 Note that this is independent of whether circling sightings count
 towards abundance in a density surface model, which they should and do;
@@ -182,16 +189,15 @@ flat <- detection_data(segs, area = 5811)
 #> `detection_data()`: 20 segments, 8 detections (m).
 #>   g(0) = 1 is assumed; see `?detection_data`.
 head(flat)
-#> # A tibble: 6 × 10
-#>   Region.Label  Area Sample.Label Effort object distance distbegin distend  size
-#>   <chr>        <dbl> <chr>         <dbl>  <int>    <dbl>     <dbl>   <dbl> <dbl>
-#> 1 all           5811 2024-04-01_…   7.78      1     229         NA      NA     1
-#> 2 all           5811 2024-04-01_…   5.56      2     132.        NA      NA     2
-#> 3 all           5811 2024-04-01_…   5.56      3     397.        NA      NA     1
-#> 4 all           5811 2024-04-01_…   5.56      4     629.        NA      NA     3
-#> 5 all           5811 2024-04-01_…   3.33     NA      NA         NA      NA    NA
-#> 6 all           5811 2024-04-01_…   5.56     NA      NA         NA      NA    NA
-#> # ℹ 1 more variable: distance_source <chr>
+#> # A tibble: 6 × 8
+#>   Region.Label  Area Sample.Label   Effort object distance  size distance_source
+#>   <chr>        <dbl> <chr>           <dbl>  <int>    <dbl> <dbl> <chr>          
+#> 1 all           5811 2024-04-01_2_1   7.78      1     229      1 angle          
+#> 2 all           5811 2024-04-01_2_2   5.56      2     132.     2 angle          
+#> 3 all           5811 2024-04-01_2_2   5.56      3     397.     1 angle          
+#> 4 all           5811 2024-04-01_2_2   5.56      4     629.     3 angle          
+#> 5 all           5811 2024-04-01_2_3   3.33     NA      NA     NA NA             
+#> 6 all           5811 2024-04-01_2_4   5.56     NA      NA     NA NA             
 
 # Segments with no detections are kept, carrying their effort
 sum(is.na(flat$distance))
@@ -208,14 +214,14 @@ nrow(detection_data(segs, area = 5811, truncation = 500))
 head(detection_data(segs, area = 5811, covariates = "wt_beaufort"))
 #> `detection_data()`: 20 segments, 8 detections (m).
 #>   g(0) = 1 is assumed; see `?detection_data`.
-#> # A tibble: 6 × 11
-#>   Region.Label  Area Sample.Label Effort object distance distbegin distend  size
-#>   <chr>        <dbl> <chr>         <dbl>  <int>    <dbl>     <dbl>   <dbl> <dbl>
-#> 1 all           5811 2024-04-01_…   7.78      1     229         NA      NA     1
-#> 2 all           5811 2024-04-01_…   5.56      2     132.        NA      NA     2
-#> 3 all           5811 2024-04-01_…   5.56      3     397.        NA      NA     1
-#> 4 all           5811 2024-04-01_…   5.56      4     629.        NA      NA     3
-#> 5 all           5811 2024-04-01_…   3.33     NA      NA         NA      NA    NA
-#> 6 all           5811 2024-04-01_…   5.56     NA      NA         NA      NA    NA
-#> # ℹ 2 more variables: distance_source <chr>, wt_beaufort <dbl>
+#> # A tibble: 6 × 9
+#>   Region.Label  Area Sample.Label   Effort object distance  size distance_source
+#>   <chr>        <dbl> <chr>           <dbl>  <int>    <dbl> <dbl> <chr>          
+#> 1 all           5811 2024-04-01_2_1   7.78      1     229      1 angle          
+#> 2 all           5811 2024-04-01_2_2   5.56      2     132.     2 angle          
+#> 3 all           5811 2024-04-01_2_2   5.56      3     397.     1 angle          
+#> 4 all           5811 2024-04-01_2_2   5.56      4     629.     3 angle          
+#> 5 all           5811 2024-04-01_2_3   3.33     NA      NA     NA NA             
+#> 6 all           5811 2024-04-01_2_4   5.56     NA      NA     NA NA             
+#> # ℹ 1 more variable: wt_beaufort <dbl>
 ```

@@ -9,7 +9,7 @@ library(distsamp)
 
 Density surface modelling needs survey effort chopped into short,
 roughly equal pieces — segments — each with a location, an amount of
-effort, and a count of what was seen along it. This package takes aerial
+effort, and a count of what was seen along it. This package takes
 line-transect survey data in the format of the North Atlantic Right
 Whale Consortium (NARWC) sightings database and produces exactly that.
 
@@ -470,8 +470,8 @@ head(segs$detections)
 #> 2 2024-04-01_2_2 2024-04-01 RIWH         2    132.         NA      NA left 
 #> 3 2024-04-01_2_2 2024-04-01 RIWH         1    397.         NA      NA right
 #> 4 2024-04-01_2_2 2024-04-01 FIWH         3    629.         NA      NA right
-#> 5 2024-04-01_4_2 2024-04-01 RIWH         4     61.4        NA      NA left 
-#> 6 2024-04-01_4_2 2024-04-01 RIWH         1    855.         NA      NA right
+#> 5 2024-04-01_4_2 2024-04-01 RIWH         3     61.4        NA      NA left 
+#> 6 2024-04-01_4_2 2024-04-01 RIWH         2    855.         NA      NA right
 #> # ℹ 5 more variables: distance_source <chr>, EVENTNO <dbl>, SIGHTNO <dbl>,
 #> #   circling <int>, break_off_distance <dbl>
 ```
@@ -577,7 +577,8 @@ detection function unless including them is a deliberate, stated choice.
 Two things to watch:
 
 **Units.** `ALT` is in metres, so distances are metres by default, but
-`seg_eff` is in kilometres. Passing both to `Distance::ds()` without
+`seg_eff` is in kilometres. Passing both to
+[`Distance::ds()`](https://rdrr.io/pkg/Distance/man/ds.html) without
 reconciling them scales density by 1000. Use `distance_units = "km"`, or
 supply `convert_units`.
 
@@ -668,8 +669,8 @@ plot(segs, what = "distances")
 ![](segmenting-narwc-data_files/figure-html/unnamed-chunk-33-1.png)
 
 The detection-function diagnostic, worth looking at before
-`Distance::ds()` is called. Look for a shoulder near zero and a tail
-that falls away.
+[`Distance::ds()`](https://rdrr.io/pkg/Distance/man/ds.html) is called.
+Look for a shoulder near zero and a tail that falls away.
 
 Two cautions on reading it. A dip in the first bin need not be a
 sampling artefact: an aircraft cannot see the water directly beneath it,
@@ -756,12 +757,12 @@ list.files(out)
 The fixture is clean. A real NARWC extract is not, and the steps between
 reading one and segmenting it have an order that is quiet when you get
 it wrong.
-[`prepare_aerial()`](https://camilleross.org/distsamp/reference/prepare_aerial.md)
+[`prepare_survey()`](https://camilleross.org/distsamp/reference/prepare_survey.md)
 runs them:
 
 ``` r
 
-air <- prepare_aerial(dat, quiet = TRUE)
+air <- prepare_survey(dat, quiet = TRUE)
 c(records = nrow(air), on_effort = sum(air$OnOff.Effort == 1))
 #>   records on_effort 
 #>       113       101
@@ -769,8 +770,8 @@ c(records = nrow(air), on_effort = sum(air$OnOff.Effort == 1))
 
 It builds line occupations, reconstructs the line state where the file
 recorded it only at change points, classifies the platform by speed,
-keeps the aerial records, and flags effort — in that order.
-[`?prepare_aerial`](https://camilleross.org/distsamp/reference/prepare_aerial.md)
+keeps the records of that platform, and flags effort — in that order.
+[`?prepare_survey`](https://camilleross.org/distsamp/reference/prepare_survey.md)
 says which step depends on which. Two examples of why the order is not
 cosmetic:
 

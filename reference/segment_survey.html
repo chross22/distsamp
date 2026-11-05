@@ -70,8 +70,10 @@ sightings and conditions onto each segment.</p>
 <span>  dist_method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"haversine"</span>, <span class="st">"becker"</span>, <span class="st">"kenney"</span>, <span class="st">"eab"</span>, <span class="st">"rdk"</span><span class="op">)</span>,</span>
 <span>  circling <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"same_species"</span>, <span class="st">"all"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
 <span>  circling_distance <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"with_group"</span>, <span class="st">"break_off"</span><span class="op">)</span>,</span>
+<span>  circling_max_gap_km <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  distance_units <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"m"</span>, <span class="st">"km"</span><span class="op">)</span>,</span>
-<span>  distance_sources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"angle"</span>, <span class="st">"exact"</span>, <span class="st">"strip"</span><span class="op">)</span>,</span>
+<span>  platform <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"aerial"</span>, <span class="st">"vessel"</span>, <span class="st">"ship"</span><span class="op">)</span>,</span>
+<span>  distance_sources <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  effort_args <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  sighting_args <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -124,12 +126,19 @@ census track: <code>"same_species"</code> (default), <code>"all"</code>, or <cod
 
 <dt id="arg-circling-distance">circling_distance<a class="anchor" aria-label="anchor" href="#arg-circling-distance"></a></dt>
 <dd><p>What an attached circling record carries:
-<code>"inherit"</code> (default), the perpendicular distance of the on-effort group
-it was counted with; <code>"break_off"</code>, the measured great-circle distance
-from where the aircraft left the line; or <code>"with_group"</code>, which gives it
-no distance and no detection of its own, adding the animals to the group
-they were counted with instead. See <code><a href="attach_circling_sightings.html">attach_circling_sightings()</a></code>.
+<code>"with_group"</code> (default) gives it no distance and no detection of its
+own, adding the animals to the group they were counted with instead;
+<code>"break_off"</code> makes it a detection of its own, at the perpendicular
+distance of its exact position (<code>S_LAT</code>/<code>S_LONG</code>) from the census line
+where one exists, and otherwise at the great-circle distance from where
+the aircraft left the line. See <code><a href="attach_circling_sightings.html">attach_circling_sightings()</a></code>.
 <code>settings$circling_distance</code> records which was used.</p></dd>
+
+
+<dt id="arg-circling-max-gap-km">circling_max_gap_km<a class="anchor" aria-label="anchor" href="#arg-circling-max-gap-km"></a></dt>
+<dd><p>Furthest, in km, that the on-effort group may
+have been seen from the break-off for circled animals to be counted with
+it. <code>NULL</code> (default) uses <code>seg_length</code>. See <code><a href="attach_circling_sightings.html">attach_circling_sightings()</a></code>.</p></dd>
 
 
 <dt id="arg-distance-units">distance_units<a class="anchor" aria-label="anchor" href="#arg-distance-units"></a></dt>
@@ -138,17 +147,29 @@ from <code>ANGLEL</code>/<code>ANGLER</code>: <code>"m"</code> (default) or <cod
 always in km — see <code><a href="perp_distance.html">perp_distance()</a></code>.</p></dd>
 
 
+<dt id="arg-platform">platform<a class="anchor" aria-label="anchor" href="#arg-platform"></a></dt>
+<dd><p><code>"aerial"</code> (default), <code>"vessel"</code>, or <code>"ship"</code> as a synonym
+for <code>"vessel"</code>. Sets the effort criteria and the distance sources
+together, and decides which platform the speed check expects to find. See
+<code><a href="platform_defaults.html">platform_defaults()</a></code>.</p></dd>
+
+
 <dt id="arg-distance-sources">distance_sources<a class="anchor" aria-label="anchor" href="#arg-distance-sources"></a></dt>
 <dd><p>Precedence order over the right-angle distance
-sources, passed to <code><a href="sighting_distances.html">sighting_distances()</a></code>. Defaults to
-<code>c("angle", "exact", "strip")</code>; <code>"circling"</code> is available but not on by
-default. Each detection records which source supplied it, in
-<code>distance_source</code>.</p></dd>
+sources, passed to <code><a href="sighting_distances.html">sighting_distances()</a></code>. <code>NULL</code> (default) takes the
+platform's order — <code>c("angle", "exact", "strip")</code> for an aircraft,
+<code>"exact"</code> for a vessel. Each detection records which source supplied it,
+in <code>distance_source</code>. <code>"circling"</code> is accepted but has no effect here and
+warns: circling records reach the output only through
+<code><a href="attach_circling_sightings.html">attach_circling_sightings()</a></code>, which sets their distance from
+<code>circling_distance</code>. <code>circling_distance = "break_off"</code> already uses the
+perpendicular distance wherever an exact position exists.</p></dd>
 
 
 <dt id="arg-effort-args">effort_args<a class="anchor" aria-label="anchor" href="#arg-effort-args"></a></dt>
 <dd><p>Named list of arguments for <code><a href="https://camilleross.org/narwcr/reference/flag_effort.html" class="external-link">flag_effort()</a></code>, used only
-when <code>dat</code> has no <code>OnOff.Effort</code> column.</p></dd>
+when <code>dat</code> has no <code>OnOff.Effort</code> column. Merged over the platform's own
+defaults, so naming an argument here overrides it.</p></dd>
 
 
 <dt id="arg-sighting-args">sighting_args<a class="anchor" aria-label="anchor" href="#arg-sighting-args"></a></dt>
@@ -192,7 +213,8 @@ so you can run them yourself when you need to intervene between stages.</p>
     <h2 id="pipeline">Pipeline<a class="anchor" aria-label="anchor" href="#pipeline"></a></h2>
 
 
-<ol><li><p><code><a href="https://camilleross.org/narwcr/reference/make_leg_id.html" class="external-link">make_leg_id()</a></code> — separate re-occupations of the same survey line.</p></li>
+<ol><li><p><code><a href="https://camilleross.org/narwcr/reference/make_leg_id.html" class="external-link">make_leg_id()</a></code> — separate re-occupations of the same survey line.
+Then <code><a href="https://camilleross.org/narwcr/reference/fill_legstage.html" class="external-link">narwcr::fill_legstage()</a></code>, unless <code>LEGSTAGE_FILLED</code> shows it has run.</p></li>
 <li><p><code><a href="https://camilleross.org/narwcr/reference/flag_effort.html" class="external-link">flag_effort()</a></code> — decide which records are on effort.</p></li>
 <li><p><code><a href="point_to_point_effort.html">point_to_point_effort()</a></code> — great-circle distance between consecutive
 on-effort positions.</p></li>
@@ -204,6 +226,19 @@ on-effort positions.</p></li>
 <li><p><code><a href="segment_sightings.html">segment_sightings()</a></code> — counts and conditions per segment.</p></li>
 </ol><p>Steps 1 and 2 are skipped when the input already carries <code>LEGNO3</code> or
 <code>OnOff.Effort</code> respectively, so you can substitute your own definitions.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="aerial-or-vessel">Aerial or vessel<a class="anchor" aria-label="anchor" href="#aerial-or-vessel"></a></h2>
+
+
+<p>Segmentation is platform-free — great-circle distance between fixes,
+splitting at breaks in effort, and cutting a track into lengths are geometry,
+and a ship's track segments the same way a plane's does. What is not
+platform-free is either end of it: the effort criteria that decide which
+records count, and the right-angle distance sources that exist. <code>platform</code>
+sets both at once, because setting one without the other is how a survey
+ends up with a vessel's records and an aircraft's criteria — which is a
+survey with no effort at all. See <code><a href="platform_defaults.html">platform_defaults()</a></code>.</p>
     </div>
     <div class="section level2">
     <h2 id="reproducibility">Reproducibility<a class="anchor" aria-label="anchor" href="#reproducibility"></a></h2>

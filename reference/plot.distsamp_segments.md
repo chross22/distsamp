@@ -113,12 +113,13 @@ A `ggplot` object.
   detection-function diagnostic: look for a shoulder near zero and a
   tail that falls away. A spike at zero, a peak away from zero, or a
   long flat tail all mean something, and all of them matter before
-  `Distance::ds()` is called. See the note on `g(0)` below. The axis
-  stops at the 99th percentile and the subtitle reports what lies beyond
-  it: a single implausible distance would otherwise set the scale and
-  put every real one in the first bin. Since such a distance is a bug
-  worth finding rather than a nuisance worth hiding, the subtitle says
-  outright when the largest is too far to be a detection.
+  [`Distance::ds()`](https://rdrr.io/pkg/Distance/man/ds.html) is
+  called. See the note on `g(0)` below. The axis stops at the 99th
+  percentile and the subtitle reports what lies beyond it: a single
+  implausible distance would otherwise set the scale and put every real
+  one in the first bin. Since such a distance is a bug worth finding
+  rather than a nuisance worth hiding, the subtitle says outright when
+  the largest is too far to be a detection.
 
 ## Coastlines, and why the default is none
 

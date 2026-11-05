@@ -87,20 +87,23 @@ The `detections` table has one row per qualifying sighting rather than
 per segment, carrying the perpendicular distance from
 [`sighting_distances()`](https://camilleross.org/distsamp/reference/sighting_distances.md)
 when `ANGLEL`/`ANGLER` are available. That is the shape a detection
-function wants: pass it to `Distance::ds()`, keyed back to the segments
-by `seg_id`.
+function wants: pass it to
+[`Distance::ds()`](https://rdrr.io/pkg/Distance/man/ds.html), keyed back
+to the segments by `seg_id`.
 
-A sighting recorded while circling carries the perpendicular distance of
-the on-effort group it was counted with, marked
-`distance_source == "circling"`, and the measured `break_off_distance`
-from the point on the line where the aircraft broke off. The first is
-what lets it count towards the segment's abundance, which needs a
-detection probability; the second is what lets you judge whether the
-attachment was reasonable. Neither belongs in a detection function — the
-inherited one is already in it, under the sighting it was inherited from
-— and
+A sighting recorded while circling depends on
+`attach_circling_sightings(distance = )`. Under `"with_group"` (the
+default) its animals were added to the on-effort group it was counted
+with, it is marked `circling_counted = FALSE`, and it is skipped here,
+so it is not a detection at all. Under `"break_off"` it is a detection
+of its own: at the perpendicular distance of its exact position from the
+census line (`distance_source == "circling"`) where one was recorded,
+and otherwise at the great-circle distance from where the aircraft broke
+off (`distance_source == "break_off"`). The first is fixed minutes after
+the detection and the second is not perpendicular, so
 [`detection_data()`](https://camilleross.org/distsamp/reference/detection_data.md)
-excludes them by default.
+excludes circling detections by default. `break_off_distance` is carried
+either way, for judging whether the attachment was reasonable.
 
 ## References
 

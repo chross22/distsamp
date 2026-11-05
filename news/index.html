@@ -62,11 +62,11 @@
 <li>
 <code><a href="../reference/sighting_distances.html">sighting_distances()</a></code> applies it across a survey data frame, resolving which side of the track the sighting was on. Restricted to on-effort census records by default, since 8.A.31 notes angles are sometimes recorded during transits and circling for practice.</li>
 <li>
-<code><a href="../reference/segment_survey.html">segment_survey()</a></code> gains a <code>detections</code> table: one row per qualifying sighting with <code>distance</code>, <code>side</code>, <code>size</code>, and <code>seg_id</code> — the shape <code>Distance::ds()</code> wants, keyed back to the segments for a density surface model. <code>distance_units</code> controls metres (default) or km.</li>
+<code><a href="../reference/segment_survey.html">segment_survey()</a></code> gains a <code>detections</code> table: one row per qualifying sighting with <code>distance</code>, <code>side</code>, <code>size</code>, and <code>seg_id</code> — the shape <code><a href="https://rdrr.io/pkg/Distance/man/ds.html" class="external-link">Distance::ds()</a></code> wants, keyed back to the segments for a density surface model. <code>distance_units</code> controls metres (default) or km.</li>
 <li>Circling detections appear with a missing <code>distance</code>. They count towards abundance, but a position logged off the track is not a perpendicular distance.</li>
 <li>
 <code><a href="../reference/validate_narwc.html">validate_narwc()</a></code> gains <code>angle_out_of_range</code>, <code>angle_both_sides</code>, and <code>angle_without_altitude</code>.</li>
-</ul><p>Note that <code>seg_eff</code> is in kilometres while distances default to metres; see <code><a href="../reference/perp_distance.html">?perp_distance</a></code> before passing both to <code>Distance::ds()</code>.</p>
+</ul><p>Note that <code>seg_eff</code> is in kilometres while distances default to metres; see <code><a href="../reference/perp_distance.html">?perp_distance</a></code> before passing both to <code><a href="https://rdrr.io/pkg/Distance/man/ds.html" class="external-link">Distance::ds()</a></code>.</p>
 </div>
 <div class="section level3">
 <h3 id="the-other-two-right-angle-distance-sources-0-1-0">The other two right-angle distance sources<a class="anchor" aria-label="anchor" href="#the-other-two-right-angle-distance-sources-0-1-0"></a></h3>
@@ -92,7 +92,7 @@
 <div class="section level3">
 <h3 id="one-table-for-distance-0-1-0">One table for <code>Distance</code>
 <a class="anchor" aria-label="anchor" href="#one-table-for-distance-0-1-0"></a></h3>
-<p><code><a href="../reference/sighting_distances.html">sighting_distances()</a></code> now resolves all four sources, and <code><a href="../reference/detection_data.html">detection_data()</a></code> turns the result into the flatfile <code>Distance::ds()</code> accepts.</p>
+<p><code><a href="../reference/sighting_distances.html">sighting_distances()</a></code> now resolves all four sources, and <code><a href="../reference/detection_data.html">detection_data()</a></code> turns the result into the flatfile <code><a href="https://rdrr.io/pkg/Distance/man/ds.html" class="external-link">Distance::ds()</a></code> accepts.</p>
 <ul><li>
 <strong><code>sources</code> is a precedence order, not a set.</strong> The first source that yields a distance for a record claims it, and <code>distance_source</code> records which. Default <code>c("angle", "exact", "strip")</code> — the angle first, because it is taken with the sighting abeam and so measures the perpendicular distance directly. Reverse it to prefer exact positions; where a record has both, they are independent measurements and their disagreement checks both.</li>
 <li>
@@ -104,7 +104,7 @@
 <li>
 <strong>Truncation drops detections and keeps their segments</strong>, effort intact. A segment whose only detection is truncated survives as an empty row.</li>
 <li>
-<strong>Point and interval distances in one table is an error</strong> by default — <code>STRIP</code> rows are binned and one <code>ds()</code> call cannot fit both. Open top bins are dropped, since an unbounded bin cannot be fitted at all.</li>
+<strong>Point and interval distances in one table is an error</strong> by default — <code>STRIP</code> rows are binned and one <code><a href="https://rdrr.io/pkg/Distance/man/ds.html" class="external-link">ds()</a></code> call cannot fit both. Open top bins are dropped, since an unbounded bin cannot be fitted at all.</li>
 <li>Everything dropped is reported by name and count, and the report ends with <code>g(0) = 1 is assumed</code>.</li>
 </ul><p><code><a href="../reference/segment_survey.html">segment_survey()</a></code> gains <code>distance_sources</code>, and <code>detections</code> carries <code>distbegin</code>, <code>distend</code>, and <code>distance_source</code>.</p>
 <p><strong>On <code>g(0)</code>.</strong> Nothing here corrects for animals submerged when the aircraft passed, or surfaced and missed. It cannot be estimated from a standard NARWC extract, which records neither dive data nor the double-observer structure mark-recapture needs. Apply a correction from external sources at the abundance step, with its standard error propagated. <code><a href="../reference/detection_data.html">?detection_data</a></code> says so where someone about to fit a model will see it.</p>
@@ -180,6 +180,28 @@
 </ul><p><code>species</code> filters the views that draw sightings.</p>
 <p><code>coastline = TRUE</code> draws Natural Earth land under the map views, and <code>coastline</code> also takes your own <code>sf</code> object — which is the right answer at bay scale, since Natural Earth’s medium coastline is 1:50m and coarse enough to put a shore-hugging survey apparently on land. Tile basemaps remain out of scope: they need a tile source and network access, which a diagnostic plot should not.</p>
 </div>
+<div class="section level3">
+<h3 id="circling-audit-fixes-0-1-0">Circling: audit fixes (2026-11-05)<a class="anchor" aria-label="anchor" href="#circling-audit-fixes-0-1-0"></a></h3>
+<ul><li>
+<code>segment_survey(distance_sources = )</code> now warns when it includes <code>"circling"</code>, and drops it. That source’s perpendicular distance was computed and then replaced when the circling record was attached, so asking for it changed nothing and said nothing. <code><a href="../reference/circling_distance.html">circling_distance()</a></code> still gives it directly.</li>
+<li>
+<code>segment_survey(circling_distance = "inherit")</code> now gives the same explanation as <code>attach_circling_sightings(distance = "inherit")</code>. Its own <code><a href="https://rdrr.io/r/base/match.arg.html" class="external-link">match.arg()</a></code> ran first and answered with the generic “should be one of”.</li>
+<li>Help for <code><a href="../reference/attach_circling_sightings.html">attach_circling_sightings()</a></code>, <code><a href="../reference/segment_survey.html">segment_survey()</a></code>, <code><a href="../reference/segment_sightings.html">segment_sightings()</a></code> and <code><a href="../reference/detection_data.html">detection_data()</a></code> no longer describes the removed <code>"inherit"</code> option as current, or as the default.</li>
+<li>
+<code><a href="../reference/flag_circling.html">flag_circling()</a></code> no longer warns on a tibble with no <code>DATE</code> column.</li>
+<li>
+<code>circling_distance = "break_off"</code> now uses the recorded position where one exists: <code>S_LAT</code>/<code>S_LONG</code> is projected onto the census line through the break-off by <code><a href="../reference/circling_distance.html">circling_distance()</a></code>, giving a perpendicular distance marked <code>distance_source == "circling"</code>. Without one it falls back to the great-circle distance from the break-off, marked <code>"break_off"</code>, as before. On the fixture the circling sighting moves from 523.9 m (slant) to 250.0 m (perpendicular), which is where <code>data-raw/make-fixture.R</code> placed it.</li>
+<li>
+<code>circling_distance = "break_off"</code> now respects <code>distance_units</code>. It wrote metres into <code>distance</code> even when <code>segment_survey(distance_units = "km")</code>. <code><a href="../reference/attach_circling_sightings.html">attach_circling_sightings()</a></code> gains <code>units</code>; <code>break_off_distance</code> stays in metres.</li>
+<li>Circled animals no longer vanish when a segment boundary falls between the on-effort sighting and the break-off. The group they join was looked for only in the segment in progress at the break-off; it is now the most recent same-species on-effort sighting in the same line occupation, after the previous resume, and within <code>max_gap_km</code> of the break-off (<code>segment_survey(circling_max_gap_km = )</code>, default <code>seg_length</code>). Under <code>mode = "same_species"</code> the old search dropped those animals outright. The limit applies within a segment too: a same-segment group further than <code>max_gap_km</code> from the break-off is no longer joined.</li>
+<li>A circling sighting is tied to the break-off record (<code>LEGSTAGE == 3</code>): it joins that record’s segment, and <code>break_off_distance</code> and the <code>max_gap_km</code> limit are measured from its position. It was tied to the last segment that ended before the circle, which for a circle logged as a single record is the segment before the break-off’s, measured from that segment’s far end (5,556 m instead of 0 m in the test case). Without <code>LEGSTAGE</code> the last on-effort record before the sighting stands in for the break-off.</li>
+<li>A circling sighting logged as a single record was counted twice: once as an ordinary sighting, because a lone off-effort record does not split a track, and again when attached. It was also counted under <code>circling = "none"</code>. Attachment is now the only way a circling sighting reaches a segment.</li>
+<li>
+<code><a href="../reference/segment_survey.html">segment_survey()</a></code> now fills <code>LEGSTAGE</code> (<code><a href="https://camilleross.org/narwcr/reference/fill_legstage.html" class="external-link">narwcr::fill_legstage()</a></code>) when <code><a href="../reference/prepare_survey.html">prepare_survey()</a></code> has not, as it already built <code>LEGNO3</code>. A mid-line sighting with no <code>LEGSTAGE</code> of its own was ineligible for a distance when <code><a href="../reference/segment_survey.html">segment_survey()</a></code> was called on unprepared data.</li>
+<li>
+<code><a href="../reference/detection_data.html">detection_data()</a></code> output can now be fitted by <code><a href="https://rdrr.io/pkg/Distance/man/ds.html" class="external-link">Distance::ds()</a></code>. It emitted <code>distbegin</code>/<code>distend</code> columns even when every distance was exact; <code><a href="https://rdrr.io/pkg/Distance/man/ds.html" class="external-link">ds()</a></code> reads those columns as binned data, drops <code>distance</code>, and failed. The flatfile now has <code>distance</code> for exact distances or the bin columns for <code>STRIP</code>, never both. <code>Distance</code> is now in Suggests, for the test that fits it.</li>
+<li>The <code>from-segments-to-density</code> vignette’s fitting code (not run on build) passed no <code>convert_units</code> to <code><a href="https://rdrr.io/pkg/Distance/man/ds.html" class="external-link">ds()</a></code> or <code>convert.units</code> to <code>dsm()</code>, which scales abundance by 1000, and built <code>observation.data</code> from an undefined <code>df_data</code>. Corrected; the steps are run end to end in <code>docs/11-distance-sampling-steps.md</code>.</li>
+</ul></div>
 <div class="section level3">
 <h3 id="vignettes-0-1-0">Vignettes<a class="anchor" aria-label="anchor" href="#vignettes-0-1-0"></a></h3>
 <ul><li>

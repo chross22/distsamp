@@ -37,8 +37,9 @@ merely carried through.
   transits and circling for practice.
 - [`segment_survey()`](https://camilleross.org/distsamp/reference/segment_survey.md)
   gains a `detections` table: one row per qualifying sighting with
-  `distance`, `side`, `size`, and `seg_id` — the shape `Distance::ds()`
-  wants, keyed back to the segments for a density surface model.
+  `distance`, `side`, `size`, and `seg_id` — the shape
+  [`Distance::ds()`](https://rdrr.io/pkg/Distance/man/ds.html) wants,
+  keyed back to the segments for a density surface model.
   `distance_units` controls metres (default) or km.
 - Circling detections appear with a missing `distance`. They count
   towards abundance, but a position logged off the track is not a
@@ -50,7 +51,8 @@ merely carried through.
 Note that `seg_eff` is in kilometres while distances default to metres;
 see
 [`?perp_distance`](https://camilleross.org/distsamp/reference/perp_distance.md)
-before passing both to `Distance::ds()`.
+before passing both to
+[`Distance::ds()`](https://rdrr.io/pkg/Distance/man/ds.html).
 
 ### The other two right-angle distance sources
 
@@ -132,7 +134,8 @@ combination, so the two stay separate arguments.
 [`sighting_distances()`](https://camilleross.org/distsamp/reference/sighting_distances.md)
 now resolves all four sources, and
 [`detection_data()`](https://camilleross.org/distsamp/reference/detection_data.md)
-turns the result into the flatfile `Distance::ds()` accepts.
+turns the result into the flatfile
+[`Distance::ds()`](https://rdrr.io/pkg/Distance/man/ds.html) accepts.
 
 - **`sources` is a precedence order, not a set.** The first source that
   yields a distance for a record claims it, and `distance_source`
@@ -158,8 +161,10 @@ turns the result into the flatfile `Distance::ds()` accepts.
   intact. A segment whose only detection is truncated survives as an
   empty row.
 - **Point and interval distances in one table is an error** by default —
-  `STRIP` rows are binned and one `ds()` call cannot fit both. Open top
-  bins are dropped, since an unbounded bin cannot be fitted at all.
+  `STRIP` rows are binned and one
+  [`ds()`](https://rdrr.io/pkg/Distance/man/ds.html) call cannot fit
+  both. Open top bins are dropped, since an unbounded bin cannot be
+  fitted at all.
 - Everything dropped is reported by name and count, and the report ends
   with `g(0) = 1 is assumed`.
 
@@ -382,6 +387,90 @@ at bay scale, since Natural Earth’s medium coastline is 1:50m and coarse
 enough to put a shore-hugging survey apparently on land. Tile basemaps
 remain out of scope: they need a tile source and network access, which a
 diagnostic plot should not.
+
+### Circling: audit fixes (2026-11-05)
+
+- `segment_survey(distance_sources = )` now warns when it includes
+  `"circling"`, and drops it. That source’s perpendicular distance was
+  computed and then replaced when the circling record was attached, so
+  asking for it changed nothing and said nothing.
+  [`circling_distance()`](https://camilleross.org/distsamp/reference/circling_distance.md)
+  still gives it directly.
+- `segment_survey(circling_distance = "inherit")` now gives the same
+  explanation as `attach_circling_sightings(distance = "inherit")`. Its
+  own [`match.arg()`](https://rdrr.io/r/base/match.arg.html) ran first
+  and answered with the generic “should be one of”.
+- Help for
+  [`attach_circling_sightings()`](https://camilleross.org/distsamp/reference/attach_circling_sightings.md),
+  [`segment_survey()`](https://camilleross.org/distsamp/reference/segment_survey.md),
+  [`segment_sightings()`](https://camilleross.org/distsamp/reference/segment_sightings.md)
+  and
+  [`detection_data()`](https://camilleross.org/distsamp/reference/detection_data.md)
+  no longer describes the removed `"inherit"` option as current, or as
+  the default.
+- [`flag_circling()`](https://camilleross.org/distsamp/reference/flag_circling.md)
+  no longer warns on a tibble with no `DATE` column.
+- `circling_distance = "break_off"` now uses the recorded position where
+  one exists: `S_LAT`/`S_LONG` is projected onto the census line through
+  the break-off by
+  [`circling_distance()`](https://camilleross.org/distsamp/reference/circling_distance.md),
+  giving a perpendicular distance marked
+  `distance_source == "circling"`. Without one it falls back to the
+  great-circle distance from the break-off, marked `"break_off"`, as
+  before. On the fixture the circling sighting moves from 523.9 m
+  (slant) to 250.0 m (perpendicular), which is where
+  `data-raw/make-fixture.R` placed it.
+- `circling_distance = "break_off"` now respects `distance_units`. It
+  wrote metres into `distance` even when
+  `segment_survey(distance_units = "km")`.
+  [`attach_circling_sightings()`](https://camilleross.org/distsamp/reference/attach_circling_sightings.md)
+  gains `units`; `break_off_distance` stays in metres.
+- Circled animals no longer vanish when a segment boundary falls between
+  the on-effort sighting and the break-off. The group they join was
+  looked for only in the segment in progress at the break-off; it is now
+  the most recent same-species on-effort sighting in the same line
+  occupation, after the previous resume, and within `max_gap_km` of the
+  break-off (`segment_survey(circling_max_gap_km = )`, default
+  `seg_length`). Under `mode = "same_species"` the old search dropped
+  those animals outright. The limit applies within a segment too: a
+  same-segment group further than `max_gap_km` from the break-off is no
+  longer joined.
+- A circling sighting is tied to the break-off record (`LEGSTAGE == 3`):
+  it joins that record’s segment, and `break_off_distance` and the
+  `max_gap_km` limit are measured from its position. It was tied to the
+  last segment that ended before the circle, which for a circle logged
+  as a single record is the segment before the break-off’s, measured
+  from that segment’s far end (5,556 m instead of 0 m in the test case).
+  Without `LEGSTAGE` the last on-effort record before the sighting
+  stands in for the break-off.
+- A circling sighting logged as a single record was counted twice: once
+  as an ordinary sighting, because a lone off-effort record does not
+  split a track, and again when attached. It was also counted under
+  `circling = "none"`. Attachment is now the only way a circling
+  sighting reaches a segment.
+- [`segment_survey()`](https://camilleross.org/distsamp/reference/segment_survey.md)
+  now fills `LEGSTAGE`
+  ([`narwcr::fill_legstage()`](https://camilleross.org/narwcr/reference/fill_legstage.html))
+  when
+  [`prepare_survey()`](https://camilleross.org/distsamp/reference/prepare_survey.md)
+  has not, as it already built `LEGNO3`. A mid-line sighting with no
+  `LEGSTAGE` of its own was ineligible for a distance when
+  [`segment_survey()`](https://camilleross.org/distsamp/reference/segment_survey.md)
+  was called on unprepared data.
+- [`detection_data()`](https://camilleross.org/distsamp/reference/detection_data.md)
+  output can now be fitted by
+  [`Distance::ds()`](https://rdrr.io/pkg/Distance/man/ds.html). It
+  emitted `distbegin`/`distend` columns even when every distance was
+  exact; [`ds()`](https://rdrr.io/pkg/Distance/man/ds.html) reads those
+  columns as binned data, drops `distance`, and failed. The flatfile now
+  has `distance` for exact distances or the bin columns for `STRIP`,
+  never both. `Distance` is now in Suggests, for the test that fits it.
+- The `from-segments-to-density` vignette’s fitting code (not run on
+  build) passed no `convert_units` to
+  [`ds()`](https://rdrr.io/pkg/Distance/man/ds.html) or `convert.units`
+  to `dsm()`, which scales abundance by 1000, and built
+  `observation.data` from an undefined `df_data`. Corrected; the steps
+  are run end to end in `docs/11-distance-sampling-steps.md`.
 
 ### Vignettes
 

@@ -1,10 +1,13 @@
-# distsamp: Segment Aerial Line-Transect Survey Data for Distance Sampling
+# distsamp: Segment Line-Transect Survey Data for Distance Sampling
 
-Turns marine mammal aerial line-transect survey data recorded in the
-North Atlantic Right Whale Consortium (NARWC) sightings database format
-into effort segments and detection distances, ready for distance
-sampling and density surface modeling. Reading and standardising an
-extract is done by the 'narwcr' package, which this one shares with
+Turns marine mammal line-transect survey data recorded in the North
+Atlantic Right Whale Consortium (NARWC) sightings database format into
+effort segments and detection distances, ready for distance sampling and
+density surface modeling. Handles aerial and shipboard surveys, which
+differ in the effort criteria that apply to them and in the right-angle
+distance sources they can supply, and which a single extract can hold
+together with nothing to say which is which. Reading and standardising
+an extract is done by the 'narwcr' package, which this one shares with
 other analyses of the same archive; what follows is specific to distance
 sampling. Accumulates great-circle effort, splits survey lines at breaks
 in effort, and chops continuous tracklines into segments of a target
@@ -71,6 +74,8 @@ A full list, with what each source is relied on for, is in
 Useful links:
 
 - <https://github.com/chross22/distsamp>
+
+- <https://camilleross.org/distsamp/>
 
 - Report bugs at <https://github.com/chross22/distsamp/issues>
 

@@ -8,8 +8,9 @@ archive's sources is available, and records which one was used.
 ``` r
 sighting_distances(
   dat,
-  sources = c("angle", "exact", "strip"),
+  sources = NULL,
   units = c("m", "km", "nmi"),
+  platform = c("aerial", "vessel", "ship"),
   on_effort_only = TRUE,
   strip_scheme = "auto",
   strip_platform = "skymaster",
@@ -28,11 +29,20 @@ sighting_distances(
 - sources:
 
   Precedence order over `"angle"`, `"exact"`, `"strip"`, and
-  `"circling"`. Defaults to `c("angle", "exact", "strip")`.
+  `"circling"`. `NULL` (default) takes the platform's order:
+  `c("angle", "exact", "strip")` for an aircraft, `"exact"` for a
+  vessel.
 
 - units:
 
   `"m"` (default), `"km"`, or `"nmi"`.
+
+- platform:
+
+  `"aerial"` (default), `"vessel"`, or `"ship"` as a synonym for
+  `"vessel"`. Decides the default `sources`, and which sources may be
+  asked for at all. See
+  [`platform_defaults()`](https://camilleross.org/distsamp/reference/platform_defaults.md).
 
 - on_effort_only:
 
@@ -90,6 +100,19 @@ track-line. Each has its own function; this assembles them.
 distance for a record wins, and `distance_source` records which that
 was.
 
+## Two of the four are aircraft measurements
+
+`"angle"` is an altitude divided by a tangent, and the `"strip"` code
+books are the Skymaster's and the AT-11's (8.A.31). Neither exists on a
+vessel. `platform = "vessel"` therefore leaves `"exact"` — a recorded
+sighting position projected onto the track, which is geometry rather
+than platform — and asking for either of the others errors rather than
+returning a column of `NA`. `"circling"` is a break-off from the census
+line and applies to both, but is opt-in for both too.
+
+Leave `sources` at `NULL` to take the platform's own order. Naming it
+overrides the platform, within what the platform can supply.
+
 ## Why the provenance column is not optional
 
 Mixing sources in one detection function is a decision, and it should be
@@ -116,6 +139,11 @@ the distance distribution — but the position is fixed after the animal
 has moved, so they are a weaker source. Ask for them deliberately, and
 see
 [`circling_distance()`](https://camilleross.org/distsamp/reference/circling_distance.md).
+[`segment_survey()`](https://camilleross.org/distsamp/reference/segment_survey.md)
+does not take this source from `distance_sources`, and warns if it is
+asked for: a circling record's distance is set when it is attached, and
+`segment_survey(circling_distance = "break_off")` uses this same
+computation wherever an exact position exists.
 
 ## Restricted to census records
 
@@ -173,4 +201,11 @@ table(rev_out$distance_source, useNA = "no")
 #> 
 #> angle exact 
 #>     5     3 
+
+# A vessel has only the position; the aircraft sources are not offered
+sea <- sighting_distances(dat, platform = "vessel")
+table(sea$distance_source, useNA = "no")
+#> 
+#> exact 
+#>     3 
 ```

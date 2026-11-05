@@ -116,7 +116,9 @@ you want.</p></dd>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A tibble in <code>Distance</code> flatfile shape, with a <code>distance_units</code>
-attribute.</p>
+attribute. It has a <code>distance</code> column for exact distances, or
+<code>distbegin</code>/<code>distend</code> for binned ones, never both:
+<code><a href="https://rdrr.io/pkg/Distance/man/ds.html" class="external-link">Distance::ds()</a></code> treats the presence of the bin columns as binned data.</p>
     </div>
     <div class="section level2">
     <h2 id="the-shape">The shape<a class="anchor" aria-label="anchor" href="#the-shape"></a></h2>
@@ -138,7 +140,7 @@ searched is effort searched whether or not anything was seen within the
 truncation distance, so removing the segment as well would remove the
 denominator along with the numerator and bias density upward.</p>
 <p>Truncation is reported rather than silent. It also has to match what you pass
-to <code>ds()</code>; passing <code>truncation</code> here and a different value there fits the
+to <code><a href="https://rdrr.io/pkg/Distance/man/ds.html" class="external-link">ds()</a></code>; passing <code>truncation</code> here and a different value there fits the
 model to one set of detections and scales abundance by another.</p>
     </div>
     <div class="section level2">
@@ -146,7 +148,7 @@ model to one set of detections and scales abundance by another.</p>
 
 
 <p><code>STRIP</code> gives an interval, not a point, so those rows carry <code>distbegin</code> and
-<code>distend</code> and no <code>distance</code>. A single <code>ds()</code> call cannot fit both — the
+<code>distend</code> and no <code>distance</code>. A single <code><a href="https://rdrr.io/pkg/Distance/man/ds.html" class="external-link">ds()</a></code> call cannot fit both — the
 likelihoods differ — so a table containing both is a survey era boundary
 rather than a model set. <code>mixed = "error"</code> (the default) refuses it;
 <code>mixed = "warn"</code> lets it through for inspection. Split on <code>distance_source</code>
@@ -159,14 +161,16 @@ rows are dropped, and counted in the report.</p>
     <h2 id="circling-detections">Circling detections<a class="anchor" aria-label="anchor" href="#circling-detections"></a></h2>
 
 
-<p>Excluded by default, and the reason is stronger than "the position is off the
-track". A circling detection's <code>distance</code> is not measured at all: it is
-inherited from the on-effort sighting these animals were counted with, which
-is already a row in this table. Keeping both puts the same perpendicular
-distance into the detection function twice and weights it twice.
-<code>include_circling = TRUE</code> does keep them — a choice worth stating in a
-methods section rather than making silently — but it is a choice about
-double-counting, not about which positions are trustworthy.</p>
+<p>Excluded by default. Under the default
+<code>segment_survey(circling_distance = "with_group")</code> there are none to exclude:
+the animals were added to the on-effort group they were counted with, which
+is already a row here. Under <code>"break_off"</code> a circling detection's <code>distance</code>
+is either a perpendicular distance from a position fixed minutes after the
+detection (<code>distance_source == "circling"</code>), or, with no exact position, a
+great-circle distance from the break-off that is not perpendicular at all
+(<code>"break_off"</code>). Neither is measured at the moment of detection. <code>include_circling = TRUE</code> does keep
+them — a choice worth stating in a methods section rather than making
+silently.</p>
 <p>Note that this is independent of whether circling sightings count towards
 abundance in a density surface model, which they should and do; that is
 controlled by <code>segment_survey(circling = )</code>. Excluding them here does not
@@ -218,16 +222,15 @@ Press.</p>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> `detection_data()`: 20 segments, 8 detections (m).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   g(0) = 1 is assumed; see `?detection_data`.</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">flat</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 10</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Region.Label  Area Sample.Label Effort object distance distbegin distend  size</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> all           <span style="text-decoration: underline;">5</span>811 2024-04-01_…   7.78      1     229         <span style="color: #BB0000;">NA</span>      <span style="color: #BB0000;">NA</span>     1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> all           <span style="text-decoration: underline;">5</span>811 2024-04-01_…   5.56      2     132.        <span style="color: #BB0000;">NA</span>      <span style="color: #BB0000;">NA</span>     2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> all           <span style="text-decoration: underline;">5</span>811 2024-04-01_…   5.56      3     397.        <span style="color: #BB0000;">NA</span>      <span style="color: #BB0000;">NA</span>     1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> all           <span style="text-decoration: underline;">5</span>811 2024-04-01_…   5.56      4     629.        <span style="color: #BB0000;">NA</span>      <span style="color: #BB0000;">NA</span>     3</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> all           <span style="text-decoration: underline;">5</span>811 2024-04-01_…   3.33     <span style="color: #BB0000;">NA</span>      <span style="color: #BB0000;">NA</span>         <span style="color: #BB0000;">NA</span>      <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> all           <span style="text-decoration: underline;">5</span>811 2024-04-01_…   5.56     <span style="color: #BB0000;">NA</span>      <span style="color: #BB0000;">NA</span>         <span style="color: #BB0000;">NA</span>      <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 1 more variable: distance_source &lt;chr&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 8</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Region.Label  Area Sample.Label   Effort object distance  size distance_source</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>           <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>          </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> all           <span style="text-decoration: underline;">5</span>811 2024-04-01_2_1   7.78      1     229      1 angle          </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> all           <span style="text-decoration: underline;">5</span>811 2024-04-01_2_2   5.56      2     132.     2 angle          </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> all           <span style="text-decoration: underline;">5</span>811 2024-04-01_2_2   5.56      3     397.     1 angle          </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> all           <span style="text-decoration: underline;">5</span>811 2024-04-01_2_2   5.56      4     629.     3 angle          </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> all           <span style="text-decoration: underline;">5</span>811 2024-04-01_2_3   3.33     <span style="color: #BB0000;">NA</span>      <span style="color: #BB0000;">NA</span>     <span style="color: #BB0000;">NA</span> <span style="color: #BB0000;">NA</span>             </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> all           <span style="text-decoration: underline;">5</span>811 2024-04-01_2_4   5.56     <span style="color: #BB0000;">NA</span>      <span style="color: #BB0000;">NA</span>     <span style="color: #BB0000;">NA</span> <span style="color: #BB0000;">NA</span>             </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Segments with no detections are kept, carrying their effort</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">flat</span><span class="op">$</span><span class="va">distance</span><span class="op">)</span><span class="op">)</span></span></span>
@@ -244,16 +247,16 @@ Press.</p>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu">detection_data</span><span class="op">(</span><span class="va">segs</span>, area <span class="op">=</span> <span class="fl">5811</span>, covariates <span class="op">=</span> <span class="st">"wt_beaufort"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> `detection_data()`: 20 segments, 8 detections (m).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   g(0) = 1 is assumed; see `?detection_data`.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 11</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Region.Label  Area Sample.Label Effort object distance distbegin distend  size</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> all           <span style="text-decoration: underline;">5</span>811 2024-04-01_…   7.78      1     229         <span style="color: #BB0000;">NA</span>      <span style="color: #BB0000;">NA</span>     1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> all           <span style="text-decoration: underline;">5</span>811 2024-04-01_…   5.56      2     132.        <span style="color: #BB0000;">NA</span>      <span style="color: #BB0000;">NA</span>     2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> all           <span style="text-decoration: underline;">5</span>811 2024-04-01_…   5.56      3     397.        <span style="color: #BB0000;">NA</span>      <span style="color: #BB0000;">NA</span>     1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> all           <span style="text-decoration: underline;">5</span>811 2024-04-01_…   5.56      4     629.        <span style="color: #BB0000;">NA</span>      <span style="color: #BB0000;">NA</span>     3</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> all           <span style="text-decoration: underline;">5</span>811 2024-04-01_…   3.33     <span style="color: #BB0000;">NA</span>      <span style="color: #BB0000;">NA</span>         <span style="color: #BB0000;">NA</span>      <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> all           <span style="text-decoration: underline;">5</span>811 2024-04-01_…   5.56     <span style="color: #BB0000;">NA</span>      <span style="color: #BB0000;">NA</span>         <span style="color: #BB0000;">NA</span>      <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 2 more variables: distance_source &lt;chr&gt;, wt_beaufort &lt;dbl&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 9</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Region.Label  Area Sample.Label   Effort object distance  size distance_source</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>           <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>          </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> all           <span style="text-decoration: underline;">5</span>811 2024-04-01_2_1   7.78      1     229      1 angle          </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> all           <span style="text-decoration: underline;">5</span>811 2024-04-01_2_2   5.56      2     132.     2 angle          </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> all           <span style="text-decoration: underline;">5</span>811 2024-04-01_2_2   5.56      3     397.     1 angle          </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> all           <span style="text-decoration: underline;">5</span>811 2024-04-01_2_2   5.56      4     629.     3 angle          </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> all           <span style="text-decoration: underline;">5</span>811 2024-04-01_2_3   3.33     <span style="color: #BB0000;">NA</span>      <span style="color: #BB0000;">NA</span>     <span style="color: #BB0000;">NA</span> <span style="color: #BB0000;">NA</span>             </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> all           <span style="text-decoration: underline;">5</span>811 2024-04-01_2_4   5.56     <span style="color: #BB0000;">NA</span>      <span style="color: #BB0000;">NA</span>     <span style="color: #BB0000;">NA</span> <span style="color: #BB0000;">NA</span>             </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 1 more variable: wt_beaufort &lt;dbl&gt;</span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

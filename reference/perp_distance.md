@@ -55,9 +55,10 @@ angle carries the altitude dependence explicitly.
 
 `ALT` is in metres (8.A.1), so distances are returned in metres by
 default. Note that segment effort in this package is in **kilometres** —
-if you pass both to `Distance::ds()` you must either use `units = "km"`
-here or supply `convert_units`. Getting this wrong scales density
-estimates by 1000.
+if you pass both to
+[`Distance::ds()`](https://rdrr.io/pkg/Distance/man/ds.html) you must
+either use `units = "km"` here or supply `convert_units`. Getting this
+wrong scales density estimates by 1000.
 
 ## References
 

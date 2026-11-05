@@ -34,7 +34,8 @@ along it.
 ## Distances and geometry
 
 Perpendicular distance is what a detection function consumes. Where the
-survey recorded declination angles, it can be computed exactly.
+survey recorded declination angles, it can be computed exactly; a
+shipboard survey has the sighting position instead.
 
 - [`circling_distance()`](https://camilleross.org/distsamp/reference/circling_distance.md)
   : Perpendicular distances for sightings made while circling
@@ -45,7 +46,8 @@ survey recorded declination angles, it can be computed exactly.
 - [`detection_data()`](https://camilleross.org/distsamp/reference/detection_data.md)
   :
 
-  Build a flatfile for `Distance::ds()`
+  Build a flatfile for
+  [`Distance::ds()`](https://rdrr.io/pkg/Distance/man/ds.html)
 
 - [`dist_methods()`](https://camilleross.org/distsamp/reference/dist_methods.md)
   : Distance methods available
@@ -76,8 +78,9 @@ survey recorded declination angles, it can be computed exactly.
 
 ## Circling and reflights
 
-An aircraft that circles a sighting is no longer on effort. These find
-those passages and attach their sightings to the right segment.
+A platform that breaks off to circle a sighting is no longer on effort.
+These find those passages and attach their sightings to the right
+segment.
 
 - [`attach_circling_sightings()`](https://camilleross.org/distsamp/reference/attach_circling_sightings.md)
   : Attach sightings made while circling to the segment they came from
@@ -98,8 +101,8 @@ loading both packages.
 
 ## Preparing and inspecting
 
-Aerial-specific preparation, a pipeline diagnosis that reports rather
-than stops, and plots for looking at what came out.
+Getting an extract ready to segment, a pipeline diagnosis that reports
+rather than stops, and plots for looking at what came out.
 
 - [`crop_to_bbox()`](https://camilleross.org/distsamp/reference/crop_to_bbox.md)
   : Restrict data to a bounding box
@@ -108,11 +111,14 @@ than stops, and plots for looking at what came out.
   trust it
 - [`distsamp_checks()`](https://camilleross.org/distsamp/reference/distsamp_checks.md)
   : Checks that only matter for distance sampling
+- [`platform_defaults()`](https://camilleross.org/distsamp/reference/platform_defaults.md)
+  : The platforms this package can segment
 - [`plot(`*`<distsamp_segments>`*`)`](https://camilleross.org/distsamp/reference/plot.distsamp_segments.md)
   : Diagnostic plots for a segmentation
 - [`plot_survey()`](https://camilleross.org/distsamp/reference/plot_survey.md)
   : Look at the survey partway through the pipeline
 - [`plot_survey_panel()`](https://camilleross.org/distsamp/reference/plot_survey_panel.md)
   : Several views of a survey, side by side
-- [`prepare_aerial()`](https://camilleross.org/distsamp/reference/prepare_aerial.md)
+- [`prepare_survey()`](https://camilleross.org/distsamp/reference/prepare_survey.md)
+  [`prepare_aerial()`](https://camilleross.org/distsamp/reference/prepare_survey.md)
   : Get a NARWC extract ready to segment

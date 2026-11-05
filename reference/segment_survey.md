@@ -19,8 +19,10 @@ segment_survey(
   dist_method = c("haversine", "becker", "kenney", "eab", "rdk"),
   circling = c("same_species", "all", "none"),
   circling_distance = c("with_group", "break_off"),
+  circling_max_gap_km = NULL,
   distance_units = c("m", "km"),
-  distance_sources = c("angle", "exact", "strip"),
+  platform = c("aerial", "vessel", "ship"),
+  distance_sources = NULL,
   effort_args = list(),
   sighting_args = list()
 )
@@ -77,14 +79,22 @@ segment_survey(
 
 - circling_distance:
 
-  What an attached circling record carries: `"inherit"` (default), the
-  perpendicular distance of the on-effort group it was counted with;
-  `"break_off"`, the measured great-circle distance from where the
-  aircraft left the line; or `"with_group"`, which gives it no distance
-  and no detection of its own, adding the animals to the group they were
-  counted with instead. See
+  What an attached circling record carries: `"with_group"` (default)
+  gives it no distance and no detection of its own, adding the animals
+  to the group they were counted with instead; `"break_off"` makes it a
+  detection of its own, at the perpendicular distance of its exact
+  position (`S_LAT`/`S_LONG`) from the census line where one exists, and
+  otherwise at the great-circle distance from where the aircraft left
+  the line. See
   [`attach_circling_sightings()`](https://camilleross.org/distsamp/reference/attach_circling_sightings.md).
   `settings$circling_distance` records which was used.
+
+- circling_max_gap_km:
+
+  Furthest, in km, that the on-effort group may have been seen from the
+  break-off for circled animals to be counted with it. `NULL` (default)
+  uses `seg_length`. See
+  [`attach_circling_sightings()`](https://camilleross.org/distsamp/reference/attach_circling_sightings.md).
 
 - distance_units:
 
@@ -93,19 +103,34 @@ segment_survey(
   always in km — see
   [`perp_distance()`](https://camilleross.org/distsamp/reference/perp_distance.md).
 
+- platform:
+
+  `"aerial"` (default), `"vessel"`, or `"ship"` as a synonym for
+  `"vessel"`. Sets the effort criteria and the distance sources
+  together, and decides which platform the speed check expects to find.
+  See
+  [`platform_defaults()`](https://camilleross.org/distsamp/reference/platform_defaults.md).
+
 - distance_sources:
 
   Precedence order over the right-angle distance sources, passed to
   [`sighting_distances()`](https://camilleross.org/distsamp/reference/sighting_distances.md).
-  Defaults to `c("angle", "exact", "strip")`; `"circling"` is available
-  but not on by default. Each detection records which source supplied
-  it, in `distance_source`.
+  `NULL` (default) takes the platform's order —
+  `c("angle", "exact", "strip")` for an aircraft, `"exact"` for a
+  vessel. Each detection records which source supplied it, in
+  `distance_source`. `"circling"` is accepted but has no effect here and
+  warns: circling records reach the output only through
+  [`attach_circling_sightings()`](https://camilleross.org/distsamp/reference/attach_circling_sightings.md),
+  which sets their distance from `circling_distance`.
+  `circling_distance = "break_off"` already uses the perpendicular
+  distance wherever an exact position exists.
 
 - effort_args:
 
   Named list of arguments for
   [`flag_effort()`](https://camilleross.org/narwcr/reference/flag_effort.html),
-  used only when `dat` has no `OnOff.Effort` column.
+  used only when `dat` has no `OnOff.Effort` column. Merged over the
+  platform's own defaults, so naming an argument here overrides it.
 
 - sighting_args:
 
@@ -155,7 +180,9 @@ stages.
 ## Pipeline
 
 1.  [`make_leg_id()`](https://camilleross.org/narwcr/reference/make_leg_id.html)
-    — separate re-occupations of the same survey line.
+    — separate re-occupations of the same survey line. Then
+    [`narwcr::fill_legstage()`](https://camilleross.org/narwcr/reference/fill_legstage.html),
+    unless `LEGSTAGE_FILLED` shows it has run.
 
 2.  [`flag_effort()`](https://camilleross.org/narwcr/reference/flag_effort.html)
     — decide which records are on effort.
@@ -183,6 +210,18 @@ stages.
 
 Steps 1 and 2 are skipped when the input already carries `LEGNO3` or
 `OnOff.Effort` respectively, so you can substitute your own definitions.
+
+## Aerial or vessel
+
+Segmentation is platform-free — great-circle distance between fixes,
+splitting at breaks in effort, and cutting a track into lengths are
+geometry, and a ship's track segments the same way a plane's does. What
+is not platform-free is either end of it: the effort criteria that
+decide which records count, and the right-angle distance sources that
+exist. `platform` sets both at once, because setting one without the
+other is how a survey ends up with a vessel's records and an aircraft's
+criteria — which is a survey with no effort at all. See
+[`platform_defaults()`](https://camilleross.org/distsamp/reference/platform_defaults.md).
 
 ## Reproducibility
 
