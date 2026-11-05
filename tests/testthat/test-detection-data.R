@@ -208,3 +208,31 @@ test_that("distance_source travels through to the flatfile", {
   expect_true("distance_source" %in% names(out))
   expect_setequal(stats::na.omit(unique(out$distance_source)), "angle")
 })
+
+test_that("exact distances give a flatfile Distance::ds() reads as exact", {
+  # ds() treats the presence of distbegin/distend as binned data and drops
+  # `distance`. All-NA bin columns used to be emitted anyway, and ds() then
+  # failed on every exact-distance flatfile.
+  out <- flat(segs_fx(), area = 5811)
+  expect_true("distance" %in% names(out))
+  expect_false(any(c("distbegin", "distend") %in% names(out)))
+
+  skip_if_not_installed("Distance")
+  # mrds's optimiser prints to the console on a fit this small.
+  utils::capture.output(fit <- suppressMessages(suppressWarnings(
+    Distance::ds(out, key = "hn", adjustment = NULL, convert_units = 0.001)
+  )))
+  expect_s3_class(fit, "dsmodel")
+  expect_equal(nrow(fit$ddf$data), sum(!is.na(out$distance)))
+})
+
+test_that("binned distances give a flatfile with bins and no point column", {
+  dat <- example_data()
+  dat$ANGLEL <- NULL
+  dat$ANGLER <- NULL
+  dat$S_LAT <- NULL
+  dat$S_LONG <- NULL
+  out <- flat(segment_survey(dat, seg_length = 5, seed = 1), area = 5811)
+  expect_true(all(c("distbegin", "distend") %in% names(out)))
+  expect_false("distance" %in% names(out))
+})

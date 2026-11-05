@@ -4,7 +4,14 @@
 \alias{diagnose_pipeline}
 \title{Diagnose common reasons a segmentation might be wrong before you trust it}
 \usage{
-diagnose_pipeline(x, days = NULL, seg_length = 10, species = NULL, ...)
+diagnose_pipeline(
+  x,
+  days = NULL,
+  seg_length = 10,
+  species = NULL,
+  platform = c("aerial", "vessel", "ship"),
+  ...
+)
 }
 \arguments{
 \item{x}{A path to a NARWC CSV, or a data frame. A path is read with
@@ -31,6 +38,12 @@ printed is then for the subset, and the header says so.}
 Default \code{10}.}
 
 \item{species}{Passed to \code{\link[=segment_survey]{segment_survey()}}. Default \code{NULL}.}
+
+\item{platform}{\code{"aerial"} (default), \code{"vessel"}, or \code{"ship"} as a synonym
+for \code{"vessel"}. The platform you believe the file holds. Every check that
+depends on it — the altitude ceiling, the speed the platform should be
+moving at, which distance sources can exist — is asked against this, and
+it is passed on to \code{\link[=segment_survey]{segment_survey()}}. See \code{\link[=platform_defaults]{platform_defaults()}}.}
 
 \item{...}{Passed to \code{read_narwc()} when \code{x} is a path — \code{profile},
 \code{extra_columns}, \code{prefer_source} and so on.}

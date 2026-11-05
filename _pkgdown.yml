@@ -37,7 +37,8 @@ reference:
 - title: Distances and geometry
   desc: >
     Perpendicular distance is what a detection function consumes. Where the
-    survey recorded declination angles, it can be computed exactly.
+    survey recorded declination angles, it can be computed exactly; a
+    shipboard survey has the sighting position instead.
   contents:
   - circling_distance
   - cross_track_distance
@@ -54,8 +55,9 @@ reference:
 
 - title: Circling and reflights
   desc: >
-    An aircraft that circles a sighting is no longer on effort. These find
-    those passages and attach their sightings to the right segment.
+    A platform that breaks off to circle a sighting is no longer on effort.
+    These find those passages and attach their sightings to the right
+    segment.
   contents:
   - attach_circling_sightings
   - filter_days
@@ -71,13 +73,14 @@ reference:
 
 - title: Preparing and inspecting
   desc: >
-    Aerial-specific preparation, a pipeline diagnosis that reports rather
-    than stops, and plots for looking at what came out.
+    Getting an extract ready to segment, a pipeline diagnosis that reports
+    rather than stops, and plots for looking at what came out.
   contents:
   - crop_to_bbox
   - diagnose_pipeline
   - distsamp_checks
+  - platform_defaults
   - plot.distsamp_segments
   - plot_survey
   - plot_survey_panel
-  - prepare_aerial
+  - prepare_survey

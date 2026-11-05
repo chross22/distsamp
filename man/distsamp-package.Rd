@@ -4,9 +4,9 @@
 \name{distsamp-package}
 \alias{distsamp}
 \alias{distsamp-package}
-\title{distsamp: Segment Aerial Line-Transect Survey Data for Distance Sampling}
+\title{distsamp: Segment Line-Transect Survey Data for Distance Sampling}
 \description{
-Turns marine mammal aerial line-transect survey data recorded in the North Atlantic Right Whale Consortium (NARWC) sightings database format into effort segments and detection distances, ready for distance sampling and density surface modeling. Reading and standardising an extract is done by the 'narwcr' package, which this one shares with other analyses of the same archive; what follows is specific to distance sampling. Accumulates great-circle effort, splits survey lines at breaks in effort, and chops continuous tracklines into segments of a target length following the approach of Becker et al. (2010) \doi{10.3354/meps08696}, within the segmented line-transect framework of Hedley and Buckland (2004) \doi{10.1198/1085711043578} and Miller et al. (2013) \doi{10.1111/2041-210X.12105}. Resolves right-angle distances from every source the archive records, whether declination angles, the two 'STRIP' interval code books, exact sighting positions, or a break-off to circle, recording which supplied each detection; and assembles them into the flatfile that 'Distance' accepts.
+Turns marine mammal line-transect survey data recorded in the North Atlantic Right Whale Consortium (NARWC) sightings database format into effort segments and detection distances, ready for distance sampling and density surface modeling. Handles aerial and shipboard surveys, which differ in the effort criteria that apply to them and in the right-angle distance sources they can supply, and which a single extract can hold together with nothing to say which is which. Reading and standardising an extract is done by the 'narwcr' package, which this one shares with other analyses of the same archive; what follows is specific to distance sampling. Accumulates great-circle effort, splits survey lines at breaks in effort, and chops continuous tracklines into segments of a target length following the approach of Becker et al. (2010) \doi{10.3354/meps08696}, within the segmented line-transect framework of Hedley and Buckland (2004) \doi{10.1198/1085711043578} and Miller et al. (2013) \doi{10.1111/2041-210X.12105}. Resolves right-angle distances from every source the archive records, whether declination angles, the two 'STRIP' interval code books, exact sighting positions, or a break-off to circle, recording which supplied each detection; and assembles them into the flatfile that 'Distance' accepts.
 }
 \references{
 The segmentation method:
@@ -54,6 +54,7 @@ in the package repository.
 Useful links:
 \itemize{
   \item \url{https://github.com/chross22/distsamp}
+  \item \url{https://camilleross.org/distsamp/}
   \item Report bugs at \url{https://github.com/chross22/distsamp/issues}
 }
 

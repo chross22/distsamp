@@ -43,7 +43,9 @@ you want.}
 }
 \value{
 A tibble in \code{Distance} flatfile shape, with a \code{distance_units}
-attribute.
+attribute. It has a \code{distance} column for exact distances, or
+\code{distbegin}/\code{distend} for binned ones, never both:
+\code{Distance::ds()} treats the presence of the bin columns as binned data.
 }
 \description{
 Assembles segments and detections into the single "flatfile" data frame the
@@ -101,14 +103,16 @@ rows are dropped, and counted in the report.
 
 \section{Circling detections}{
 
-Excluded by default, and the reason is stronger than "the position is off the
-track". A circling detection's \code{distance} is not measured at all: it is
-inherited from the on-effort sighting these animals were counted with, which
-is already a row in this table. Keeping both puts the same perpendicular
-distance into the detection function twice and weights it twice.
-\code{include_circling = TRUE} does keep them — a choice worth stating in a
-methods section rather than making silently — but it is a choice about
-double-counting, not about which positions are trustworthy.
+Excluded by default. Under the default
+\code{segment_survey(circling_distance = "with_group")} there are none to exclude:
+the animals were added to the on-effort group they were counted with, which
+is already a row here. Under \code{"break_off"} a circling detection's \code{distance}
+is either a perpendicular distance from a position fixed minutes after the
+detection (\code{distance_source == "circling"}), or, with no exact position, a
+great-circle distance from the break-off that is not perpendicular at all
+(\code{"break_off"}). Neither is measured at the moment of detection. \code{include_circling = TRUE} does keep
+them — a choice worth stating in a methods section rather than making
+silently.
 
 Note that this is independent of whether circling sightings count towards
 abundance in a density surface model, which they should and do; that is

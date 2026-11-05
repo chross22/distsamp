@@ -15,8 +15,10 @@ segment_survey(
   dist_method = c("haversine", "becker", "kenney", "eab", "rdk"),
   circling = c("same_species", "all", "none"),
   circling_distance = c("with_group", "break_off"),
+  circling_max_gap_km = NULL,
   distance_units = c("m", "km"),
-  distance_sources = c("angle", "exact", "strip"),
+  platform = c("aerial", "vessel", "ship"),
+  distance_sources = NULL,
   effort_args = list(),
   sighting_args = list()
 )
@@ -46,25 +48,40 @@ census track: \code{"same_species"} (default), \code{"all"}, or \code{"none"}. S
 \code{\link[=attach_circling_sightings]{attach_circling_sightings()}}.}
 
 \item{circling_distance}{What an attached circling record carries:
-\code{"inherit"} (default), the perpendicular distance of the on-effort group
-it was counted with; \code{"break_off"}, the measured great-circle distance
-from where the aircraft left the line; or \code{"with_group"}, which gives it
-no distance and no detection of its own, adding the animals to the group
-they were counted with instead. See \code{\link[=attach_circling_sightings]{attach_circling_sightings()}}.
+\code{"with_group"} (default) gives it no distance and no detection of its
+own, adding the animals to the group they were counted with instead;
+\code{"break_off"} makes it a detection of its own, at the perpendicular
+distance of its exact position (\code{S_LAT}/\code{S_LONG}) from the census line
+where one exists, and otherwise at the great-circle distance from where
+the aircraft left the line. See \code{\link[=attach_circling_sightings]{attach_circling_sightings()}}.
 \code{settings$circling_distance} records which was used.}
+
+\item{circling_max_gap_km}{Furthest, in km, that the on-effort group may
+have been seen from the break-off for circled animals to be counted with
+it. \code{NULL} (default) uses \code{seg_length}. See \code{\link[=attach_circling_sightings]{attach_circling_sightings()}}.}
 
 \item{distance_units}{Units for perpendicular sighting distances computed
 from \code{ANGLEL}/\code{ANGLER}: \code{"m"} (default) or \code{"km"}. Note that \code{seg_eff} is
 always in km — see \code{\link[=perp_distance]{perp_distance()}}.}
 
+\item{platform}{\code{"aerial"} (default), \code{"vessel"}, or \code{"ship"} as a synonym
+for \code{"vessel"}. Sets the effort criteria and the distance sources
+together, and decides which platform the speed check expects to find. See
+\code{\link[=platform_defaults]{platform_defaults()}}.}
+
 \item{distance_sources}{Precedence order over the right-angle distance
-sources, passed to \code{\link[=sighting_distances]{sighting_distances()}}. Defaults to
-\code{c("angle", "exact", "strip")}; \code{"circling"} is available but not on by
-default. Each detection records which source supplied it, in
-\code{distance_source}.}
+sources, passed to \code{\link[=sighting_distances]{sighting_distances()}}. \code{NULL} (default) takes the
+platform's order — \code{c("angle", "exact", "strip")} for an aircraft,
+\code{"exact"} for a vessel. Each detection records which source supplied it,
+in \code{distance_source}. \code{"circling"} is accepted but has no effect here and
+warns: circling records reach the output only through
+\code{\link[=attach_circling_sightings]{attach_circling_sightings()}}, which sets their distance from
+\code{circling_distance}. \code{circling_distance = "break_off"} already uses the
+perpendicular distance wherever an exact position exists.}
 
 \item{effort_args}{Named list of arguments for \code{\link[=flag_effort]{flag_effort()}}, used only
-when \code{dat} has no \code{OnOff.Effort} column.}
+when \code{dat} has no \code{OnOff.Effort} column. Merged over the platform's own
+defaults, so naming an argument here overrides it.}
 
 \item{sighting_args}{Named list of arguments for \code{\link[=segment_sightings]{segment_sightings()}}.}
 }
@@ -99,6 +116,7 @@ so you can run them yourself when you need to intervene between stages.
 
 \enumerate{
 \item \code{\link[=make_leg_id]{make_leg_id()}} — separate re-occupations of the same survey line.
+Then \code{narwcr::fill_legstage()}, unless \code{LEGSTAGE_FILLED} shows it has run.
 \item \code{\link[=flag_effort]{flag_effort()}} — decide which records are on effort.
 \item \code{\link[=point_to_point_effort]{point_to_point_effort()}} — great-circle distance between consecutive
 on-effort positions.
@@ -112,6 +130,18 @@ on-effort positions.
 
 Steps 1 and 2 are skipped when the input already carries \code{LEGNO3} or
 \code{OnOff.Effort} respectively, so you can substitute your own definitions.
+}
+
+\section{Aerial or vessel}{
+
+Segmentation is platform-free — great-circle distance between fixes,
+splitting at breaks in effort, and cutting a track into lengths are geometry,
+and a ship's track segments the same way a plane's does. What is not
+platform-free is either end of it: the effort criteria that decide which
+records count, and the right-angle distance sources that exist. \code{platform}
+sets both at once, because setting one without the other is how a survey
+ends up with a vessel's records and an aircraft's criteria — which is a
+survey with no effort at all. See \code{\link[=platform_defaults]{platform_defaults()}}.
 }
 
 \section{Reproducibility}{

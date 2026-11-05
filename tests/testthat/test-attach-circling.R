@@ -71,19 +71,64 @@ test_that("a sighting never attaches across a day boundary", {
   expect_equal(as.vector(seg_day[added$seg_id]), as.character(added$DATE))
 })
 
-test_that("the same-species rule is applied per segment, not per day", {
-  # The sharp case: the same species is present on the day, but in an earlier
-  # segment than the one the break-off closes. A per-day test would attach
-  # these; the CETAP rule is per segment, so it must not.
+test_that("the same-species rule refuses a group seen too far back", {
+  # The same species is on the line, but 20 records (~22 km) before the
+  # break-off. A per-day or per-occupation test would attach these; the
+  # aircraft did not turn back 22 km for that group, so it must not.
   p <- prep(scenario(sighting_at = 5))
   same <- attach_circling_sightings(p$chopped, p$dat, mode = "same_species")
   all_of <- attach_circling_sightings(p$chopped, p$dat, mode = "all")
 
   expect_equal(sum(all_of$case %in% "circling"), 2)
   expect_equal(sum(same$case %in% "circling"), 0)
+
+  # Widening the limit is a choice the caller can make.
+  wide <- attach_circling_sightings(p$chopped, p$dat, mode = "same_species",
+                                    max_gap_km = 25)
+  expect_equal(sum(wide$case %in% "circling"), 2)
 })
 
-test_that("a species the segment does not hold is refused", {
+test_that("a segment boundary between sighting and break-off loses nothing", {
+  # Sighting at record 19 sits in the segment before the one the break-off
+  # closes (record 25). Searching only that segment found no group and
+  # dropped the circled animal. 6 records is ~6.7 km, inside a 10 km limit.
+  p <- prep(scenario(sighting_at = 19))
+  ch <- p$chopped[p$chopped$DATE == as.Date("2024-04-01"), ]
+  sight_seg <- ch$seg_id[ch$SPECCODE %in% "RIWH"]
+  out <- attach_circling_sightings(p$chopped, p$dat, max_gap_km = 10)
+  o1 <- out[out$DATE == as.Date("2024-04-01"), ]
+  circ <- o1[o1$case %in% "circling", ]
+  grp <- o1[o1$SPECCODE %in% "RIWH" & !(o1$case %in% "circling"), ]
+
+  expect_equal(nrow(circ), 1)
+  expect_false(identical(circ$seg_id, sight_seg))   # boundary really between
+  expect_equal(grp$NUMBER, 3)                       # 2 seen + 1 circled
+  expect_false(circ$circling_counted)
+})
+
+test_that("a group circled before the last resume collects nothing more", {
+  # Two circles on one line: the second's animals must not join the group the
+  # first circle was for.
+  dat <- scenario(sighting_at = 24)
+  d1 <- dat[dat$DATE == as.Date("2024-04-01"), ]
+  later <- d1[rep(28, 4), ]
+  later$EVENTNO <- d1$EVENTNO[28] + c(0.1, 0.2, 0.3, 0.4)
+  later$LEGTYPE <- c(2, 4, 4, 2)
+  later$LEGSTAGE <- c(3, NA, NA, 4)
+  later$SPECCODE <- c(NA, "RIWH", NA, NA)
+  later$IDREL <- c(NA, 3, NA, NA)
+  later$NUMBER <- c(NA, 4, NA, NA)
+  dat <- rbind(dat, later)
+  dat <- dat[order(dat$DATE, dat$EVENTNO), ]
+  p <- prep(dat)
+  out <- attach_circling_sightings(p$chopped, p$dat, max_gap_km = 10)
+  o1 <- out[out$DATE == as.Date("2024-04-01"), ]
+  grp <- o1[o1$SPECCODE %in% "RIWH" & !(o1$case %in% "circling"), ]
+  # Only the first circle's single animal is added; the 4 are not.
+  expect_equal(grp$NUMBER, 3)
+})
+
+test_that("a species not seen from the line is refused", {
   dat <- scenario()
   # Make the circling animal a different species from the on-effort sighting.
   i <- which(dat$LEGTYPE == 4 & !is.na(dat$SPECCODE))
@@ -225,11 +270,101 @@ test_that("the removed inherit option says what replaced it and why", {
   p <- prep(scenario())
   expect_error(
     attach_circling_sightings(p$chopped, p$dat, distance = "inherit"),
-    "with_group"
+    "was removed"
   )
   expect_error(
     segment_survey(example_data(), seg_length = 5, seed = 1,
                    circling_distance = "inherit"),
-    "with_group"
+    "was removed"
   )
+})
+
+test_that("segment_survey() says the circling source has no effect there", {
+  # The distance it computes would be replaced when the record is attached,
+  # so asking for it used to change nothing and say nothing.
+  expect_warning(
+    segs <- segment_survey(example_data(), seg_length = 5, seed = 1,
+                           distance_sources = c("angle", "circling")),
+    "has no effect"
+  )
+  expect_false("circling" %in% segs$settings$distance_sources)
+})
+
+test_that("break_off uses the exact position's perpendicular distance where recorded", {
+  dat <- scenario()
+  dat$S_LAT <- NA_real_
+  dat$S_LONG <- NA_real_
+  # Day 1's circling sighting has an exact position 0.01 deg east of the line,
+  # which runs due north along -69. Day 2's has none, so it falls back.
+  i <- which(dat$LEGTYPE == 4 & !is.na(dat$SPECCODE) &
+               dat$DATE == as.Date("2024-04-01"))
+  dat$S_LAT[i] <- dat$LATITUDE[i] - 0.02
+  dat$S_LONG[i] <- -69 + 0.01
+  p <- prep(dat)
+
+  out <- attach_circling_sightings(p$chopped, p$dat, distance = "break_off")
+  ci <- out[out$case %in% "circling", ]
+  d1 <- ci[ci$DATE == as.Date("2024-04-01"), ]
+  d2 <- ci[ci$DATE == as.Date("2024-04-02"), ]
+
+  expect_equal(d1$distance_source, "circling")
+  expect_equal(d1$side, "right")
+  expected <- 0.01 * 111.12 * cos((dat$S_LAT[i]) * pi / 180) * 1000
+  expect_equal(d1$distance, expected, tolerance = 0.01)
+  # `break_off_distance` is still carried, and still measured to the logged
+  # position - the aircraft's - which in this scenario is the break-off itself.
+  expect_equal(d1$break_off_distance, 0)
+
+  expect_equal(d2$distance_source, "break_off")
+  expect_equal(d2$distance, d2$break_off_distance)
+
+  km <- attach_circling_sightings(p$chopped, p$dat, distance = "break_off",
+                                  units = "km")
+  ck <- km[km$case %in% "circling", ]
+  expect_equal(ck$distance, ci$distance / 1000)
+  expect_equal(ck$break_off_distance, ci$break_off_distance)
+})
+
+test_that("segment_survey() passes distance_units through to break_off", {
+  # It used to put metres into `distance` whatever `distance_units` said.
+  m <- segment_survey(scenario(), seg_length = 5, seed = 1,
+                      circling_distance = "break_off")
+  k <- segment_survey(scenario(), seg_length = 5, seed = 1,
+                      circling_distance = "break_off", distance_units = "km")
+  cm <- m$detections[m$detections$circling %in% 1, ]
+  ck <- k$detections[k$detections$circling %in% 1, ]
+  expect_gt(nrow(cm), 0)
+  expect_equal(ck$distance, cm$distance / 1000)
+})
+
+one_record_circle <- function(sighting_at = 24) {
+  # A circle logged as one record: break-off, the sighting, resume. Track
+  # splitting treats a lone off-effort record as on effort, so the track and
+  # the segment run straight through the circle.
+  d <- scenario(sighting_at)
+  d <- d[d$DATE == as.Date("2024-04-01"), ]
+  d[-which(d$LEGTYPE == 4 & is.na(d$SPECCODE)), ]
+}
+
+test_that("a circling sighting attaches at the break-off, not the segment before", {
+  p <- prep(one_record_circle())
+  out <- attach_circling_sightings(p$chopped, p$dat, max_gap_km = 10)
+  ci <- out[out$case %in% "circling", ]
+  brk_seg <- p$chopped$seg_id[p$chopped$LEGSTAGE %in% 3]
+
+  expect_equal(nrow(ci), 1)
+  expect_equal(ci$seg_id, brk_seg)
+  # The sighting was logged at the break-off position.
+  expect_equal(ci$break_off_distance, 0)
+})
+
+test_that("a one-record circle's sighting is counted once, and not at all under none", {
+  run <- function(mode) {
+    s <- suppressWarnings(segment_survey(one_record_circle(), seg_length = 5,
+                                         seed = 1, circling = mode,
+                                         circling_max_gap_km = 10))
+    sum(s$sightings$n_animals[s$sightings$SPECCODE == "RIWH"])
+  }
+  expect_equal(run("same_species"), 3)   # 2 seen + 1 circled
+  expect_equal(run("none"), 2)
 })

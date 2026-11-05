@@ -8,7 +8,9 @@ attach_circling_sightings(
   chopped,
   dat,
   mode = c("same_species", "all", "none"),
-  distance = c("with_group", "break_off")
+  distance = c("with_group", "break_off"),
+  units = c("m", "km"),
+  max_gap_km = 5
 )
 }
 \arguments{
@@ -21,21 +23,30 @@ segmentation left out, with \code{CIRCLE} from \code{\link[=flag_circling]{flag_
 
 \item{distance}{What an attached record carries.
 
-\code{"inherit"} (default) gives it the perpendicular distance of the on-effort
-group these animals were counted with, marked
-\code{distance_source == "circling"}. \code{"break_off"} gives it the measured
-great-circle distance from the point on the line where the aircraft broke
-off, marked \code{distance_source == "break_off"}. Both make it an observation
-of its own on a density surface.
+\code{"with_group"} (default) makes it no observation at all: the animals are
+added to the \code{NUMBER} of the on-effort sighting they were counted with,
+and the record is marked \code{circling_counted = FALSE} so
+\code{\link[=segment_sightings]{segment_sightings()}} does not count them twice. Nothing is inherited or
+constructed.
 
-\code{"with_group"} makes it no observation at all: the animals are added to
-the \code{NUMBER} of the on-effort sighting they were counted with, and the
-record is marked \code{circling_counted = FALSE} so \code{\link[=segment_sightings]{segment_sightings()}} does
-not count them twice. Nothing is inherited or constructed.
+\code{"break_off"} makes it an observation of its own on a density surface.
+Its distance is the perpendicular distance of its exact position
+(\code{S_LAT}/\code{S_LONG}) from the census line where one exists, marked
+\code{distance_source == "circling"}, and otherwise the great-circle distance
+from the point on the line where the aircraft broke off, marked
+\code{distance_source == "break_off"}.
 
-\code{break_off_distance} is computed under all three, so the size of the
+\code{break_off_distance} is computed under both, so the size of the
 disagreement is visible whichever is chosen. No option puts a circling
 record into a detection function — \code{\link[=detection_data]{detection_data()}} excludes them all.}
+
+\item{units}{Units of \code{distance} under \code{distance = "break_off"}: \code{"m"}
+(default) or \code{"km"}, matching \code{\link[=segment_survey]{segment_survey()}}'s \code{distance_units}.
+\code{break_off_distance} is always metres.}
+
+\item{max_gap_km}{Furthest, in km, that the on-effort group may have been
+seen from the point where the aircraft left the line. Default \code{5};
+\code{\link[=segment_survey]{segment_survey()}} passes \code{seg_length}. See "Which group".}
 }
 \value{
 \code{chopped} with the attachable circling records appended, carrying the
@@ -60,36 +71,68 @@ originally seen from the track-line, are new off-effort sightings and do not
 belong to the segment.
 
 \code{mode = "same_species"} implements that rule: a circling sighting is attached
-only when the preceding segment already holds an on-effort sighting of the
-same species. It is the default.
+only when an on-effort group of the same species was seen before the
+break-off (see "Which group"). It is the default.
+}
+
+\section{Which group}{
+
+The group circled animals are counted with is the most recent on-effort
+sighting of the same species that is
+\itemize{
+\item in the same line occupation (\code{DATE}, \code{FILEID}, \code{LEGNO3});
+\item after the previous resume (\code{LEGSTAGE == 4}) on that line, so a group
+circled earlier cannot collect animals from a later circle; and
+\item within \code{max_gap_km} of the point where the aircraft broke off.
+}
+
+It may sit in an earlier segment than the circling record. Segment
+boundaries know nothing of circling, and an earlier version that searched
+only the segment in progress dropped the circled animals whenever a boundary
+fell between the sighting and the break-off.
 }
 
 \section{Which distance}{
 
 "Counted with the original on-effort group" is also a statement about
-distance, and \code{distance = "inherit"} reads it as one: the animals take that
-group's perpendicular distance, which was measured from the line at the
-moment of break-off.
+distance. \code{distance = "with_group"} (the default) reads it literally: if
+these animals are counted with the original group then they \emph{are} that
+group, and a group has one distance, one detection probability and one row.
+The animals are added to its \code{NUMBER} and no second observation is made.
+Nothing is inherited or constructed. What this does not remove is the
+judgement underneath: it is right only where the animals really are that
+group or associated with it, which is what \code{mode = "same_species"} is
+testing.
 
-\code{distance = "break_off"} reads the sighting as its own: the great-circle
-distance from where the aircraft left the line to where the animals were
-logged. That is a real measurement of a real thing, and it is the honest
-answer to "how far off the track were they" — but it is a slant distance
-from an off-effort position minutes after the fact, not a perpendicular
-distance, and a group circled twice before logging is further from the
-break-off than it ever was from the line.
+\code{distance = "break_off"} reads the sighting as its own, with a distance
+from the census line at the break-off:
+\itemize{
+\item Where the record carries an exact position (\code{S_LAT}/\code{S_LONG}), that
+position is projected perpendicularly onto the census line through the
+break-off, by \code{\link[=circling_distance]{circling_distance()}}, and marked
+\code{distance_source == "circling"}. This is a perpendicular distance, though
+the position is fixed minutes after the detection.
+\item Otherwise it falls back to the great-circle distance from where the
+aircraft left the line to where the record was logged, marked
+\code{distance_source == "break_off"}. That is a slant distance from an
+off-effort position, not a perpendicular one, and a group circled twice
+before logging is further from the break-off than it ever was from the
+line. The logged position during a circle is the aircraft's, not the
+animal's.
+}
 
-The two will not agree, and which is nearer the truth depends on how the
-circle was actually flown, which the records do not record.
+\code{"with_group"} and \code{"break_off"} will not agree, and which is nearer the
+truth depends on how the circle was actually flown, which the records do not
+record.
 
-\code{distance = "with_group"} declines the question. If these animals are
-counted with the original group then they \emph{are} that group, and a group has
-one distance, one detection probability and one row — so the animals are
-added to its \code{NUMBER} and no second observation is made. That removes the
-objection to inheriting, which is that a row appears carrying a distance it
-was never seen at. What it does not remove is the judgement underneath: it
-is right only where the animals really are that group or associated with it,
-which is what \code{mode = "same_species"} is testing.
+An earlier \code{distance = "inherit"} gave the circling record a row of its own
+carrying the on-effort group's perpendicular distance. It produced the same
+estimate as \code{"with_group"}, segment for segment, while adding a row that
+claimed a distance nothing was detected at, and it was removed. Naming it
+now errors with that explanation.
+
+This function sets an attached record's distance itself, replacing any
+\code{distance} it arrived with.
 
 Run them and compare if it matters to your estimate; \code{break_off_distance} is
 on every attached record whichever is chosen, so the comparison needs no

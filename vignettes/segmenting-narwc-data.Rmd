@@ -19,7 +19,7 @@ library(distsamp)
 
 Density surface modelling needs survey effort chopped into short, roughly equal
 pieces — segments — each with a location, an amount of effort, and a count of
-what was seen along it. This package takes aerial line-transect survey data in
+what was seen along it. This package takes line-transect survey data in
 the format of the North Atlantic Right Whale Consortium (NARWC) sightings
 database and produces exactly that.
 
@@ -510,17 +510,17 @@ list.files(out)
 
 The fixture is clean. A real NARWC extract is not, and the steps between
 reading one and segmenting it have an order that is quiet when you get it
-wrong. `prepare_aerial()` runs them:
+wrong. `prepare_survey()` runs them:
 
 ```{r}
-air <- prepare_aerial(dat, quiet = TRUE)
+air <- prepare_survey(dat, quiet = TRUE)
 c(records = nrow(air), on_effort = sum(air$OnOff.Effort == 1))
 ```
 
 It builds line occupations, reconstructs the line state where the file recorded
-it only at change points, classifies the platform by speed, keeps the aerial
-records, and flags effort — in that order. `?prepare_aerial` says which step
-depends on which. Two examples of why the order is not cosmetic:
+it only at change points, classifies the platform by speed, keeps the records
+of that platform, and flags effort — in that order. `?prepare_survey` says
+which step depends on which. Two examples of why the order is not cosmetic:
 
 - Filtering out a vessel leg *before* occupations are built makes two
   occupations of one survey line adjacent, so they merge and the ferry between

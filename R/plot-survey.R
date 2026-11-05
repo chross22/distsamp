@@ -34,7 +34,7 @@
 #'   \item{`"positions"`}{Every position, uncoloured. The only view that cannot
 #'     fail for want of a column: it needs `LATITUDE` and `LONGITUDE` and
 #'     nothing else, so it works on a file that has not been through
-#'     [prepare_aerial()], or one whose columns are not what you expected.
+#'     [prepare_survey()], or one whose columns are not what you expected.
 #'     Where `"raw"` still asks for `LEGTYPE`, this asks for nothing. Add
 #'     `sightings = TRUE` and it is the whole survey — effort and what was seen
 #'     on it — in one map.}
@@ -342,7 +342,7 @@ resolve_facet <- function(dat, facet_by) {
 #
 # These used to name the single function that adds each column, which was true
 # and was bad advice: the steps are order-dependent, and every one of them is a
-# step of `prepare_aerial()` for that reason. Told to run
+# step of `prepare_survey()` for that reason. Told to run
 # `narwcr::classify_platform()` and filter, someone does it before
 # `make_leg_id()` — the message gave no reason not to — which makes two
 # occupations of one line adjacent so they merge, and the ferry between them
@@ -352,7 +352,7 @@ resolve_facet <- function(dat, facet_by) {
 # where in that order this particular column appears — because which column is
 # missing is what tells you how far the data actually got.
 stage_hint <- function(col) {
-  prep <- "Run `prepare_aerial()`, which does these steps in the order they have to happen."
+  prep <- "Run `prepare_survey()`, which does these steps in the order they have to happen."
   switch(
     col,
     OnOff.Effort = paste0(
@@ -374,7 +374,7 @@ stage_hint <- function(col) {
       "they merge and the ferry between them counts as survey effort."
     ),
     LEGSTAGE = paste0(
-      "It comes from the survey file. `prepare_aerial()` completes a partial ",
+      "It comes from the survey file. `prepare_survey()` completes a partial ",
       "one with `narwcr::fill_legstage()`, but it cannot invent a column that ",
       "was never recorded."
     ),
