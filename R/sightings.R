@@ -139,6 +139,13 @@ segment_sightings <- function(chopped,
 
   sight <- dplyr::filter(chopped, !is.na(.data$SPECCODE), .data$SPECCODE != "")
 
+  # On-effort sightings only. Track splitting keeps a lone off-effort record
+  # inside a track, so `chopped` can hold off-effort sightings. Attached
+  # circling sightings are off effort by definition and are kept.
+  attached <- if ("case" %in% names(sight)) sight$case %in% "circling" else
+    rep(FALSE, nrow(sight))
+  sight <- sight[on_effort(sight) | attached, , drop = FALSE]
+
   # A circling record already counted into the group it was found with.
   #
   # `attach_circling_sightings(distance = "with_group")` adds those animals to

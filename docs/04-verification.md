@@ -161,19 +161,26 @@ chosen rates — so these numbers can be reproduced and re-checked after a chang
 Measured on an M-series Mac, R 4.6.1, `segment_survey(seg_length = 5)`, with 1%
 of records a sighting and 15% of those circled:
 
+Remeasured 2026-11-12, after `segment_midpoints()` was vectorised (12, 24 and
+48 days of `make_season()`):
+
 | records | segments | time | per record | vs previous |
 |---|---|---|---|---|
-| 60,430 | 6,701 | 5.17 s | 85.5 us | — |
-| 120,945 | 13,392 | 10.59 s | 87.6 us | x2.05 |
-| 241,745 | 26,806 | 21.61 s | 89.4 us | x2.04 |
+| 58,035 | 6,361 | 2.62 s | 45.2 us | — |
+| 116,045 | 12,710 | 5.84 s | 50.3 us | x2.23 |
+| 231,980 | 25,412 | 11.81 s | 50.9 us | x2.02 |
 
 **Linear.** Doubling the data doubles the time, and the per-record cost is flat.
-A quarter of a million records — comfortably a full season — takes about twenty
-seconds.
+A quarter of a million records takes about twelve seconds.
 
-By stage, at 121k records: `segment_midpoints()` 4.75 s, `cut_segments()`
-2.16 s, `attach_circling_sightings()` 0.69 s, `segment_sightings()` 0.25 s. All
-scale between x1.91 and x2.19 on doubling.
+By stage, at 116k records: `cut_segments()` 2.32 s, `sighting_distances()`
+0.30 s, `attach_circling_sightings()` 0.16 s, `segment_midpoints()` 0.12 s.
+
+Earlier baseline (before 2026-11-12): 60,430 / 120,945 / 241,745 records in
+5.17 / 10.59 / 21.61 s, with `segment_midpoints()` at 4.75 s of the 121k run.
+It built one table per segment; it now computes all midpoints in one pass,
+with results equal to the old ones within 1.5e-14 degrees on a 194k-record
+season.
 
 ### One quadratic term, found and removed
 
@@ -197,8 +204,9 @@ This mattered because right whale surveys circle often — the rate that exposes
 the problem is not a pathological one. The fix replaces the per-candidate scans
 with a rolling lookup per day and a membership test built once, and is guarded
 by `test-attach-circling.R`, which checks that each sighting still joins the
-segment in progress before the break-off, never crosses a day boundary, and
-applies the same-species rule per segment rather than per day.
+segment containing the break-off, never crosses a day boundary or a file, and
+looks for the group within the line occupation. The lookups now split the
+table once by occupation (2026-11-12).
 
 ## Cross-check against `original/`
 

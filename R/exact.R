@@ -198,10 +198,7 @@ track_bearing <- function(dat, by = NULL, track_rows = NULL) {
   track_rows <- rep_len(as.logical(track_rows), n)
   track_rows <- track_rows & !is.na(dat$LATITUDE) & !is.na(dat$LONGITUDE)
 
-  key <- do.call(
-    paste,
-    c(lapply(by, function(nm) as.character(dat[[nm]])), sep = "\r")
-  )
+  key <- group_key(dat, by)
 
   out <- rep(NA_real_, n)
   for (g in unique(key[track_rows])) {
@@ -475,10 +472,7 @@ circling_distance <- function(dat, by = NULL, units = c("m", "km", "nmi"),
   }
   census <- census & !is.na(dat$LATITUDE) & !is.na(dat$LONGITUDE)
 
-  key <- do.call(
-    paste,
-    c(lapply(by, function(nm) as.character(dat[[nm]])), sep = "\r")
-  )
+  key <- group_key(dat, by)
 
   anchor <- rep(NA_integer_, n)
   bearing <- rep(NA_real_, n)

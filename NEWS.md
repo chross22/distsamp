@@ -311,6 +311,34 @@ Natural Earth's medium coastline is 1:50m and coarse enough to put a shore-huggi
 survey apparently on land. Tile basemaps remain out of scope: they need a tile
 source and network access, which a diagnostic plot should not.
 
+## Second audit (2026-11-12)
+
+* Segment midpoints could move when a circling sighting was attached. Rows
+  were re-sorted by `seg_id` text, which puts segment 19 before segment 2,
+  and midpoints followed row order. One circle moved two midpoints by 44 km in
+  a test. Rows are now sorted by number, and `segment_midpoints()` orders
+  records itself.
+* A circling sighting could attach to a different survey flown the same day.
+  The break-off lookup matched `EVENTNO` within a day, but `EVENTNO` restarts
+  in each file. Lookups are now within the line occupation.
+* Off-effort sightings were counted. A lone off-effort record stays inside its
+  track, and `segment_sightings()` did not check effort. Only on-effort
+  sightings and attached circling sightings are now counted. This replaces the
+  circling-specific removal added on 2026-11-05.
+* Without `LEGSTAGE`, a circling sighting kept in its track could be its own
+  break-off anchor. The anchor is now always an on-effort record.
+* `detection_data(mixed = "warn")` now says that `ds()` would drop the point
+  distances.
+* `segment_survey(circling_max_gap_km = )` is checked before segmenting.
+* `segment_survey()` no longer prints the `LEGSTAGE` fill report.
+* `segment_midpoints()` computes all midpoints in one pass instead of one
+  table per segment: 0.12 s instead of 9 s on 194,000 records, with the same
+  results to within 1.5e-14 degrees. `segment_survey()` on that season takes
+  9.5 s, from 18 s.
+* `attach_circling_sightings()` is shorter: segment fields come from the anchor
+  row, and the lookups share one helper. On a 194,000-record season it takes
+  0.2 s, from 1.5 s.
+
 ## Circling: audit fixes (2026-11-05)
 
 * `segment_survey(distance_sources = )` now warns when it includes

@@ -122,3 +122,14 @@ is_empty_df <- function(x) is.null(x) || nrow(x) == 0L
 fmt_count <- function(x) {
   format(round(x), big.mark = ",", scientific = FALSE, trim = TRUE)
 }
+
+# One string per row identifying its group, from the columns in `by`.
+group_key <- function(dat, by) {
+  do.call(paste, c(lapply(by, function(nm) as.character(dat[[nm]])), sep = "\r"))
+}
+
+# Rows on effort. Without an `OnOff.Effort` column, every row counts.
+on_effort <- function(dat) {
+  if (!"OnOff.Effort" %in% names(dat)) return(rep(TRUE, nrow(dat)))
+  !is.na(dat$OnOff.Effort) & dat$OnOff.Effort == 1
+}

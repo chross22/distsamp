@@ -368,3 +368,81 @@ test_that("a one-record circle's sighting is counted once, and not at all under 
   expect_equal(run("same_species"), 3)   # 2 seen + 1 circled
   expect_equal(run("none"), 2)
 })
+
+test_that("a second survey on the same day does not capture the circling sighting", {
+  # EVENTNO restarts in each file, so a lookup by day alone matched the other
+  # survey's records: attached 111 km away, and dropped under same_species.
+  d <- scenario(24)
+  d <- d[d$DATE == as.Date("2024-04-01"), ]
+  other <- d
+  other$FILEID <- "F99"
+  other$LATITUDE <- other$LATITUDE + 1
+  other$LEGTYPE[other$LEGTYPE == 4] <- 2
+  other$LEGSTAGE[other$LEGSTAGE %in% c(3, 4)] <- 2
+  other$SPECCODE <- NA
+  other$NUMBER <- NA
+  other$IDREL <- NA
+  p <- prep(rbind(d, other))
+
+  out <- attach_circling_sightings(p$chopped, p$dat, max_gap_km = 10)
+  ci <- out[out$case %in% "circling", ]
+  expect_equal(nrow(ci), 1)
+  expect_equal(unique(p$chopped$FILEID[p$chopped$seg_id == ci$seg_id]), "F01")
+  expect_equal(ci$break_off_distance, 0)
+  grp <- out[out$SPECCODE %in% "RIWH" & !(out$case %in% "circling"), ]
+  expect_equal(grp$NUMBER, 3)
+})
+
+test_that("a bad circling_max_gap_km fails before segmenting, under its own name", {
+  expect_error(
+    segment_survey(example_data(), seg_length = 5, seed = 1,
+                   circling_max_gap_km = "5"),
+    "circling_max_gap_km"
+  )
+})
+
+test_that("attaching a circle never moves a segment midpoint", {
+  # Rows were sorted by seg_id text after attaching, which puts segment 19
+  # before segment 2; midpoints then interpolated toward the wrong segment.
+  n <- 60
+  d <- data.frame(
+    FILEID = "F01", EVENTNO = 1:n, DATE = as.Date("2024-04-01"), YEAR = 2024L,
+    MONTH = 4L, DAY = 1L, TIME = 120000 + 1:n, LATITUDE = 43 + (1:n) * 0.018,
+    LONGITUDE = -69, LEGTYPE = 2, LEGSTAGE = c(1, rep(2, n - 2), 5), LEGNO = 1,
+    ALT = 229, BEAUFORT = 2, VISIBLTY = 5, SPECCODE = NA_character_,
+    IDREL = NA_real_, NUMBER = NA_real_, stringsAsFactors = FALSE
+  )
+  d$SPECCODE[4] <- "RIWH"
+  d$IDREL[4] <- 3
+  d$NUMBER[4] <- 2
+  circ <- d[rep(5, 4), ]
+  circ$LEGTYPE <- c(2, 4, 4, 2)
+  circ$LEGSTAGE <- c(3, NA, NA, 4)
+  circ$SPECCODE <- c(NA, "RIWH", NA, NA)
+  circ$IDREL <- c(NA, 3, NA, NA)
+  circ$NUMBER <- c(NA, 1, NA, NA)
+  circ$EVENTNO <- 5 + c(0.1, 0.2, 0.3, 0.4)
+  d <- rbind(d[1:5, ], circ, d[6:n, ])
+
+  without <- segment_survey(d, seg_length = 5, seed = 1, circling = "none")
+  with <- segment_survey(d, seg_length = 5, seed = 1)
+  expect_gt(nrow(with$segments), 10)
+  m <- merge(without$segments, with$segments, by = "seg_id")
+  expect_equal(m$mid_lat.x, m$mid_lat.y)
+  expect_equal(m$mid_lon.x, m$mid_lon.y)
+})
+
+test_that("without LEGSTAGE a circling sighting is never its own anchor", {
+  # A one-record circle stays in its track, so the circling sighting is in
+  # `chopped`. With no LEGSTAGE the reference is the sighting's own event, and
+  # the anchor must still be the last on-effort record before it.
+  d <- one_record_circle()
+  i <- which(d$LEGTYPE == 4)
+  d$LATITUDE[i] <- d$LATITUDE[i] + 0.01        # logged 1.1 km off the line
+  d$LEGSTAGE <- NULL
+  p <- prep(d)
+  out <- attach_circling_sightings(p$chopped, p$dat, mode = "all")
+  ci <- out[out$case %in% "circling", ]
+  expect_equal(nrow(ci), 1)
+  expect_equal(ci$break_off_distance, 1111.2, tolerance = 1e-3)
+})

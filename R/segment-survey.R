@@ -153,6 +153,9 @@ segment_survey <- function(dat,
   circling <- match.arg(circling)
   reject_removed_inherit(circling_distance, "circling_distance")
   circling_distance <- match.arg(circling_distance)
+  if (!is.null(circling_max_gap_km)) {
+    check_gap_km(circling_max_gap_km, "circling_max_gap_km")
+  }
   distance_units <- match.arg(distance_units)
   platform <- resolve_platform(platform)
   stopifnot(is.data.frame(dat))
@@ -207,7 +210,7 @@ segment_survey <- function(dat,
   # this too, and marks it with LEGSTAGE_FILLED, which is how it is not done
   # twice.
   if ("LEGSTAGE" %in% names(dat) && !"LEGSTAGE_FILLED" %in% names(dat)) {
-    dat <- narwcr::fill_legstage(dat)
+    dat <- narwcr::fill_legstage(dat, quiet = TRUE)
   }
 
   # The effort criteria and the distance sources are now this platform's, so

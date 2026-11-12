@@ -202,7 +202,11 @@ detection_data <- function(x, area, region = NULL, truncation = NULL,
     msg <- paste0(
       "Both point and interval distances are present, and one `ds()` call ",
       "cannot fit both - `STRIP` rows are binned, angle and exact-position ",
-      "rows are not. Split on `distance_source` and fit each separately."
+      "rows are not. Split on `distance_source` and fit each separately.",
+      if (mixed == "warn") paste0(
+        " This table is for inspection only: `ds()` would read it as binned ",
+        "and drop all ", sum(!is.na(det$distance)), " point distances."
+      )
     )
     if (mixed == "error") rlang::abort(msg) else rlang::warn(msg)
   }

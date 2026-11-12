@@ -236,3 +236,13 @@ test_that("binned distances give a flatfile with bins and no point column", {
   expect_true(all(c("distbegin", "distend") %in% names(out)))
   expect_false("distance" %in% names(out))
 })
+
+test_that("mixed = 'warn' says ds() would drop the point distances", {
+  segs <- segs_fx()
+  d <- segs$detections
+  d$distbegin[1] <- 0
+  d$distend[1] <- 100
+  d$distance[1] <- NA
+  segs$detections <- d
+  expect_warning(flat(segs, area = 5811, mixed = "warn"), "drop all 7 point")
+})

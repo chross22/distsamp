@@ -51,7 +51,7 @@ Terms:
 | 7a | `attach_circling_sightings()` | `R/circling.R:233` | circling sightings added to `chopped` |
 | 8 | `segment_midpoints()` | `R/midpoints.R:115` | `mid_lat`, `mid_lon` |
 | 9 | `segment_sightings()` | `R/sightings.R:97` | sightings, conditions and detections tables |
-| 10 | `assemble_segments()` | `R/segment-survey.R:302` | the `segments` table |
+| 10 | `assemble_segments()` | `R/segment-survey.R:305` | the `segments` table |
 | 11 | `detection_data()` | `R/detection-data.R:135` | the `Distance` flatfile |
 
 There are two entry points. `prepare_survey()` runs steps 1, 1a, 1b and 2.
@@ -168,7 +168,7 @@ if ("circling" %in% distance_sources) {
 }
 ```
 
-`reject_removed_inherit()` (`R/circling.R:579`) stops with an explanation when
+`reject_removed_inherit()` (`R/circling.R:417`) stops with an explanation when
 the removed option `"inherit"` is passed. It runs before `match.arg()`, which
 would otherwise give a generic error. `check_distance_sources()`
 (`R/platform.R:128`) stops when an aircraft-only source (`angle`, `strip`) is
@@ -340,38 +340,37 @@ Sightings made while circling are off effort and are not in `chopped`.
 `attach_circling_sightings()` adds them back.
 
 ```r
-leaked <- CIRCLE == 1 & SPECCODE != ""          # remove any already in chopped
-cand   <- dat[CIRCLE == 1 & SPECCODE != "", ]   # candidates
+cand   <- dat[CIRCLE == 1 & SPECCODE != "", ]         # candidates
 ref_ev <- latest LEGSTAGE == 3 event at or before each candidate
-anchor <- latest chopped record at or before ref_ev, same day
-target <- segment of anchor
+anchor <- latest(which(on_effort(chopped)), ref_ev, cand_occ)
+extra[c("seg_id", "seg_no", "seg_eff", ...)] <- chopped[anchor, ...]
 ```
 
-1. **Clean-up.** Circling sightings already in `chopped` are removed. This
-   happens when a circle is logged as a single record, which does not split
-   the track (Section 4.6). Without this step such a sighting was counted
-   twice.
-2. **Candidates.** Circling records with a species code.
-3. **Break-off.** For each candidate, the break-off is the latest
+All lookups are within the line occupation (`DATE`, `FILEID`, `LEGNO3`),
+because `EVENTNO` restarts in each file. `latest()` splits rows by occupation
+once and uses one `findInterval()` per occupation.
+
+1. **Candidates.** Circling records with a species code.
+2. **Break-off.** For each candidate, the break-off is the latest
    `LEGSTAGE == 3` record at or before it in the same occupation. Without
    `LEGSTAGE`, the candidate's own event is used instead.
-4. **Anchor and target segment.** The anchor is the last on-effort record at
-   or before the break-off. Normally this is the break-off record itself. The
-   candidate is attached to the anchor's segment. Distances below are
-   measured from the anchor's position.
-5. **Group.** The on-effort sighting the circled animals belong to: the most
+3. **Anchor and segment.** The anchor is the last on-effort record at or
+   before the break-off. Normally this is the break-off record itself. The
+   candidate takes the anchor's segment fields. Distances below are measured
+   from the anchor's position.
+4. **Group.** The on-effort sighting the circled animals belong to: the most
    recent sighting of the same species in the same occupation that is
    - at or before the break-off,
    - after the previous resume (`LEGSTAGE == 4`), and
    - within `max_gap_km` of the anchor (default `seg_length`).
 
    It may be in an earlier segment than the target.
-6. **Rule.** Under `mode = "same_species"` (default; the CETAP rule, handbook
+5. **Rule.** Under `mode = "same_species"` (default; the CETAP rule, handbook
    4.2), a candidate with no group is not attached. `"all"` attaches every
    candidate with a target segment. `"none"` attaches none.
-7. **Effort.** Attached records get `pt2pt.effort = 0` and
+6. **Effort.** Attached records get `pt2pt.effort = 0` and
    `case = "circling"`. Segment lengths do not change.
-8. **Distance.** `break_off_distance` is always computed: metres from the
+7. **Distance.** `break_off_distance` is always computed: metres from the
    anchor to the logged position (the aircraft's position during the circle).
    Then:
 
@@ -380,12 +379,16 @@ target <- segment of anchor
 | `"with_group"` (default) | The circled animals (`NUMBER`) are added to the group's `NUMBER`. The circling record's own `NUMBER` is set to 0, the number moved is kept in `circling_merged`, and `circling_counted = FALSE` so it is not counted again. A candidate with no group (only possible under `"all"`) remains a detection with no distance. |
 | `"break_off"` | The candidate is a separate detection. If it has `S_LAT`/`S_LONG`, its distance is that position projected onto the line at the break-off, with `distance_source = "circling"`. Otherwise its distance is `break_off_distance`, with `distance_source = "break_off"`; this is a straight-line distance, not a perpendicular one. Converted to `distance_units`. |
 
-All search steps use one `findInterval()` call per day or per occupation, so
-run time grows linearly with the number of records.
+The output is sorted by date, track number, segment number and `EVENTNO`.
+
+A circle logged as a single record stays inside its track (Section 4.6), so
+the circling sighting is also in `chopped` as an off-effort row. It is not
+counted there: `segment_sightings()` counts on-effort sightings only.
 
 ### 4.9 Steps 8–9: segment summaries
 
-**Midpoints** (`R/midpoints.R:115`). The midpoint is the position half-way
+**Midpoints** (`R/midpoints.R:115`). Records are first put in survey order
+within each track. The midpoint is the position half-way
 along the segment's effort. It is interpolated on the great circle between the
 record where the half-way point falls and the next record in the track. The
 next record is taken from the track, not the segment, because a segment's last
@@ -396,13 +399,15 @@ zero length uses its first position.
 
 ```r
 sight <- filter(chopped, SPECCODE != "")
+sight <- sight[on_effort(sight) | sight$case %in% "circling", ]
 sight <- filter(sight, is.na(circling_counted) | circling_counted)
 sight <- filter(sight, is.na(LEGSTAGE) | !LEGSTAGE %in% c(6, 7))
 sight <- filter(sight, is.na(IDREL)    | IDREL %in% c(2, 3))
 ```
 
 Conditions are the mean and the effort-weighted mean `BEAUFORT` per segment.
-Sightings are filtered: circling records already counted with their group are
+Sightings are filtered: only on-effort sightings and attached circling
+sightings are kept; circling records already counted with their group are
 removed, as are `LEGSTAGE` 6 and 7, and identifications not rated probable or
 definite (`IDREL` 2 or 3). `species` restricts further. Two tables result:
 
@@ -410,7 +415,7 @@ definite (`IDREL` 2 or 3). `species` restricts further. Two tables result:
 - `detections`: one row per sighting, with `distance`, `distbegin`, `distend`,
   `side`, `distance_source`, `size`, `circling` and `break_off_distance`.
 
-### 4.10 Step 10: segments table — `R/segment-survey.R:302`
+### 4.10 Step 10: segments table — `R/segment-survey.R:305`
 
 One row per segment: date, line identifiers, `seg_no`, `seg_eff`, start time,
 `events` and `case`, joined to the midpoints and conditions.
@@ -469,10 +474,14 @@ Each rule below is enforced by the code.
 | Distances before tracks and cutting | `segment_survey()` step 3a | Distances would have to be re-joined to segments. |
 | Along-track distance within occupations | `point_to_point_effort(by = )` | Distance is counted across gaps between occupations. |
 | One seed for planning and cutting | `with_optional_seed()` | Segmentation cannot be reproduced from `seed`. |
-| Circling sightings attached after cutting, with zero effort, only once | `attach_circling_sightings()` | Segment lengths change, or circled animals are lost or counted twice. |
+| Circling sightings attached after cutting, with zero effort | `attach_circling_sightings()` | Segment lengths change, or circled animals are lost. |
+| Only on-effort sightings counted | `segment_sightings()` | Off-effort sightings kept inside a track inflate counts; a one-record circle is counted twice. |
+| Midpoints from survey order, not row order | `segment_midpoints()` | Midpoints interpolate toward the wrong segment. |
 | Circling distance set only at attachment | `attach_circling_sightings()` | A distance computed earlier is overwritten. |
 
-## 8. Defects corrected on 2026-11-05
+## 8. Defects corrected
+
+On 2026-11-05:
 
 | Defect | Correction |
 |--------------|----------|
@@ -489,8 +498,21 @@ Each rule below is enforced by the code.
 | `detection_data()` always wrote `distbegin`/`distend`. `Distance::ds()` then treated point data as interval data and failed. | Only the columns for the type of distance present are written. |
 | Circled animals were lost when a segment boundary fell between the sighting and the break-off. | The group is searched for in the whole occupation, after the previous resume, within `max_gap_km`. |
 | A circling sighting was attached to the segment that ended before the circle, not the break-off's segment. For a circle logged as one record, this was the previous segment, and `break_off_distance` was measured from its far end (5,556 m instead of 0 m). | Attached to the segment containing the break-off; distances measured from the break-off. |
-| A circling sighting logged as one record was counted twice, and was counted even under `circling = "none"`. | Removed from `chopped` before attachment. |
+| A circling sighting logged as one record was counted twice, and was counted even under `circling = "none"`. | Superseded on 2026-11-12: only on-effort sightings are counted. |
 | The vignette `from-segments-to-density.Rmd` (code not run on build) omitted `convert_units` in `ds()` and `convert.units` in `dsm()`, and used an undefined `df_data`. | Corrected. |
+
+On 2026-11-12:
+
+| Defect | Correction |
+|--------------|----------|
+| Attaching a circle re-sorted rows by `seg_id` text (segment 19 before 2); midpoints followed row order and moved by up to 44 km. | Numeric sort; `segment_midpoints()` orders records itself. |
+| The break-off lookup matched `EVENTNO` within a day across files; a circling sighting attached to another survey 111 km away, or was dropped. | Lookups within the line occupation. |
+| Off-effort sightings kept inside a track were counted towards abundance and as detections. | `segment_sightings()` counts on-effort sightings and attached circling sightings only. Replaces the circling-only removal. |
+| Without `LEGSTAGE`, a circling sighting could be its own anchor. | Anchor restricted to on-effort records. |
+| `mixed = "warn"` did not say that `ds()` would drop the point distances. | Stated in the warning, with the count. |
+| `circling_max_gap_km` was checked only after segmenting, under another name. | Checked first. |
+| Lookups compared the whole table once per occupation. | Split once; 0.2 s instead of 1.5 s on 194,000 records. |
+| `segment_midpoints()` built one table per segment: 9 s of 18 s on 194,000 records. | All midpoints in one pass: 0.12 s, same results within 1.5e-14 degrees. |
 
 ## 9. Limitations
 
@@ -513,7 +535,8 @@ Each rule below is enforced by the code.
 | Check | Result |
 |-------|--------------|
 | `R CMD check --no-manual`, before corrections | 0 errors, 2 warnings, 0 notes. 756 tests pass; 3 test warnings. |
-| `R CMD check --no-manual`, after corrections | 0 errors, 0 warnings, 0 notes. 794 tests pass; 0 skipped; 0 test warnings. |
+| `R CMD check --no-manual`, after the 2026-11-05 corrections | 0 errors, 0 warnings, 0 notes. 794 tests pass. |
+| `R CMD check --no-manual`, after the 2026-11-12 corrections | 0 errors, 0 warnings, 0 notes. 809 tests pass; 0 skipped; 0 test warnings. |
 | Effort on the fixture (`seg_length = 5`, `seed = 1`) | 113 records, 2 days, 6 occupations, 101 on effort, 5 circling. 92.23 km of effort; 20 segments totalling 92.23 km. 8 detections, all from `angle`. |
 | `"break_off"` on the fixture | Circling sighting at 250.0 m, right side, `distance_source = "circling"`. With `S_LAT` removed, falls back to the straight-line distance. |
 | Group search, test scenario, `max_gap_km = 5` | Groups up to 4.5 km before the break-off are joined; groups 5.6 km or more before are not, whether or not a segment boundary lies between. A group 22 km back is not joined. A group circled before the last resume gets no further animals. |

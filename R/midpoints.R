@@ -128,48 +128,44 @@ segment_midpoints <- function(chopped) {
   # The last record of a segment measures its effort to the first record of the
   # *next* segment, so the bracketing position may lie outside the segment.
   # Take the successor within the track, which spans segment boundaries.
+  # Survey order within each track, whatever order the rows arrive in: the
+  # successor below must be the next position flown, not the next row.
+  ev <- if ("EVENTNO" %in% names(chopped)) as.numeric(chopped$EVENTNO) else
+    seq_len(nrow(chopped))
+  ord <- order(chopped$DATE, as.numeric(chopped$new_trackno), ev)
   dat <- dplyr::mutate(
-    dplyr::group_by(chopped, .data$DATE, .data$new_trackno),
+    dplyr::group_by(chopped[ord, , drop = FALSE], .data$DATE, .data$new_trackno),
     .next_lat = dplyr::lead(.data$LATITUDE),
     .next_lon = dplyr::lead(.data$LONGITUDE)
   )
   dat <- dplyr::ungroup(dat)
 
-  parts <- split(dat, factor(dat$seg_id, levels = unique(dat$seg_id)))
-  mids <- lapply(parts, midpoint_one_segment)
-  dplyr::bind_rows(mids)
-}
-
-midpoint_one_segment <- function(seg) {
-  eff <- seg$pt2pt.effort
+  # Walk half of each segment's effort: the midpoint lies on the step of the
+  # first record where cumulative effort reaches half, interpolated along the
+  # great circle to the next position. A segment with no effort takes its
+  # first position. Done for all segments at once.
+  seg <- factor(dat$seg_id, levels = unique(dat$seg_id))
+  eff <- dat$pt2pt.effort
   eff[is.na(eff)] <- 0
-  cum <- cumsum(eff)
-  total <- cum[length(cum)]
+  cum <- stats::ave(eff, seg, FUN = cumsum)
+  half <- stats::ave(eff, seg, FUN = sum) / 2
 
-  if (total <= 0) {
-    # No distance to walk: fall back to the first recorded position.
-    return(tibble::tibble(
-      seg_id = seg$seg_id[1],
-      mid_lat = seg$LATITUDE[1],
-      mid_lon = seg$LONGITUDE[1]
-    ))
-  }
+  first <- !duplicated(seg)
+  crosses <- half > 0 & cum >= half
+  j <- ifelse(half[first] > 0, match(levels(seg), seg[crosses]), NA_integer_)
+  j <- which(crosses)[j]
+  j[is.na(j)] <- which(first)[is.na(j)]
+  walk <- half[j] > 0
 
-  half <- total / 2
-  j <- which(cum >= half)[1]
-  before <- if (j == 1L) 0 else cum[j - 1L]
-  step <- eff[j]
-  f <- if (step > 0) (half - before) / step else 0
-
+  f <- ifelse(walk & eff[j] > 0, (half[j] - (cum[j] - eff[j])) / eff[j], 0)
   pos <- gc_interpolate(
-    seg$LATITUDE[j], seg$LONGITUDE[j],
-    seg$.next_lat[j], seg$.next_lon[j],
+    dat$LATITUDE[j], dat$LONGITUDE[j],
+    ifelse(walk, dat$.next_lat[j], dat$LATITUDE[j]),
+    ifelse(walk, dat$.next_lon[j], dat$LONGITUDE[j]),
     f
   )
 
-  tibble::tibble(
-    seg_id = seg$seg_id[1],
-    mid_lat = pos$lat,
-    mid_lon = pos$lon
-  )
+  pos$lat[!walk] <- dat$LATITUDE[j][!walk]
+  pos$lon[!walk] <- dat$LONGITUDE[j][!walk]
+  tibble::tibble(seg_id = levels(seg), mid_lat = pos$lat, mid_lon = pos$lon)
 }
