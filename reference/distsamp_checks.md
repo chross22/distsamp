@@ -19,20 +19,18 @@ uses.
 
 ## Why these are separate
 
-Everything here is a problem *only if you are computing a right-angle
-distance*. A declination angle above the horizon and an exact sighting
-position 200 km from the aircraft that logged it are both perfectly
-ordinary columns to carry around; they become defects at the point where
-a detection function is fitted to them. So they live with the package
-that fits one, rather than in the reader that every analysis shares.
+Everything here is a problem *only when a right-angle distance is
+computed*. A declination angle above the horizon, or an exact sighting
+position 200 km from the aircraft that logged it, is harmless until a
+detection function is fitted to it. These checks therefore live with the
+package that fits one, not in the reader that every analysis shares.
 
 - `exact_position_far_from_event`:
 
   An exact sighting position more than 20 km from the event position
   that recorded it. A sighting is made from the aircraft, so this is a
-  coordinate problem — usually a dropped minus sign, or degrees and
-  decimal minutes read as decimal degrees — rather than a distant
-  animal.
+  coordinate problem (usually a dropped minus sign, or degrees and
+  decimal minutes read as decimal degrees) rather than a distant animal.
 
 - `angle_out_of_range`:
 

@@ -51,10 +51,11 @@ A tibble with one row per input: `distbegin`, `distend`, `side`,
 
 With `scheme = "auto"` (the default) the scheme is chosen from `date`:
 the NLPSC / Mass CEC breakpoints for October 2011 onwards, the CETAP
-ones before. That is a reasonable default but not a guarantee — a survey
-flown after 2011 under the older protocol would be misread — so pass
-`scheme` explicitly when you know which applies. With no `date` and no
-`scheme`, this errors rather than guess.
+ones before. This is a default, not a guarantee: a survey flown after
+2011 under the older protocol would be misread. Pass `scheme` explicitly
+when it is known. With no `date` and no `scheme`, this errors rather
+than guess; a record whose date is missing gets no interval, with a
+warning.
 
 ## The Skymaster blind spot
 
@@ -63,11 +64,9 @@ visibility means CETAP-era distances from that aircraft "are actually
 measured from about 1/8 mile to either side of the survey line". The
 strip boundaries do not record this, so distances near zero are not what
 they appear: the region under the aircraft was never searched. Set
-`left_truncation = TRUE` to shift the innermost bins accordingly, and
-see
-[`detection_data()`](https://camilleross.org/distsamp/reference/detection_data.md)
-(not yet implemented) for fitting with a left truncation, which is the
-statistically correct treatment.
+`left_truncation = TRUE` to shift the innermost bins accordingly. It is
+applied to Skymaster records under either code book. Fitting with a left
+truncation is the statistically correct treatment.
 
 ## See also
 

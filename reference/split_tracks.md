@@ -35,26 +35,21 @@ either
 - effort breaks — this record and the next are both off effort.
 
 Otherwise the record continues the current track. A *single* off-effort
-record between two on-effort ones is not treated as a break, so a
-momentary excursion logged as one point does not fragment the track,
-while a sustained break — circling for photographs, transiting around
-fog — does. This is the rule from the original `create_new_track_nos()`.
+record between two on-effort ones is not a break, so one bad fix does
+not split the track. A sustained break (circling for photographs,
+transiting around fog) does. This is the rule from the original
+`create_new_track_nos()`.
 
-A sustained break yields three tracks, not two: the effort before it,
-the break itself, and the effort after. The middle one carries no effort
-and is dropped by
+A sustained break gives three tracks: the effort before it, the break
+itself, and the effort after. The middle track carries no effort and is
+dropped by
 [`track_effort()`](https://camilleross.org/distsamp/reference/track_effort.md).
-The original incremented the track number on *every* record of a break,
-so a five-record circling excursion produced four spurious tracks and
-left the first two off-effort records attached to the track that resumed
-afterwards. Grouping the break into one track leaves each on-effort
-track containing only on-effort records.
+Each on-effort track therefore holds only on-effort records.
 
-One consequence is worth knowing: a circling excursion logged as a
-single record (as in handbook Figure 2, event 13) does **not** split the
-track, because the record after it is back on effort. Computer-logged
-surveys record many positions while circling, so in modern data the
-break is seen and the track does split.
+A circling excursion logged as a single record (as in handbook Figure 2,
+event 13) does **not** split the track, because the record after it is
+back on effort. Computer-logged surveys record many positions while
+circling, so in modern data the track does split.
 
 Track numbers restart at 1 on each survey date.
 

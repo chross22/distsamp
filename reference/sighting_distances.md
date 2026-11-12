@@ -115,12 +115,11 @@ overrides the platform, within what the platform can supply.
 
 ## Why the provenance column is not optional
 
-Mixing sources in one detection function is a decision, and it should be
-a conscious one rather than something discovered afterwards. Point and
-interval distances cannot share a likelihood — `STRIP` rows must be
-fitted binned — and circling distances are estimated minutes after the
-detection they describe. Without `distance_source` none of that is
-visible in the table a model gets fitted to, and a reviewer will ask.
+Mixing sources in one detection function should be a deliberate choice.
+Point and interval distances cannot share a likelihood (`STRIP` rows
+must be fitted binned), and circling distances are estimated minutes
+after the detection they describe. `distance_source` makes this visible
+in the table a model is fitted to.
 
 Where a record carries both an angle and an exact position, the two are
 independent measurements of the same quantity. The default order prefers
@@ -134,8 +133,8 @@ returns its own columns for exactly that purpose.
 ## Circling is opt-in
 
 `"circling"` is not in the default order. Those sightings are usually
-real on-effort detections and dropping them thins the near-zero end of
-the distance distribution — but the position is fixed after the animal
+real on-effort detections, and dropping them thins the near-zero end of
+the distance distribution. But the position is fixed after the animal
 has moved, so they are a weaker source. Ask for them deliberately, and
 see
 [`circling_distance()`](https://camilleross.org/distsamp/reference/circling_distance.md).

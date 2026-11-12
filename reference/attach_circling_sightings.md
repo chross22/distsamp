@@ -44,7 +44,7 @@ attach_circling_sightings(
   are added to the `NUMBER` of the on-effort sighting they were counted
   with, and the record is marked `circling_counted = FALSE` so
   [`segment_sightings()`](https://camilleross.org/distsamp/reference/segment_sightings.md)
-  does not count them twice. Nothing is inherited or constructed.
+  does not count them twice.
 
   `"break_off"` makes it an observation of its own on a density surface.
   Its distance is the perpendicular distance of its exact position
@@ -54,10 +54,9 @@ attach_circling_sightings(
   marked `distance_source == "break_off"`.
 
   `break_off_distance` is computed under both, so the size of the
-  disagreement is visible whichever is chosen. No option puts a circling
-  record into a detection function —
+  disagreement is visible whichever is chosen.
   [`detection_data()`](https://camilleross.org/distsamp/reference/detection_data.md)
-  excludes them all.
+  excludes circling detections by default.
 
 - units:
 
@@ -105,22 +104,18 @@ sighting of the same species that is
 
 - within `max_gap_km` of the point where the aircraft broke off.
 
-It may sit in an earlier segment than the circling record. Segment
-boundaries know nothing of circling, and an earlier version that
-searched only the segment in progress dropped the circled animals
-whenever a boundary fell between the sighting and the break-off.
+It may sit in an earlier segment than the circling record, because
+segment boundaries are placed without regard to circling.
 
 ## Which distance
 
 "Counted with the original on-effort group" is also a statement about
-distance. `distance = "with_group"` (the default) reads it literally: if
-these animals are counted with the original group then they *are* that
-group, and a group has one distance, one detection probability and one
-row. The animals are added to its `NUMBER` and no second observation is
-made. Nothing is inherited or constructed. What this does not remove is
-the judgement underneath: it is right only where the animals really are
-that group or associated with it, which is what `mode = "same_species"`
-is testing.
+distance. `distance = "with_group"` (the default) reads it literally:
+the animals *are* that group, and a group has one distance, one
+detection probability and one row. The animals are added to its `NUMBER`
+and no second observation is made. This is right only where the animals
+really are that group or associated with it, which is what
+`mode = "same_species"` tests.
 
 `distance = "break_off"` reads the sighting as its own, with a distance
 from the census line at the break-off:
@@ -134,32 +129,20 @@ from the census line at the break-off:
 
 - Otherwise it falls back to the great-circle distance from where the
   aircraft left the line to where the record was logged, marked
-  `distance_source == "break_off"`. That is a slant distance from an
-  off-effort position, not a perpendicular one, and a group circled
-  twice before logging is further from the break-off than it ever was
-  from the line. The logged position during a circle is the aircraft's,
-  not the animal's.
+  `distance_source == "break_off"`. That is a straight-line distance
+  from an off-effort position, not a perpendicular one. The logged
+  position during a circle is the aircraft's, not the animal's, and a
+  group circled twice before logging is further from the break-off than
+  it ever was from the line.
 
-`"with_group"` and `"break_off"` will not agree, and which is nearer the
-truth depends on how the circle was actually flown, which the records do
-not record.
-
-An earlier `distance = "inherit"` gave the circling record a row of its
-own carrying the on-effort group's perpendicular distance. It produced
-the same estimate as `"with_group"`, segment for segment, while adding a
-row that claimed a distance nothing was detected at, and it was removed.
-Naming it now errors with that explanation.
+`"with_group"` and `"break_off"` will not agree. Which is nearer the
+truth depends on how the circle was flown, which the records do not
+show. Run both and compare if it matters to your estimate;
+`break_off_distance` is on every attached record under either option.
 
 This function sets an attached record's distance itself, replacing any
-`distance` it arrived with.
-
-Run them and compare if it matters to your estimate;
-`break_off_distance` is on every attached record whichever is chosen, so
-the comparison needs no re-segmentation to see the size of it.
-
-The original processing code instead hard-coded right whales, attaching
-every circling right whale and discarding circling sightings of
-everything else.
+`distance` it arrived with. The former option `distance = "inherit"` is
+no longer accepted; naming it gives an error that explains why.
 
 ## References
 

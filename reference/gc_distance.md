@@ -61,9 +61,9 @@ coordinate is `NA`, and exactly `0` where the two positions coincide.
 Both are the spherical law of cosines, and both scale by the same
 constant: 60 x 1.852 = 111.12. They therefore return identical values,
 to the last bit. Both names are kept so that existing scripts and
-configuration files keep reading sensibly, and so you can record in an
-analysis which lineage you meant to follow — but choosing between them
-will not change your results.
+configuration files still read sensibly, and so an analysis can record
+which lineage it follows. Choosing between them does not change the
+results.
 
 Two caveats about the historical implementations:
 

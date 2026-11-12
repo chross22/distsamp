@@ -23,9 +23,9 @@ track_bearing(dat, by = NULL, track_rows = NULL)
   has been run, then `c("FILEID", "LEGNO")`, then `"FILEID"`, and
   prepends `DATE` to whichever it picks when that column is present.
   Getting this wrong joins the end of one line to the start of the next
-  and produces a bearing that belongs to neither — which is why `DATE`
-  is included: two days sharing a `LEGNO` are separated by `FILEID`
-  alone, and some extracts carry a constant `FILEID`.
+  and produces a bearing that belongs to neither. `DATE` is included
+  because two days sharing a `LEGNO` are separated by `FILEID` alone,
+  and some extracts carry a constant `FILEID`.
 
 - track_rows:
 
@@ -41,10 +41,10 @@ records that do not define a track.
 
 ## How the bearing is taken
 
-Consecutive records often share a position — a sighting is logged at the
+Consecutive records often share a position: a sighting is logged at the
 same latitude and longitude as the routine position it follows (handbook
-4.2) — and a bearing between two identical points is undefined. Records
-are therefore collapsed into runs of distinct positions first, and the
+4.2). A bearing between two identical points is undefined. Records are
+therefore collapsed into runs of distinct positions first, and the
 bearing for a run is taken from the previous distinct position to the
 next one. That centred difference is less sensitive to a single jittery
 fix than a forward difference. At the first and last position of a line,

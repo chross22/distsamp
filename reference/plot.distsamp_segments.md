@@ -44,33 +44,32 @@ plot(
 - coastline:
 
   Land to draw under the map views. `FALSE` (default) draws none. `TRUE`
-  fetches Natural Earth countries through `rnaturalearth`; a scale name
-  — `"small"`, `"medium"`, `"large"` — picks the resolution; or pass
-  your own `sf` object. Ignored by the `"effort"` and `"distances"`
+  fetches Natural Earth countries through `rnaturalearth`. A scale name
+  (`"small"`, `"medium"`, `"large"`) picks the resolution. An `sf`
+  object is drawn as given. Ignored by the `"effort"` and `"distances"`
   views. See the note on resolution below.
 
 - max_legend:
 
   Most groups to name in the legend. Default `8`. Species beyond it are
-  gathered into one "other" entry — they stay on the map, they just stop
-  having their own colour — and tracks beyond it take a recycled palette
-  with the legend dropped. A survey with 36 species or 130 tracks
-  produces a legend that squeezes the map to nothing otherwise.
+  gathered into one "other" entry (they stay on the map without their
+  own colour). Tracks beyond it take a recycled palette and no legend.
+  Otherwise a survey with 36 species or 130 tracks gives a legend that
+  squeezes the map to nothing.
 
 - dates, years, months:
 
   Which survey days to draw, passed to
   [`filter_days()`](https://camilleross.org/distsamp/reference/filter_days.md).
-  `NULL` (default) draws all of them. Every table in the object —
-  points, segments, detections — is cut to the same days.
+  `NULL` (default) draws all of them. Every table in the object (points,
+  segments, detections) is cut to the same days.
 
 - sightings:
 
-  Draw the sightings over the segments? Default `TRUE`. Set `FALSE` on
-  the whole-archive segments view: 2,204 markers over 8,628 segments
-  cover the colouring that says where the cuts fall, which is what that
-  view is for. The per-day figures are where a sighting's position
-  against its segment can actually be read.
+  Draw the sightings over the segments? Default `TRUE`. Set `FALSE` for
+  the whole-archive segments view, where thousands of markers hide the
+  colouring that shows where the cuts fall. A sighting's position
+  against its segment is readable in the per-day figures.
 
 - ...:
 
@@ -86,26 +85,25 @@ A `ggplot` object.
 - `"segments"`:
 
   The track flown, the segment midpoints, and where the sightings were.
-  The first thing to look at: a segmentation that has gone wrong is
-  usually obvious here, as midpoints strung along a line the aircraft
-  never flew, or clustered where a track should have been split.
+  Look here first: a segmentation that has gone wrong is usually
+  obvious, as midpoints strung along a line the aircraft never flew, or
+  clustered where a track should have been split.
 
 - `"tracks"`:
 
-  The same positions coloured by `new_trackno`, faceted by date. This is
-  the view that shows whether
+  The same positions coloured by `new_trackno`, faceted by date. This
+  view shows whether
   [`split_tracks()`](https://camilleross.org/distsamp/reference/split_tracks.md)
-  did the right thing — a break in effort should start a new colour, and
-  a colour should never span two places the aircraft could not have
-  flown between.
+  worked: a break in effort should start a new colour, and a colour
+  should never span two places the aircraft could not have flown
+  between.
 
 - `"effort"`:
 
   Segment lengths against the target. The Becker method produces
   segments near `seg_length` but not at it, with one absorbing segment
-  per track taking up the remainder, so a spread is expected. What is
-  not expected is mass outside the tolerance band, which the dashed
-  lines mark.
+  per track taking up the remainder, so a spread is expected. Mass
+  outside the tolerance band (the dashed lines) is not expected.
 
 - `"distances"`:
 
@@ -115,37 +113,36 @@ A `ggplot` object.
   long flat tail all mean something, and all of them matter before
   [`Distance::ds()`](https://rdrr.io/pkg/Distance/man/ds.html) is
   called. See the note on `g(0)` below. The axis stops at the 99th
-  percentile and the subtitle reports what lies beyond it: a single
-  implausible distance would otherwise set the scale and put every real
-  one in the first bin. Since such a distance is a bug worth finding
-  rather than a nuisance worth hiding, the subtitle says outright when
+  percentile and the subtitle reports what lies beyond it; otherwise one
+  implausible distance would set the scale and put every real one in the
+  first bin. Such a distance is usually a bug, so the subtitle says when
   the largest is too far to be a detection.
 
 ## Coastlines, and why the default is none
 
 `coastline = TRUE` draws Natural Earth land under the track. That is
 enough to orient a shelf-scale survey, and **not** enough for a bay.
-Natural Earth's medium scale is 1:50,000,000; against a survey whose
-lines are a few kilometres apart, its shoreline is wrong by more than
-the thing you are looking at, and a segmentation that hugs the coast
-will appear to run over land.
+Natural Earth's medium scale is 1:50,000,000. Against survey lines a few
+kilometres apart, its shoreline is wrong by more than the features being
+examined, and a segmentation that hugs the coast appears to run over
+land.
 
-So: use it to get your bearings, and pass your own `sf` object for
-anything anyone else will see.
+Use it for orientation, and pass an `sf` object of your own for any
+figure others will see.
 
     plot(segs, coastline = sf::st_read("gshhg_cape_cod.shp"))
 
 `scale = "large"` (1:10m) is better and needs `rnaturalearthhires`,
-which is not on CRAN — install it from the rOpenSci r-universe.
+which is not on CRAN; install it from the rOpenSci r-universe.
 
 ## On reading the distance histogram
 
-A dip in the first bin is not necessarily a sampling artefact — an
+A dip in the first bin is not necessarily a sampling artefact: an
 aircraft cannot see the water directly beneath it, and for the Skymaster
-the handbook says so explicitly (8.A.31). That is a reason to truncate
-on the left, not to assume the animals were not there. Neither is a
-smooth curve evidence that `g(0) = 1`: animals submerged when the
-aircraft passed leave no trace in this plot at all. See
+the handbook says so (8.A.31). That is a reason to truncate on the left,
+not to assume the animals were not there. Neither is a smooth curve
+evidence that `g(0) = 1`: animals submerged when the aircraft passed
+leave no trace in this plot at all. See
 `docs/07-fitting-architecture.md` in the package repository.
 
 ## See also

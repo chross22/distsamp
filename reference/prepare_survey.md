@@ -1,9 +1,9 @@
 # Get a NARWC extract ready to segment
 
 Runs the steps between reading a file and segmenting it, in the order
-they have to happen: line occupations, line state, platform, effort.
-Each is exported and can be run by hand; this exists because the order
-is not obvious and getting it wrong is quiet.
+they must happen: line occupations, line state, platform, effort. Each
+step is exported and can be run by hand. This function exists because
+the order is not obvious, and a wrong order gives no error.
 
 ## Usage
 
@@ -50,13 +50,10 @@ prepare_aerial(
 - correct:
 
   A function applied to the filtered frame *before* effort is flagged,
-  or `NULL`. This is where a correction that only applies to the records
-  being kept goes — an altitude recorded in feet, most often. It has to
-  happen here:
-  [`flag_effort()`](https://camilleross.org/narwcr/reference/flag_effort.html)
-  reads `ALT`, so correcting afterwards leaves every record failing the
-  altitude ceiling, and correcting before the platform filter scales
-  ship altitudes that were already metres.
+  or `NULL`. Use it for a correction that applies only to the records
+  being kept, most often an altitude recorded in feet. It must return
+  the same number of rows. See the section on what this function does
+  not do for why it runs at this point.
 
 - effort_args:
 
@@ -140,12 +137,11 @@ goes in `correct`, because where it happens changes what it does:
       x
     })
 
-`correct` runs after the platform filter and before effort is flagged,
-which is the only place it can go: applying it earlier scales ship
-altitudes that were already metres, and applying it later leaves every
-record failing the altitude ceiling that
-[`flag_effort()`](https://camilleross.org/narwcr/reference/flag_effort.html)
-has already tested.
+`correct` runs after the platform filter and before effort is flagged.
+This is the only place it can go. Applied earlier, it would also scale
+ship altitudes that were already in metres. Applied later, every record
+would already have failed the altitude ceiling tested by
+[`flag_effort()`](https://camilleross.org/narwcr/reference/flag_effort.html).
 
 ## See also
 

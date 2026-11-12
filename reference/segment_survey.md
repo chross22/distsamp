@@ -182,13 +182,16 @@ stages.
 1.  [`make_leg_id()`](https://camilleross.org/narwcr/reference/make_leg_id.html)
     — separate re-occupations of the same survey line. Then
     [`narwcr::fill_legstage()`](https://camilleross.org/narwcr/reference/fill_legstage.html),
-    unless `LEGSTAGE_FILLED` shows it has run.
+    unless `LEGSTAGE_FILLED` shows it has run. A warning is given if
+    records move at another platform's speed, and circling records are
+    flagged (`CIRCLE`).
 
 2.  [`flag_effort()`](https://camilleross.org/narwcr/reference/flag_effort.html)
     — decide which records are on effort.
 
 3.  [`point_to_point_effort()`](https://camilleross.org/distsamp/reference/point_to_point_effort.md)
     — great-circle distance between consecutive on-effort positions.
+    Then perpendicular sighting distances.
 
 4.  [`split_tracks()`](https://camilleross.org/distsamp/reference/split_tracks.md)
     — start a new track wherever effort breaks.
@@ -200,7 +203,8 @@ stages.
     — how many segments, and how long each should be.
 
 7.  [`cut_segments()`](https://camilleross.org/distsamp/reference/cut_segments.md)
-    — walk the records and make the cuts.
+    — walk the records and make the cuts. Then circling sightings are
+    added back.
 
 8.  [`segment_midpoints()`](https://camilleross.org/distsamp/reference/segment_midpoints.md)
     — the along-track midpoint of each segment.
@@ -213,14 +217,13 @@ Steps 1 and 2 are skipped when the input already carries `LEGNO3` or
 
 ## Aerial or vessel
 
-Segmentation is platform-free — great-circle distance between fixes,
-splitting at breaks in effort, and cutting a track into lengths are
-geometry, and a ship's track segments the same way a plane's does. What
-is not platform-free is either end of it: the effort criteria that
-decide which records count, and the right-angle distance sources that
-exist. `platform` sets both at once, because setting one without the
-other is how a survey ends up with a vessel's records and an aircraft's
-criteria — which is a survey with no effort at all. See
+Segmentation itself does not depend on the platform: great-circle
+distance between fixes, splitting at breaks in effort, and cutting a
+track into lengths work the same for a ship as for a plane. Two things
+do depend on it: the effort criteria that decide which records count,
+and which right-angle distance sources exist. `platform` sets both at
+once. Setting one without the other gives a vessel's records an
+aircraft's criteria, and so a survey with no effort at all. See
 [`platform_defaults()`](https://camilleross.org/distsamp/reference/platform_defaults.md).
 
 ## Reproducibility

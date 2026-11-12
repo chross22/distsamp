@@ -2,8 +2,8 @@
 
 [`narwcr::validate_narwc()`](https://camilleross.org/narwcr/reference/validate_narwc.html)
 with this package's checks added to the default, so that
-`validate_narwc(dat)` reports everything it reported before the reading
-layer was split into narwcr.
+`validate_narwc(dat)` runs both the handbook checks from narwcr and the
+distance-sampling checks from this package.
 
 ## Usage
 
@@ -57,9 +57,9 @@ A zero-row tibble means every check passed.
 ## Why this wrapper exists
 
 The handbook-general checks live in narwcr, and calling its
-`validate_narwc()` directly runs only those. Silently dropping four
-checks from a function people already call would be a regression, so
-this package keeps its own default. To run only the handbook rules, call
+`validate_narwc()` directly runs only those. This package keeps its own
+default so that existing calls do not silently lose four checks. To run
+only the handbook rules, call
 [`narwcr::validate_narwc()`](https://camilleross.org/narwcr/reference/validate_narwc.html).
 
 ## See also

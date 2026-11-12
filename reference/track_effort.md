@@ -17,7 +17,7 @@ track_effort(dat, min_track_km = 1)
 
 - min_track_km:
 
-  Tracks with less than this much effort are dropped. Default `1`.
+  Tracks with this much effort or less are dropped. Default `1`.
 
 ## Value
 

@@ -30,10 +30,10 @@ A tibble. Per occupation: `DATE`, `FILEID`, `LEGNO`, `LEGNO3`,
 
 A **track** is a continuous run of effort: it ends wherever effort
 breaks, which may be mid-line, and it says nothing about which line was
-being flown. A **line** is a design element — the transect the survey
-set out to fly, named by `LEGNO`. Segmentation works on tracks, so
-`segs$tracks` cannot answer "how much of line 7 did we actually cover,
-and did we have to go back for it".
+being flown. A **line** is a design element: the transect the survey set
+out to fly, named by `LEGNO`. Segmentation works on tracks, so
+`segs$tracks` cannot say how much of line 7 was covered, or whether it
+had to be flown again.
 
 ## Occupations and lines
 
@@ -60,12 +60,12 @@ Passing a `distsamp_segments` uses its `points` table, which holds only
 the records that reached a segment.
 
 Usually that costs nothing: the records segmentation leaves out are off
-effort, and an off-effort record carries zero `pt2pt.effort` — so
+effort, and an off-effort record carries zero `pt2pt.effort`, so
 dropping it removes no distance. But a track shorter than
 `min_track_km`, or a segment shorter than `min_segment_km`, is discarded
-*with* its on-effort distance, and that effort was really flown. A line
-made up of such a track then reports less effort than the survey gave
-it, or disappears from the summary entirely.
+*with* its on-effort distance, which was really flown. A line made of
+such a track then reports too little effort, or disappears from the
+summary.
 
 So pass the point-level data after
 [`flag_effort()`](https://camilleross.org/narwcr/reference/flag_effort.html)
@@ -104,8 +104,8 @@ line_effort(dat)
 #> 2 2024-04-01 AA240401     2 2_3        16.7         25          1
 #> 3 2024-04-02 AA240402     3 3_4        33.3         34          1
 #> 4 2024-04-02 AA240402     4 4_5         3.33         6          1
-#> 5 2024-04-02 AA240402     4 4_7         8.89         9          2
-#> 6 2024-04-02 AA240402     5 5_6         7.78         8          1
+#> 5 2024-04-02 AA240402     5 5_6         7.78         8          1
+#> 6 2024-04-02 AA240402     4 4_7         8.89         9          2
 
 # One row per line, attempts combined
 line_effort(dat, combine = "line")

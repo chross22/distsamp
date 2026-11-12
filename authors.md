@@ -10,12 +10,12 @@
 Source:
 [`inst/CITATION`](https://github.com/chross22/distsamp/blob/main/inst/CITATION)
 
-Ross C (2026). *distsamp: Segment Aerial Line-Transect Survey Data for
-Distance Sampling*. R package version 0.1.0,
+Ross C (2026). *distsamp: Segment Line-Transect Survey Data for Distance
+Sampling*. R package version 0.1.0,
 <https://github.com/chross22/distsamp>.
 
     @Manual{,
-      title = {{distsamp}: Segment Aerial Line-Transect Survey Data for Distance Sampling},
+      title = {{distsamp}: Segment Line-Transect Survey Data for Distance Sampling},
       author = {Camille Ross},
       year = {2026},
       note = {R package version 0.1.0},

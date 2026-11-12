@@ -39,11 +39,10 @@ circling_distance(
 
   Which position to treat as the animal's. `"exact"` (default) uses
   `S_LAT`/`S_LONG` only. `"logged"` falls back to the record's own
-  `LATITUDE`/`LONGITUDE` where no exact position exists — but that is
-  the *aircraft* orbiting the animal, offset by the radius of the
-  circle, which at a few hundred metres is the same size as the
-  distances being measured. Use it knowing that, and read
-  `position_source` to see which applied.
+  `LATITUDE`/`LONGITUDE` where no exact position exists. That position
+  is the *aircraft* orbiting the animal, offset by the radius of the
+  circle (a few hundred metres, the same size as the distances being
+  measured). `position_source` records which position was used.
 
 ## Value
 
@@ -84,27 +83,26 @@ sightings:
 
 A circling sighting is usually a genuine on-effort detection: the animal
 was seen from the track-line, which is why the aircraft left it. Giving
-it no distance drops it from the detection function altogether, and the
-dropped detections are not a random sample — they are disproportionately
-the close, conspicuous, or high-priority groups that were worth breaking
-off for. Losing those thins the near-zero end of the distance
-distribution, exactly where a detection function is most sensitive.
+it no distance drops it from the detection function. The dropped
+detections are not a random sample: they are mostly the close,
+conspicuous, or high-priority groups that were worth breaking off for.
+Losing them thins the near-zero end of the distance distribution, where
+a detection function is most sensitive.
 
 ## The anchor
 
-The reference point is the last census record before the circling began
-— the `LEGSTAGE == 3` break-off record where one exists (handbook
-8.A.20), and otherwise the last record still on the line. `anchor_event`
-reports which record was used so the choice can be checked.
+The reference point is the last census record before the circling began:
+the `LEGSTAGE == 3` break-off record where one exists (handbook 8.A.20),
+and otherwise the last record still on the line. `anchor_event` reports
+which record was used so the choice can be checked.
 
 The bearing is the *inbound* heading: from the previous distinct census
 position to the anchor, which is the direction the aircraft was flying
-when the animal was detected. It is deliberately not the centred
-difference
+when the animal was detected. It is not the centred difference
 [`track_bearing()`](https://camilleross.org/distsamp/reference/track_bearing.md)
-uses, because the record after a break-off is the resume record, and a
-resume point offset from the break-off would swing the bearing by an
-amount that has nothing to do with the track being flown.
+uses. The record after a break-off is the resume record, and a resume
+point offset from the break-off would swing the bearing by an amount
+unrelated to the track being flown.
 
 ## Break-off point, or the line through it
 
@@ -113,17 +111,17 @@ point is beyond the animal rather than abeam of it. `radial` is the
 straight-line distance from the break-off point to the animal;
 `distance` is that position projected perpendicularly onto the census
 line, and `along` is how far back along the line the animal was abeam.
-**`distance` is the one a detection function needs** — `radial` will
-generally be larger, by exactly the margin `along` records.
+**`distance` is the one a detection function needs.** `radial` is
+generally larger, by the margin `along` records.
 
 ## What this cannot fix
 
 The position is recorded some minutes after detection, so the animal has
 moved, and the distance is an estimate of where it was when detected
 rather than a measurement of it. That error is not quantified here.
-Treat circling distances as a distinct and less reliable source — which
-is why `distance_source` marks them, and why they should be excluded
-from a detection function unless their inclusion is a deliberate, stated
+Circling distances are a distinct and less reliable source.
+`distance_source` marks them, and they should be excluded from a
+detection function unless their inclusion is a deliberate, stated
 choice.
 
 ## References

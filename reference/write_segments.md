@@ -2,8 +2,7 @@
 
 Writes the tables from a
 [`segment_survey()`](https://camilleross.org/distsamp/reference/segment_survey.md)
-result to a directory. Nothing else in the package writes to disk, so
-output is always something you asked for.
+result to a directory. Nothing else in the package writes to disk.
 
 ## Usage
 
@@ -32,7 +31,7 @@ write_segments(
 
 - tables:
 
-  Which tables to write. Default all four.
+  Which tables to write. Default all five.
 
 ## Value
 

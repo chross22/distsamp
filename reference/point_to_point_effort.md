@@ -36,13 +36,13 @@ point_to_point_effort(
 
   `DATE` is in the default because `LEGNO3` only increments when `LEGNO`
   *changes*. If the last line of one day and the first line of the next
-  share a `LEGNO`, the two occupations differ in nothing but `FILEID` —
-  and some extracts carry a constant `FILEID`, in which case the days
-  merge and the ferry between them is counted as on-effort track. That
-  failure is silent: no warning, no `NA`, just an effort total that can
-  be many times too large, and since effort is the denominator of
-  density, a density proportionally too low. Drop `DATE` only for a
-  frame you know occupies a single day.
+  share a `LEGNO`, the two occupations differ only in `FILEID`. Some
+  extracts carry a constant `FILEID`; the days then merge and the ferry
+  between them is counted as on-effort track. The failure is silent: no
+  warning and no `NA`, only an effort total that can be many times too
+  large. Effort is the denominator of density, so density is then
+  proportionally too low. Drop `DATE` only for a frame known to cover a
+  single day.
 
 - method:
 

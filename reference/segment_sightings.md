@@ -71,8 +71,9 @@ excludes:
   Kenney's own practice of using only definite and probable
   identifications.
 
-The original processing code excluded `LEGSTAGE == 7` but kept
-`LEGSTAGE == 6`, which lets pilot sightings inflate counts.
+Off-effort sightings are also excluded, except circling sightings added
+by
+[`attach_circling_sightings()`](https://camilleross.org/distsamp/reference/attach_circling_sightings.md).
 
 ## Beaufort summaries
 
@@ -91,16 +92,17 @@ function wants: pass it to
 [`Distance::ds()`](https://rdrr.io/pkg/Distance/man/ds.html), keyed back
 to the segments by `seg_id`.
 
-A sighting recorded while circling depends on
+How a sighting recorded while circling is handled depends on
 `attach_circling_sightings(distance = )`. Under `"with_group"` (the
 default) its animals were added to the on-effort group it was counted
-with, it is marked `circling_counted = FALSE`, and it is skipped here,
-so it is not a detection at all. Under `"break_off"` it is a detection
-of its own: at the perpendicular distance of its exact position from the
-census line (`distance_source == "circling"`) where one was recorded,
-and otherwise at the great-circle distance from where the aircraft broke
-off (`distance_source == "break_off"`). The first is fixed minutes after
-the detection and the second is not perpendicular, so
+with, it is marked `circling_counted = FALSE`, and it is skipped here:
+it is not a detection. Under `"break_off"` it is a detection of its own.
+Its distance is the perpendicular distance of its exact position from
+the census line (`distance_source == "circling"`) where one was
+recorded, and otherwise the great-circle distance from where the
+aircraft broke off (`distance_source == "break_off"`). The first is
+fixed minutes after the detection and the second is not perpendicular,
+so
 [`detection_data()`](https://camilleross.org/distsamp/reference/detection_data.md)
 excludes circling detections by default. `break_off_distance` is carried
 either way, for judging whether the attachment was reasonable.

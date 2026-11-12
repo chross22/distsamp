@@ -29,8 +29,9 @@ detection_data(
 - area:
 
   Study area, in the units your density estimate should use — usually
-  km². A single number, or one per region. Required: there is no
-  sensible default, and a wrong one scales abundance directly.
+  km². A single number, or a vector named by region label
+  (`c(GOM = 5811, CCB = 1500)`). Required: there is no sensible default,
+  and a wrong one scales abundance directly.
 
 - region:
 
@@ -88,31 +89,31 @@ detections, keyed by `Sample.Label`:
 | `size`                 | group size                                |
 
 **Every segment appears, including those with no detections**, carrying
-a missing `distance`. That is not padding: it is how the flatfile
-records effort that produced no sightings, and dropping those rows would
-inflate density by removing the denominator.
+a missing `distance`. This is how the flatfile records effort that
+produced no sightings. Dropping those rows would remove effort from the
+denominator and inflate density.
 
 ## Truncation applies to two things
 
-`truncation` drops detections beyond the given distance — and leaves
-their segment in place, with its effort intact. That is the whole point:
-effort searched is effort searched whether or not anything was seen
-within the truncation distance, so removing the segment as well would
-remove the denominator along with the numerator and bias density upward.
+`truncation` drops detections beyond the given distance, and leaves
+their segment in place with its effort intact. The effort was searched
+whether or not anything was seen within the truncation distance.
+Removing the segment too would remove effort from the denominator and
+bias density upward.
 
-Truncation is reported rather than silent. It also has to match what you
-pass to [`ds()`](https://rdrr.io/pkg/Distance/man/ds.html); passing
-`truncation` here and a different value there fits the model to one set
-of detections and scales abundance by another.
+The number of truncated detections is reported. The value must match the
+truncation passed to [`ds()`](https://rdrr.io/pkg/Distance/man/ds.html);
+otherwise the model is fitted to one set of detections and abundance is
+scaled by another.
 
 ## Binned distances cannot be mixed with exact ones
 
 `STRIP` gives an interval, not a point, so those rows carry `distbegin`
 and `distend` and no `distance`. A single
-[`ds()`](https://rdrr.io/pkg/Distance/man/ds.html) call cannot fit both
-— the likelihoods differ — so a table containing both is a survey era
-boundary rather than a model set. `mixed = "error"` (the default)
-refuses it; `mixed = "warn"` lets it through for inspection. Split on
+[`ds()`](https://rdrr.io/pkg/Distance/man/ds.html) call cannot fit both,
+because the likelihoods differ. A table containing both spans a survey
+era boundary. `mixed = "error"` (the default) refuses it;
+`mixed = "warn"` lets it through for inspection. Split on
 `distance_source` and fit each era separately.
 
 The top bin of every `STRIP` scheme is open-ended (`>1`, `>2`, `>4`
@@ -130,30 +131,27 @@ position fixed minutes after the detection
 (`distance_source == "circling"`), or, with no exact position, a
 great-circle distance from the break-off that is not perpendicular at
 all (`"break_off"`). Neither is measured at the moment of detection.
-`include_circling = TRUE` does keep them — a choice worth stating in a
-methods section rather than making silently.
+`include_circling = TRUE` keeps them; state that choice in the methods.
 
-Note that this is independent of whether circling sightings count
-towards abundance in a density surface model, which they should and do;
-that is controlled by `segment_survey(circling = )`. Excluding them here
-does not remove them from `segs$sightings` or `segs$detections`, and a
-surface fitted from this flatfile alone will miss them — build its
-observation table from the detections instead.
+This is independent of whether circling sightings count towards
+abundance in a density surface model, which is controlled by
+`segment_survey(circling = )`. Excluding them here does not remove them
+from `segs$sightings` or `segs$detections`. A surface fitted from this
+flatfile alone will miss them; build its observation table from the
+detections instead.
 
 ## This assumes g(0) = 1, and it almost certainly is not
 
 Nothing in this table corrects for animals that were submerged when the
 aircraft passed, or that surfaced and were missed. A detection function
-fitted to it estimates detection *given that the animal was available
-and seen*, and treats the track-line as certain. For a deep-diving
-species that biases density low, and not slightly.
+fitted to it treats detection on the track-line as certain. For a
+deep-diving species this biases density low, by a large amount.
 
-`distsamp` does not estimate `g(0)` — it cannot be estimated from a
+`distsamp` does not estimate `g(0)`. It cannot be estimated from a
 standard NARWC extract, which records neither dive data nor the
-double-observer structure mark-recapture needs — but it must not be
-assumed away either. Apply a correction from external sources at the
-abundance step, with its standard error propagated, and say which
-components it covers.
+double-observer structure mark-recapture needs. Apply a correction from
+external sources at the abundance step, propagate its standard error,
+and state which components it covers.
 
 ## References
 

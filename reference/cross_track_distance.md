@@ -76,16 +76,16 @@ Multiplying by the Earth's radius gives distances. The sign of
 A sighting is not always logged at the moment it is abeam. If it is
 recorded 300 m before the aircraft draws level, the straight distance
 from the event position to the animal is \\\sqrt{x^2 + 300^2}\\ where
-\\x\\ is the perpendicular distance the detection function needs — for a
-whale 130 m off the track, that is 327 m rather than 130 m, an error of
-a factor of two and always in the same direction. Distance sampling
-assumes perpendicular distances, and inflating them biases the detection
-function towards a wider effective strip and so density downwards.
+\\x\\ is the perpendicular distance the detection function needs. For a
+whale 130 m off the track, that is 327 m rather than 130 m: a factor of
+two, always in the same direction. Distance sampling assumes
+perpendicular distances. Inflating them biases the detection function
+towards a wider effective strip, and so biases density downwards.
 
-`along` is returned so that this can be checked rather than assumed: it
+`along` is returned so that this can be checked rather than assumed. It
 is the along-track offset between the logged position and the point
 where the sighting was abeam. Values near zero mean the two measures
-would have agreed.
+agree.
 
 ## References
 

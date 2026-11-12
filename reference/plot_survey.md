@@ -38,13 +38,12 @@ plot_survey(
 - coastline:
 
   Land to draw underneath. `TRUE` (default) fetches Natural Earth
-  through `rnaturalearth`; `FALSE` draws none; a scale name — `"small"`,
-  `"medium"`, `"large"` — picks the resolution; or pass your own `sf`,
-  which is the better option at bay scale. Unlike
+  through `rnaturalearth`; `FALSE` draws none; a scale name (`"small"`,
+  `"medium"`, `"large"`) picks the resolution; an `sf` object is drawn
+  as given, and is the better option at bay scale. Unlike
   [`plot.distsamp_segments()`](https://camilleross.org/distsamp/reference/plot.distsamp_segments.md),
-  a coastline that cannot be fetched here warns and draws nothing rather
-  than erroring: this is a look-at-it function, and losing the land is
-  better than losing the plot.
+  a coastline that cannot be fetched here gives a warning and no land,
+  rather than an error.
 
 - max_points:
 
@@ -54,30 +53,29 @@ plot_survey(
 
   Most groups to name in the legend. Default `12`. Beyond this,
   occupations and tracks take a recycled palette and the legend is
-  dropped — a hundred labels is not a legend, and a hundred colours
-  cannot be told apart.
+  dropped, since a hundred colours cannot be told apart.
 
 - facet_by:
 
   Column to facet on, or `NULL` for none. Defaults to `DATE` when the
-  data covers 2 to 12 days — beyond that the panels are too small to
-  read, and one map of everything is more use.
+  data covers 2 to 12 days. Beyond that the panels are too small to
+  read, and one map is drawn.
 
 - dates, years, months:
 
   Which survey days to draw, passed to
   [`filter_days()`](https://camilleross.org/distsamp/reference/filter_days.md).
-  `NULL` (default) draws all of them. A decade of survey on one map is a
-  smear; `years = 2019, months = 8` is a question a map can answer.
+  `NULL` (default) draws all of them. A decade of survey on one map is
+  unreadable; `years = 2019, months = 8` is not.
 
 - sightings:
 
   Draw the sightings over the effort? `FALSE` (default) draws none,
   `TRUE` draws every species, and a character vector of `SPECCODE`
-  values draws only those — `sightings = "RIWH"`. They are taken from
+  values draws only those (`sightings = "RIWH"`). They are taken from
   the data *before* thinning, since a few thousand sighting rows in
   three million would not survive it, and are drawn as outlined markers
-  so they read on top of the track rather than as more of it.
+  on top of the track.
 
 ## Value
 
@@ -87,19 +85,19 @@ A `ggplot` object.
 
 - `"effort"`:
 
-  Positions coloured by `OnOff.Effort`. The first thing to look at: a
-  survey that is almost entirely off effort has a criterion failing, and
-  the map says whether it is everywhere or on particular days.
+  Positions coloured by `OnOff.Effort`. Look here first: a survey that
+  is almost entirely off effort has a criterion failing, and the map
+  shows whether that is everywhere or on particular days.
 
 - `"occupations"`:
 
   Positions coloured by `LEGNO3`, the line-occupation identifier.
-  Adjacent occupations take different colours, so a line that should be
-  one occupation and is drawn in three — or three that are drawn as one
-  — is visible immediately. This is the view that catches a bad
-  [`make_leg_id()`](https://camilleross.org/narwcr/reference/make_leg_id.html),
-  and a bad `LEGNO3` is the single most consequential thing that can go
-  wrong: effort is grouped by it and segments are cut within it.
+  Adjacent occupations take different colours, so one line split into
+  three occupations, or three merged into one, is visible immediately.
+  This view catches a bad
+  [`make_leg_id()`](https://camilleross.org/narwcr/reference/make_leg_id.html).
+  A bad `LEGNO3` is the most consequential error possible: effort is
+  grouped by it and segments are cut within it.
 
 - `"tracks"`:
 
@@ -116,25 +114,23 @@ A `ggplot` object.
 - `"legstage"`:
 
   Positions coloured by `LEGSTAGE`. Shows where a line begins, breaks
-  off, resumes and ends — and, on a file that records the code only at
+  off, resumes and ends, and, on a file that records the code only at
   change points, how little of it is written down.
 
 - `"raw"`:
 
   Every position, coloured by `LEGTYPE`, needing nothing but the file as
-  read. What the survey looks like before any of this package has
-  touched it — the view to compare the others against when a later stage
-  seems to have lost something.
+  read. Shows the survey before this package has changed it; compare the
+  other views against it when a later stage seems to have lost
+  something.
 
 - `"positions"`:
 
-  Every position, uncoloured. The only view that cannot fail for want of
-  a column: it needs `LATITUDE` and `LONGITUDE` and nothing else, so it
-  works on a file that has not been through
+  Every position, uncoloured. It needs only `LATITUDE` and `LONGITUDE`,
+  so it works on a file that has not been through
   [`prepare_survey()`](https://camilleross.org/distsamp/reference/prepare_survey.md),
-  or one whose columns are not what you expected. Where `"raw"` still
-  asks for `LEGTYPE`, this asks for nothing. Add `sightings = TRUE` and
-  it is the whole survey — effort and what was seen on it — in one map.
+  or one with unexpected columns. With `sightings = TRUE` it shows the
+  whole survey, effort and sightings, in one map.
 
 ## Thinning
 
@@ -143,15 +139,13 @@ five million points is neither drawable nor readable. The plotted
 *points* are thinned to `max_points` by taking every *n*th. The subtitle
 says when it happened. Set `max_points = Inf` to draw every point.
 
-**Thinning never applies to the path.** Every *n*th preserves the shape
-of a straight line and loses it at every turn, so a path drawn through
-the survivors cuts the corners: at three million records that is a chord
-between fixes some 18 km apart, and against a coastline it draws a
-trackline over land that is not in the data. The lines in the
-`"occupations"` and `"tracks"` views are therefore built from every fix,
-whatever `max_points` says. On a whole archive that costs a few seconds
-of drawing, and it buys a map that does not invent a mistake for you to
-go looking for.
+**Thinning never applies to the path.** Every *n*th record preserves the
+shape of a straight line and loses it at every turn, so a path drawn
+through the survivors cuts the corners. At three million records that is
+a chord between fixes some 18 km apart, which can draw a trackline over
+land. The lines in the `"occupations"` and `"tracks"` views are
+therefore built from every fix, whatever `max_points` says. On a whole
+archive this costs a few seconds of drawing.
 
 ## See also
 

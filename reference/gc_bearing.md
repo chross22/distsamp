@@ -30,8 +30,8 @@ A numeric vector of bearings in `[0, 360)`. `NA` where any coordinate is
 
 A great circle changes bearing as it is followed, so this is the bearing
 *at the first position*. Over the distances between consecutive survey
-positions the change is negligible — a tenth of a degree over 10 km at
-these latitudes — but it is the reason
+positions the change is negligible (a tenth of a degree over 10 km at
+these latitudes). It is still the reason
 [`cross_track_distance()`](https://camilleross.org/distsamp/reference/cross_track_distance.md)
 takes a bearing and a point together rather than a bearing alone.
 

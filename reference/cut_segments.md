@@ -27,7 +27,8 @@ cut_segments(plan, dat, min_segment_km = 1, seed = NULL)
 
 - min_segment_km:
 
-  Segments shorter than this are dropped from the result. Default `1`.
+  Segments of this length or less are dropped from the result. Default
+  `1`.
 
 - seed:
 
@@ -60,8 +61,8 @@ segment, with columns added:
 
 ## Details
 
-The `case` column records why each segment ended, preserving the
-diagnostic labels from the original implementation:
+The `case` column records why each segment ended. The labels are those
+of the original implementation, which is why there is no `case1`:
 
 - `case2`:
 

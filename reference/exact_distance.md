@@ -61,14 +61,13 @@ A tibble with one row per row of `dat`:
 ## Where this fits
 
 This is the most direct of the three right-angle distance sources this
-package supports, because it measures the quantity a detection function
-is defined on rather than inferring it. It needs the sighting position
-to have been fixed independently — from a GPS mark, a photograph, or a
-circling pass — so it is available only where the survey recorded one,
-which in the NARWC archive is mostly the NLPSC-era and later data. Where
-`S_LAT`/`S_LONG` and a declination angle both exist, comparing the two
-is a useful check on both; they are independent measurements of the same
-thing.
+package supports. It measures the quantity a detection function is
+defined on rather than inferring it. It needs a sighting position fixed
+independently (from a GPS mark, a photograph, or a circling pass), so it
+exists only where the survey recorded one. In the NARWC archive that is
+mostly the NLPSC-era and later data. Where `S_LAT`/`S_LONG` and a
+declination angle both exist, they are independent measurements of the
+same thing and check each other.
 
 ## How it differs from the original scripts
 
@@ -87,11 +86,10 @@ Like
 [`sighting_distances()`](https://camilleross.org/distsamp/reference/sighting_distances.md),
 and for the same reason, distances are computed only for on-effort
 records on a census line at `LEGSTAGE == 2` by default. Off the census
-line there is no track-line to be perpendicular to: a position logged
-while circling has a well-defined distance to the animal and no useful
-perpendicular distance at all. Setting `on_effort_only = FALSE` computes
-them anyway, which is occasionally useful for diagnostics and never
-appropriate for fitting.
+line there is no track-line to be perpendicular to. A position logged
+while circling has a defined distance to the animal but no useful
+perpendicular distance. `on_effort_only = FALSE` computes them anyway;
+this is useful for diagnostics and not appropriate for fitting.
 
 ## References
 

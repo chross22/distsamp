@@ -388,6 +388,98 @@ enough to put a shore-hugging survey apparently on land. Tile basemaps
 remain out of scope: they need a tile source and network access, which a
 diagnostic plot should not.
 
+### Documentation and third audit (2026-11-12)
+
+- Pipeline scripts in `R/` are renamed with step numbers,
+  `00-reexports.R` to `13-detection-data.R`, so the files read in the
+  order they run.
+
+- Code comments describe each function as a sequence of steps; the docs
+  are shortened and outdated statements corrected.
+
+- `detection_data(area = )` with several values now matches them to
+  regions by name. They were recycled in row order, so segments could
+  get another region’s area. Unnamed vectors of more than one area are
+  an error.
+
+- `strip_distance(scheme = "auto")` no longer gives a `STRIP` record
+  with no date the CETAP code book; it gets no interval, with a warning.
+
+- `point_to_point_effort(source = "recorded")`: an interval with neither
+  a `TRKDIST` reading nor a position counts as 0 km, with a warning. It
+  made the whole line’s `Effort` `NA`.
+
+- [`flag_circling()`](https://camilleross.org/distsamp/reference/flag_circling.md)
+  resets at each file as well as each line, so an open circle cannot
+  carry into another file with the same `LEGNO3`.
+
+- [`diagnose_pipeline()`](https://camilleross.org/distsamp/reference/diagnose_pipeline.md)
+  no longer aborts without `FILEID`, returns the last good data when a
+  step fails, ignores blank species codes, and reports a missing
+  `SPECCODE` column.
+
+- Segments, detections and the flatfile are listed in survey order
+  (segment 2 before 19). The empty detections table has the same columns
+  as a full one, and
+  [`detection_data()`](https://camilleross.org/distsamp/reference/detection_data.md)
+  accepts a detections table without interval columns.
+
+- [`line_effort()`](https://camilleross.org/distsamp/reference/line_effort.md)
+  numbers re-flights in the order flown, not by text, and returns the
+  per-line columns for empty input with `combine = "line"`.
+
+- [`crop_to_bbox()`](https://camilleross.org/distsamp/reference/crop_to_bbox.md)
+  crops detections and tracks along with segments.
+
+- [`validate_narwc()`](https://camilleross.org/distsamp/reference/validate_narwc.md)
+  compares `ALT` as a number.
+
+- Plots: the tracks view counts and colours tracks per day; the thinning
+  note states the step used (“1 in every 6”).
+
+- Segment midpoints could move when a circling sighting was attached.
+  Rows were re-sorted by `seg_id` text, which puts segment 19 before
+  segment 2, and midpoints followed row order. One circle moved two
+  midpoints by 44 km in a test. Rows are now sorted by number, and
+  [`segment_midpoints()`](https://camilleross.org/distsamp/reference/segment_midpoints.md)
+  orders records itself.
+
+- A circling sighting could attach to a different survey flown the same
+  day. The break-off lookup matched `EVENTNO` within a day, but
+  `EVENTNO` restarts in each file. Lookups are now within the line
+  occupation.
+
+- Off-effort sightings were counted. A lone off-effort record stays
+  inside its track, and
+  [`segment_sightings()`](https://camilleross.org/distsamp/reference/segment_sightings.md)
+  did not check effort. Only on-effort sightings and attached circling
+  sightings are now counted. This replaces the circling-specific removal
+  added on 2026-11-05.
+
+- Without `LEGSTAGE`, a circling sighting kept in its track could be its
+  own break-off anchor. The anchor is now always an on-effort record.
+
+- `detection_data(mixed = "warn")` now says that
+  [`ds()`](https://rdrr.io/pkg/Distance/man/ds.html) would drop the
+  point distances.
+
+- `segment_survey(circling_max_gap_km = )` is checked before segmenting.
+
+- [`segment_survey()`](https://camilleross.org/distsamp/reference/segment_survey.md)
+  no longer prints the `LEGSTAGE` fill report.
+
+- [`segment_midpoints()`](https://camilleross.org/distsamp/reference/segment_midpoints.md)
+  computes all midpoints in one pass instead of one table per segment:
+  0.12 s instead of 9 s on 194,000 records, with the same results to
+  within 1.5e-14 degrees.
+  [`segment_survey()`](https://camilleross.org/distsamp/reference/segment_survey.md)
+  on that season takes 9.5 s, from 18 s.
+
+- [`attach_circling_sightings()`](https://camilleross.org/distsamp/reference/attach_circling_sightings.md)
+  is shorter: segment fields come from the anchor row, and the lookups
+  share one helper. On a 194,000-record season it takes 0.2 s, from 1.5
+  s.
+
 ### Circling: audit fixes (2026-11-05)
 
 - `segment_survey(distance_sources = )` now warns when it includes

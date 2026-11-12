@@ -1,17 +1,17 @@
 # Functions re-exported from narwcr
 
-Reading and standardising a NARWC extract used to live in this package.
-It now lives in narwcr, which `msomgom` and any other analysis of the
-same archive share, so that there is one vocabulary and one set of
-handbook code books rather than one per package.
+Reading and standardising a NARWC extract is done by narwcr, which
+`msomgom` and other analyses of the same archive share. There is
+therefore one vocabulary and one set of handbook code books rather than
+one per package.
 
 ## Details
 
-They are re-exported here so that
-[`library(distsamp)`](https://github.com/chross22/distsamp) still gives
-you a working pipeline from a file to a set of segments, and so that
-existing code and examples keep running unchanged. They are the same
-functions: documented, tested and versioned in narwcr.
+The functions are re-exported here so that
+[`library(distsamp)`](https://github.com/chross22/distsamp) gives a
+working pipeline from a file to a set of segments, and so that existing
+code and examples run unchanged. They are the same functions,
+documented, tested and versioned in narwcr.
 
 ## Where each one is documented
 

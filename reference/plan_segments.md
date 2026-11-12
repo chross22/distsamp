@@ -61,10 +61,9 @@ For a track of length `L` and a target segment length `s`:
 - If `rem` is smaller than the tolerance, it is absorbed instead: one
   segment is stretched to `s + rem`.
 
-Either way the leftover is assigned to a **randomly chosen** segment
-rather than always the last one, so that the short (or long) segment is
-not systematically at the end of every track. The target lengths always
-sum to `L`.
+Either way the odd length goes to a **randomly chosen** segment, not
+always the last one, so the short (or long) segment is not always at the
+end of a track. The target lengths always sum to `L`.
 
 ## Reproducibility
 
@@ -75,15 +74,14 @@ way.
 ## On the published record
 
 Becker et al. (2010) is the citation the literature uses for this
-approach — later papers describe their samples as "divided into
+approach; later papers describe their samples as "divided into
 approximate 5-km segments of continuous survey effort using the approach
-described by Becker et al. (2010)" (Becker et al. 2019). What the
-published methods state is the target length and the use of continuous
-effort; the specific handling of the leftover distance at the end of a
-track — the tolerance test, and assigning the remainder to a randomly
-chosen segment rather than the last one — is a property of the
-`segchopr` implementation and does not appear to be described in print.
-It is documented here instead, and is controlled by `seg_tol_frac`.
+described by Becker et al. (2010)" (Becker et al. 2019). The published
+methods state the target length and the use of continuous effort. The
+handling of the leftover distance (the tolerance test, and giving the
+remainder to a random segment) comes from the `segchopr` code and does
+not appear to be described in print. It is documented here instead, and
+is controlled by `seg_tol_frac`.
 
 ## References
 
