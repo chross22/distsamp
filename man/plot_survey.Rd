@@ -25,35 +25,32 @@ required, and each view needs the column it colours by.}
 \code{"platform"}, \code{"legstage"}, \code{"raw"}, or \code{"positions"}.}
 
 \item{coastline}{Land to draw underneath. \code{TRUE} (default) fetches Natural
-Earth through \code{rnaturalearth}; \code{FALSE} draws none; a scale name —
-\code{"small"}, \code{"medium"}, \code{"large"} — picks the resolution; or pass your own
-\code{sf}, which is the better option at bay scale. Unlike
-\code{\link[=plot.distsamp_segments]{plot.distsamp_segments()}}, a coastline that cannot be fetched here warns
-and draws nothing rather than erroring: this is a look-at-it function, and
-losing the land is better than losing the plot.}
+Earth through \code{rnaturalearth}; \code{FALSE} draws none; a scale name
+(\code{"small"}, \code{"medium"}, \code{"large"}) picks the resolution; an \code{sf} object is
+drawn as given, and is the better option at bay scale. Unlike
+\code{\link[=plot.distsamp_segments]{plot.distsamp_segments()}}, a coastline that cannot be fetched here gives
+a warning and no land, rather than an error.}
 
 \item{max_points}{Thin to at most this many records. Default \code{50000}.}
 
 \item{max_legend}{Most groups to name in the legend. Default \code{12}. Beyond
 this, occupations and tracks take a recycled palette and the legend is
-dropped — a hundred labels is not a legend, and a hundred colours cannot
-be told apart.}
+dropped, since a hundred colours cannot be told apart.}
 
 \item{facet_by}{Column to facet on, or \code{NULL} for none. Defaults to \code{DATE}
-when the data covers 2 to 12 days — beyond that the panels are too small
-to read, and one map of everything is more use.}
+when the data covers 2 to 12 days. Beyond that the panels are too small
+to read, and one map is drawn.}
 
 \item{dates, years, months}{Which survey days to draw, passed to
 \code{\link[=filter_days]{filter_days()}}. \code{NULL} (default) draws all of them. A decade of survey on
-one map is a smear; \verb{years = 2019, months = 8} is a question a map can
-answer.}
+one map is unreadable; \verb{years = 2019, months = 8} is not.}
 
 \item{sightings}{Draw the sightings over the effort? \code{FALSE} (default) draws
 none, \code{TRUE} draws every species, and a character vector of \code{SPECCODE}
-values draws only those — \code{sightings = "RIWH"}. They are taken from the
+values draws only those (\code{sightings = "RIWH"}). They are taken from the
 data \emph{before} thinning, since a few thousand sighting rows in three million
-would not survive it, and are drawn as outlined markers so they read on top
-of the track rather than as more of it.}
+would not survive it, and are drawn as outlined markers on top of the
+track.}
 }
 \value{
 A \code{ggplot} object.
@@ -67,17 +64,15 @@ that produced it, where a mistake is still legible.
 \section{What each view is for}{
 
 \describe{
-\item{\code{"effort"}}{Positions coloured by \code{OnOff.Effort}. The first thing to
-look at: a survey that is almost entirely off effort has a criterion
-failing, and the map says whether it is everywhere or on particular
-days.}
+\item{\code{"effort"}}{Positions coloured by \code{OnOff.Effort}. Look here first: a
+survey that is almost entirely off effort has a criterion failing, and
+the map shows whether that is everywhere or on particular days.}
 \item{\code{"occupations"}}{Positions coloured by \code{LEGNO3}, the line-occupation
-identifier. Adjacent occupations take different colours, so a line that
-should be one occupation and is drawn in three — or three that are drawn
-as one — is visible immediately. This is the view that catches a bad
-\code{make_leg_id()}, and a bad \code{LEGNO3} is the single most consequential
-thing that can go wrong: effort is grouped by it and segments are cut
-within it.}
+identifier. Adjacent occupations take different colours, so one line
+split into three occupations, or three merged into one, is visible
+immediately. This view catches a bad \code{make_leg_id()}. A bad \code{LEGNO3} is
+the most consequential error possible: effort is grouped by it and
+segments are cut within it.}
 \item{\code{"tracks"}}{Positions coloured by \code{new_trackno}, the stretches of
 \emph{continuous} effort that are actually chopped into segments. Differs
 from \code{"occupations"} wherever effort broke mid-line.}
@@ -85,19 +80,17 @@ from \code{"occupations"} wherever effort broke mid-line.}
 \code{narwcr::classify_platform()}. For an archive holding more than one kind
 of survey.}
 \item{\code{"legstage"}}{Positions coloured by \code{LEGSTAGE}. Shows where a line
-begins, breaks off, resumes and ends — and, on a file that records the
+begins, breaks off, resumes and ends, and, on a file that records the
 code only at change points, how little of it is written down.}
 \item{\code{"raw"}}{Every position, coloured by \code{LEGTYPE}, needing nothing but
-the file as read. What the survey looks like before any of this package
-has touched it — the view to compare the others against when a later
-stage seems to have lost something.}
-\item{\code{"positions"}}{Every position, uncoloured. The only view that cannot
-fail for want of a column: it needs \code{LATITUDE} and \code{LONGITUDE} and
-nothing else, so it works on a file that has not been through
-\code{\link[=prepare_survey]{prepare_survey()}}, or one whose columns are not what you expected.
-Where \code{"raw"} still asks for \code{LEGTYPE}, this asks for nothing. Add
-\code{sightings = TRUE} and it is the whole survey — effort and what was seen
-on it — in one map.}
+the file as read. Shows the survey before this package has changed it;
+compare the other views against it when a later stage seems to have lost
+something.}
+\item{\code{"positions"}}{Every position, uncoloured. It needs only \code{LATITUDE}
+and \code{LONGITUDE}, so it works on a file that has not been through
+\code{\link[=prepare_survey]{prepare_survey()}}, or one with unexpected columns. With
+\code{sightings = TRUE} it shows the whole survey, effort and sightings, in
+one map.}
 }
 }
 
@@ -108,14 +101,13 @@ million points is neither drawable nor readable. The plotted \emph{points} are
 thinned to \code{max_points} by taking every \emph{n}th. The subtitle says when it
 happened. Set \code{max_points = Inf} to draw every point.
 
-\strong{Thinning never applies to the path.} Every \emph{n}th preserves the shape of a
-straight line and loses it at every turn, so a path drawn through the
-survivors cuts the corners: at three million records that is a chord between
-fixes some 18 km apart, and against a coastline it draws a trackline over
-land that is not in the data. The lines in the \code{"occupations"} and
-\code{"tracks"} views are therefore built from every fix, whatever \code{max_points}
-says. On a whole archive that costs a few seconds of drawing, and it buys a
-map that does not invent a mistake for you to go looking for.
+\strong{Thinning never applies to the path.} Every \emph{n}th record preserves the
+shape of a straight line and loses it at every turn, so a path drawn through
+the survivors cuts the corners. At three million records that is a chord
+between fixes some 18 km apart, which can draw a trackline over land. The
+lines in the \code{"occupations"} and \code{"tracks"} views are therefore built from
+every fix, whatever \code{max_points} says. On a whole archive this costs a few
+seconds of drawing.
 }
 
 \examples{

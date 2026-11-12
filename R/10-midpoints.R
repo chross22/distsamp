@@ -20,25 +20,32 @@
 #'
 #' @export
 gc_interpolate <- function(lat1, lon1, lat2, lon2, fraction) {
+  # Recycle all inputs to a common length.
   n <- max(length(lat1), length(lon1), length(lat2), length(lon2), length(fraction))
   lat1 <- rep_len(lat1, n); lon1 <- rep_len(lon1, n)
   lat2 <- rep_len(lat2, n); lon2 <- rep_len(lon2, n)
   f <- rep_len(fraction, n)
 
+  # Degrees to radians.
   d2r <- pi / 180
   phi1 <- lat1 * d2r; lam1 <- lon1 * d2r
   phi2 <- lat2 * d2r; lam2 <- lon2 * d2r
 
+  # Angular distance d between the endpoints (spherical law of cosines).
+  # cos_d is clamped to [-1, 1] so rounding cannot make acos() return NaN.
   cos_d <- sin(phi1) * sin(phi2) + cos(phi1) * cos(phi2) * cos(lam2 - lam1)
   cos_d <- pmin(1, pmax(-1, cos_d))
   d <- acos(cos_d)
 
-  # Coincident (or effectively coincident) endpoints: no arc to walk along.
+  # Weights a and b on the two endpoints (Shoemake's slerp). When the
+  # endpoints coincide (or d is NA) there is no arc, and linear weights are
+  # used instead, which avoids dividing by sin(0).
   degenerate <- is.na(d) | d < 1e-12
   sin_d <- sin(d)
   a <- ifelse(degenerate, 1 - f, sin((1 - f) * d) / sin_d)
   b <- ifelse(degenerate, f,     sin(f * d) / sin_d)
 
+  # Weighted sum of the endpoints as 3-D unit vectors, then back to degrees.
   x <- a * cos(phi1) * cos(lam1) + b * cos(phi2) * cos(lam2)
   y <- a * cos(phi1) * sin(lam1) + b * cos(phi2) * sin(lam2)
   z <- a * sin(phi1) + b * sin(phi2)
@@ -46,8 +53,8 @@ gc_interpolate <- function(lat1, lon1, lat2, lon2, fraction) {
   lat <- atan2(z, sqrt(x^2 + y^2)) / d2r
   lon <- atan2(y, x) / d2r
 
-  # Where the endpoints coincide, hand back the start position unchanged
-  # rather than an atan2 artefact.
+  # Where the end position is missing, return the start position instead of
+  # NA. `both_na` is TRUE when either end coordinate is missing.
   both_na <- is.na(lat2) | is.na(lon2)
   lat[both_na] <- lat1[both_na]
   lon[both_na] <- lon1[both_na]
@@ -119,57 +126,62 @@ segment_midpoints <- function(chopped) {
       "pt2pt.effort")
   )
 
+  # No segments: empty result.
   if (is_empty_df(chopped)) {
     return(tibble::tibble(
       seg_id = character(0), mid_lat = numeric(0), mid_lon = numeric(0)
     ))
   }
 
-  # The last record of a segment measures its effort to the first record of the
-  # *next* segment, so the bracketing position may lie outside the segment.
-  # Take the successor within the track, which spans segment boundaries.
+  # 1. Put records in survey order (DATE, track number, EVENTNO) and give each
+  #    record the position of the next record in its track. The next record
+  #    is taken from the track, not the segment: a segment's last record
+  #    measures its effort to the first record of the next segment. The track
+  #    number is sorted as a number, so track "10" follows "9". Without
+  #    EVENTNO, the incoming row order is used.
+  ev <- if ("EVENTNO" %in% names(chopped)) as.numeric(chopped$EVENTNO) else
+    seq_len(nrow(chopped))
+  ord <- order(chopped$DATE, as.numeric(chopped$new_trackno), ev)
   dat <- dplyr::mutate(
-    dplyr::group_by(chopped, .data$DATE, .data$new_trackno),
+    dplyr::group_by(chopped[ord, , drop = FALSE], .data$DATE, .data$new_trackno),
     .next_lat = dplyr::lead(.data$LATITUDE),
     .next_lon = dplyr::lead(.data$LONGITUDE)
   )
   dat <- dplyr::ungroup(dat)
 
-  parts <- split(dat, factor(dat$seg_id, levels = unique(dat$seg_id)))
-  mids <- lapply(parts, midpoint_one_segment)
-  dplyr::bind_rows(mids)
-}
-
-midpoint_one_segment <- function(seg) {
-  eff <- seg$pt2pt.effort
+  # 2. For each segment, the cumulative effort at each record (`cum`) and half
+  #    the segment's total effort (`half`). Done for all segments at once;
+  #    `seg` keeps segments in their order of first appearance.
+  seg <- factor(dat$seg_id, levels = unique(dat$seg_id))
+  eff <- dat$pt2pt.effort
   eff[is.na(eff)] <- 0
-  cum <- cumsum(eff)
-  total <- cum[length(cum)]
+  cum <- stats::ave(eff, seg, FUN = cumsum)
+  half <- stats::ave(eff, seg, FUN = sum) / 2
 
-  if (total <= 0) {
-    # No distance to walk: fall back to the first recorded position.
-    return(tibble::tibble(
-      seg_id = seg$seg_id[1],
-      mid_lat = seg$LATITUDE[1],
-      mid_lon = seg$LONGITUDE[1]
-    ))
-  }
+  # 3. Find `j`, one row per segment: the first record whose cumulative effort
+  #    reaches half. The half-way point lies on the step from that record to
+  #    the next. A segment with no effort uses its first record instead.
+  #    `walk` marks segments with effort to walk along.
+  first <- !duplicated(seg)
+  crosses <- half > 0 & cum >= half
+  j <- ifelse(half[first] > 0, match(levels(seg), seg[crosses]), NA_integer_)
+  j <- which(crosses)[j]
+  j[is.na(j)] <- which(first)[is.na(j)]
+  walk <- half[j] > 0
 
-  half <- total / 2
-  j <- which(cum >= half)[1]
-  before <- if (j == 1L) 0 else cum[j - 1L]
-  step <- eff[j]
-  f <- if (step > 0) (half - before) / step else 0
-
+  # 4. Interpolate on the great circle from record j to the next record. `f`
+  #    is the fraction of record j's step needed to reach half: the effort
+  #    still needed when the step starts, over the step's length.
+  f <- ifelse(walk & eff[j] > 0, (half[j] - (cum[j] - eff[j])) / eff[j], 0)
   pos <- gc_interpolate(
-    seg$LATITUDE[j], seg$LONGITUDE[j],
-    seg$.next_lat[j], seg$.next_lon[j],
+    dat$LATITUDE[j], dat$LONGITUDE[j],
+    ifelse(walk, dat$.next_lat[j], dat$LATITUDE[j]),
+    ifelse(walk, dat$.next_lon[j], dat$LONGITUDE[j]),
     f
   )
 
-  tibble::tibble(
-    seg_id = seg$seg_id[1],
-    mid_lat = pos$lat,
-    mid_lon = pos$lon
-  )
+  # Segments with no effort take their first position.
+  pos$lat[!walk] <- dat$LATITUDE[j][!walk]
+  pos$lon[!walk] <- dat$LONGITUDE[j][!walk]
+  tibble::tibble(seg_id = levels(seg), mid_lat = pos$lat, mid_lon = pos$lon)
 }

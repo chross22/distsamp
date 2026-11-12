@@ -236,3 +236,37 @@ test_that("binned distances give a flatfile with bins and no point column", {
   expect_true(all(c("distbegin", "distend") %in% names(out)))
   expect_false("distance" %in% names(out))
 })
+
+test_that("mixed = 'warn' says ds() would drop the point distances", {
+  segs <- segs_fx()
+  d <- segs$detections
+  d$distbegin[1] <- 0
+  d$distend[1] <- 100
+  d$distance[1] <- NA
+  segs$detections <- d
+  expect_warning(flat(segs, area = 5811, mixed = "warn"), "drop all 7 point")
+})
+
+test_that("areas are matched to regions by name, not recycled by row", {
+  segs <- segs_fx()
+  regions <- rep(c("A", "B"), length.out = nrow(segs$segments))
+  out <- flat(segs, area = c(B = 200, A = 100), region = regions)
+  expect_equal(unique(out$Area[out$Region.Label == "A"]), 100)
+  expect_equal(unique(out$Area[out$Region.Label == "B"]), 200)
+  # Several unnamed areas are ambiguous, so they are refused.
+  expect_error(flat(segs, area = c(100, 200), region = regions), "named by region")
+})
+
+test_that("a detections table without interval columns keeps its detections", {
+  segs <- segs_fx()
+  segs$detections$distbegin <- NULL
+  segs$detections$distend <- NULL
+  out <- flat(segs, area = 5811)
+  expect_equal(sum(!is.na(out$object)), 8)
+})
+
+test_that("the flatfile lists segments in survey order", {
+  out <- flat(segs_fx(), area = 5811)
+  ids <- unique(out$Sample.Label)
+  expect_equal(ids, ids[order(seg_sort_key(ids))])
+})

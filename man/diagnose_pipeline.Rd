@@ -23,16 +23,15 @@ census records carrying every criterion \code{flag_effort()} needs; a number
 takes that many days from the start; a \code{Date} or date string takes exactly
 those days. \code{NULL} (default) uses everything.
 
-\code{"auto"} is the one to reach for. The start of a season is often atypical
-— a day may not record the altitude or sea state the rest of the file
-does — and every criterion fails on a missing value, so an
-unrepresentative day reports no effort at all while the file is fine.
+\code{"auto"} is the recommended choice. The start of a season is often
+atypical: a day may lack the altitude or sea state the rest of the file
+records. Every criterion fails on a missing value, so an unrepresentative
+day reports no effort at all while the file is fine.
 
 Whole days are kept, never a sample of records. Effort and segmentation
 are computed from consecutive positions along a line, so a random subset
-of records would report distances across gaps that are an artefact of the
-sampling — a diagnosis of the subset rather than of the data. Every total
-printed is then for the subset, and the header says so.}
+of records would report distances across gaps created by the sampling.
+Every total printed is for the subset, and the header says so.}
 
 \item{seg_length}{Segment length in km, passed to \code{\link[=segment_survey]{segment_survey()}}.
 Default \code{10}.}
@@ -40,12 +39,12 @@ Default \code{10}.}
 \item{species}{Passed to \code{\link[=segment_survey]{segment_survey()}}. Default \code{NULL}.}
 
 \item{platform}{\code{"aerial"} (default), \code{"vessel"}, or \code{"ship"} as a synonym
-for \code{"vessel"}. The platform you believe the file holds. Every check that
-depends on it — the altitude ceiling, the speed the platform should be
-moving at, which distance sources can exist — is asked against this, and
-it is passed on to \code{\link[=segment_survey]{segment_survey()}}. See \code{\link[=platform_defaults]{platform_defaults()}}.}
+for \code{"vessel"}. The platform the file is believed to hold. Every check
+that depends on it (the altitude ceiling, the expected speed, which
+distance sources can exist) uses this, and it is passed on to
+\code{\link[=segment_survey]{segment_survey()}}. See \code{\link[=platform_defaults]{platform_defaults()}}.}
 
-\item{...}{Passed to \code{read_narwc()} when \code{x} is a path — \code{profile},
+\item{...}{Passed to \code{read_narwc()} when \code{x} is a path: \code{profile},
 \code{extra_columns}, \code{prefer_source} and so on.}
 }
 \value{
@@ -54,19 +53,18 @@ the checks reached before a fatal problem stopped them, so investigating
 can carry on from there.
 }
 \description{
-Runs the reading and segmentation pipeline — \code{read_narwc()},
+Runs the reading and segmentation pipeline (\code{read_narwc()},
 \code{\link[=validate_narwc]{validate_narwc()}}, \code{make_leg_id()}, \code{flag_effort()},
-\code{\link[=point_to_point_effort]{point_to_point_effort()}} and \code{\link[=segment_survey]{segment_survey()}} — and reports on the ways a
-real extract goes wrong quietly. Meant to be run once against a new dataset,
-before any of its numbers are used.
+\code{\link[=point_to_point_effort]{point_to_point_effort()}} and \code{\link[=segment_survey]{segment_survey()}}) and reports the ways a
+real extract goes wrong quietly. Run it once against a new dataset, before
+any of its numbers are used.
 }
 \details{
-The failure this exists for is not the one that errors. It is the one that
-returns a plausible number: effort that silently includes the ferry between
-two survey days, an altitude read as metres when the column was named in
-feet, a position taken from the vessel when the aircraft's GPS track was
-sitting in the file. Each of those produces a density estimate that is wrong
-by a factor and looks entirely reasonable.
+The target is not the failure that errors. It is the failure that returns a
+plausible number: effort that silently includes the ferry between two survey
+days, an altitude read as metres when the column was in feet, a position
+taken from the vessel when the aircraft's GPS track was in the file. Each
+gives a density estimate that is wrong by a factor and looks reasonable.
 
 Every check reports rather than fixes. This function never modifies the data
 or the arguments it was given.

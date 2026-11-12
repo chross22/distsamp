@@ -20,28 +20,26 @@
 #' | `size` | group size |
 #'
 #' **Every segment appears, including those with no detections**, carrying a
-#' missing `distance`. That is not padding: it is how the flatfile records
-#' effort that produced no sightings, and dropping those rows would inflate
-#' density by removing the denominator.
+#' missing `distance`. This is how the flatfile records effort that produced no
+#' sightings. Dropping those rows would remove effort from the denominator and
+#' inflate density.
 #'
 #' @section Truncation applies to two things:
-#' `truncation` drops detections beyond the given distance — and leaves their
-#' segment in place, with its effort intact. That is the whole point: effort
-#' searched is effort searched whether or not anything was seen within the
-#' truncation distance, so removing the segment as well would remove the
-#' denominator along with the numerator and bias density upward.
+#' `truncation` drops detections beyond the given distance, and leaves their
+#' segment in place with its effort intact. The effort was searched whether or
+#' not anything was seen within the truncation distance. Removing the segment
+#' too would remove effort from the denominator and bias density upward.
 #'
-#' Truncation is reported rather than silent. It also has to match what you pass
-#' to `ds()`; passing `truncation` here and a different value there fits the
-#' model to one set of detections and scales abundance by another.
+#' The number of truncated detections is reported. The value must match the
+#' truncation passed to `ds()`; otherwise the model is fitted to one set of
+#' detections and abundance is scaled by another.
 #'
 #' @section Binned distances cannot be mixed with exact ones:
 #' `STRIP` gives an interval, not a point, so those rows carry `distbegin` and
-#' `distend` and no `distance`. A single `ds()` call cannot fit both — the
-#' likelihoods differ — so a table containing both is a survey era boundary
-#' rather than a model set. `mixed = "error"` (the default) refuses it;
-#' `mixed = "warn"` lets it through for inspection. Split on `distance_source`
-#' and fit each era separately.
+#' `distend` and no `distance`. A single `ds()` call cannot fit both, because
+#' the likelihoods differ. A table containing both spans a survey era boundary.
+#' `mixed = "error"` (the default) refuses it; `mixed = "warn"` lets it through
+#' for inspection. Split on `distance_source` and fit each era separately.
 #'
 #' The top bin of every `STRIP` scheme is open-ended (`>1`, `>2`, `>4` nmi), so
 #' `distend` is infinite and no detection function can be fitted to it. Those
@@ -55,33 +53,32 @@
 #' is either a perpendicular distance from a position fixed minutes after the
 #' detection (`distance_source == "circling"`), or, with no exact position, a
 #' great-circle distance from the break-off that is not perpendicular at all
-#' (`"break_off"`). Neither is measured at the moment of detection. `include_circling = TRUE` does keep
-#' them — a choice worth stating in a methods section rather than making
-#' silently.
+#' (`"break_off"`). Neither is measured at the moment of detection.
+#' `include_circling = TRUE` keeps them; state that choice in the methods.
 #'
-#' Note that this is independent of whether circling sightings count towards
-#' abundance in a density surface model, which they should and do; that is
-#' controlled by `segment_survey(circling = )`. Excluding them here does not
-#' remove them from `segs$sightings` or `segs$detections`, and a surface fitted
-#' from this flatfile alone will miss them — build its observation table from
-#' the detections instead.
+#' This is independent of whether circling sightings count towards abundance in
+#' a density surface model, which is controlled by
+#' `segment_survey(circling = )`. Excluding them here does not remove them from
+#' `segs$sightings` or `segs$detections`. A surface fitted from this flatfile
+#' alone will miss them; build its observation table from the detections
+#' instead.
 #'
 #' @section This assumes g(0) = 1, and it almost certainly is not:
 #' Nothing in this table corrects for animals that were submerged when the
-#' aircraft passed, or that surfaced and were missed. A detection function fitted
-#' to it estimates detection *given that the animal was available and seen*, and
-#' treats the track-line as certain. For a deep-diving species that biases
-#' density low, and not slightly.
+#' aircraft passed, or that surfaced and were missed. A detection function
+#' fitted to it treats detection on the track-line as certain. For a
+#' deep-diving species this biases density low, by a large amount.
 #'
-#' `distsamp` does not estimate `g(0)` — it cannot be estimated from a standard
+#' `distsamp` does not estimate `g(0)`. It cannot be estimated from a standard
 #' NARWC extract, which records neither dive data nor the double-observer
-#' structure mark-recapture needs — but it must not be assumed away either.
-#' Apply a correction from external sources at the abundance step, with its
-#' standard error propagated, and say which components it covers.
+#' structure mark-recapture needs. Apply a correction from external sources at
+#' the abundance step, propagate its standard error, and state which components
+#' it covers.
 #'
 #' @param x A `distsamp_segments` object from [segment_survey()].
 #' @param area Study area, in the units your density estimate should use —
-#'   usually km². A single number, or one per region. Required: there is no
+#'   usually km². A single number, or a vector named by region label
+#'   (`c(GOM = 5811, CCB = 1500)`). Required: there is no
 #'   sensible default, and a wrong one scales abundance directly.
 #' @param region Region labels, one per segment, or a single string. `NULL`
 #'   (default) uses the `STRATUM` column if the segments carry one, and
@@ -135,6 +132,8 @@
 detection_data <- function(x, area, region = NULL, truncation = NULL,
                            include_circling = FALSE, covariates = character(),
                            mixed = c("error", "warn"), quiet = FALSE) {
+  # 0. Check the arguments. `area` has no default because it scales
+  #    abundance directly.
   mixed <- match.arg(mixed)
   if (!inherits(x, "distsamp_segments")) {
     rlang::abort("`x` must be a `distsamp_segments` object from `segment_survey()`.")
@@ -147,6 +146,7 @@ detection_data <- function(x, area, region = NULL, truncation = NULL,
     ))
   }
 
+  # `dropped` counts the detections removed at each step, for the report.
   segs <- x$segments
   det <- x$detections
   units <- x$settings$distance_units %||% "m"
@@ -160,31 +160,40 @@ detection_data <- function(x, area, region = NULL, truncation = NULL,
     require_columns(segs, covariates, what = "x$segments")
   }
 
-  # --- the sampling units ---------------------------------------------------
+  # 1. Sampling units: one row per segment, with region, area, label and
+  #    effort (km), plus any requested covariates.
   labels <- resolve_region(segs, region)
   base <- tibble::tibble(
     Region.Label = labels,
-    Area = rep_len(as.numeric(area), nrow(segs)),
+    Area = area_by_region(area, labels),
     Sample.Label = segs$seg_id,
     Effort = as.numeric(segs$seg_eff)
   )
   for (nm in covariates) base[[nm]] <- segs[[nm]]
 
-  # --- the detections -------------------------------------------------------
+  # 2. Detections, filtered in turn. A table built by hand may lack a distance
+  #    column; a missing one is all NA, so the filters below see every row.
+  for (nm in c("distance", "distbegin", "distend")) {
+    if (!is_empty_df(det) && !nm %in% names(det)) det[[nm]] <- NA_real_
+  }
   if (!is_empty_df(det)) {
+    # 2a. Drop circling detections unless asked to keep them.
     if (!include_circling && "circling" %in% names(det)) {
       is_circ <- !is.na(det$circling) & det$circling == 1
       dropped["circling"] <- sum(is_circ)
       det <- det[!is_circ, , drop = FALSE]
     }
 
-    # An open top bin cannot be fitted, whatever the truncation.
+    # 2b. Drop detections in an open top STRIP bin (distend = Inf). They
+    #     cannot be fitted, whatever the truncation.
     if ("distend" %in% names(det)) {
       open <- !is.na(det$distend) & is.infinite(det$distend)
       dropped["open_bin"] <- sum(open)
       det <- det[!open, , drop = FALSE]
     }
 
+    # 2c. Drop detections beyond `truncation`: a point distance greater than
+    #     it, or a bin that starts at or beyond it. Their segments stay.
     if (!is.null(truncation)) {
       stopifnot(is.numeric(truncation), length(truncation) == 1L, truncation > 0)
       far <- (!is.na(det$distance) & det$distance > truncation) |
@@ -193,8 +202,12 @@ detection_data <- function(x, area, region = NULL, truncation = NULL,
       det <- det[!far, , drop = FALSE]
     }
 
+    # 2d. Drop detections with no distance and no interval.
     det <- det[!is.na(det$distance) | !is.na(det$distbegin), , drop = FALSE]
   }
+
+  # 3. Point and interval distances cannot be fitted together. Stop, or warn
+  #    under mixed = "warn".
 
   has_point <- !is_empty_df(det) && any(!is.na(det$distance))
   has_bin <- !is_empty_df(det) && any(!is.na(det$distbegin))
@@ -202,24 +215,29 @@ detection_data <- function(x, area, region = NULL, truncation = NULL,
     msg <- paste0(
       "Both point and interval distances are present, and one `ds()` call ",
       "cannot fit both - `STRIP` rows are binned, angle and exact-position ",
-      "rows are not. Split on `distance_source` and fit each separately."
+      "rows are not. Split on `distance_source` and fit each separately.",
+      if (mixed == "warn") paste0(
+        " This table is for inspection only: `ds()` would read it as binned ",
+        "and drop all ", sum(!is.na(det$distance)), " point distances."
+      )
     )
     if (mixed == "error") rlang::abort(msg) else rlang::warn(msg)
   }
 
+  # 4. Join the detections to the sampling units.
   out <- assemble_flatfile(base, det, covariates)
 
-  # `Distance::ds()` decides between exact and binned distances from the column
-  # names alone: if `distbegin` and `distend` are present it treats the data as
-  # binned and drops `distance`, whatever the columns hold. So the flatfile
-  # carries only the columns of the kind it has. A table of exact distances
-  # with all-NA bin columns could not be fitted at all.
+  # 5. Keep only the distance columns of the kind present. Distance::ds()
+  #    treats any table with `distbegin` and `distend` as binned, whatever they
+  #    hold, so a table of point distances with all-NA bin columns could not be
+  #    fitted.
   if (has_bin && !has_point) {
     out$distance <- NULL
   } else if (!has_bin) {
     out$distbegin <- NULL
     out$distend <- NULL
   }
+  # 6. Report what was dropped, and record the distance units.
   if (!quiet) report_detection_data(dropped, out, units)
   attr(out, "distance_units") <- units
   out
@@ -239,6 +257,7 @@ resolve_region <- function(segs, region) {
 
 # Join detections onto their segment, keeping segments that have none.
 assemble_flatfile <- function(base, det, covariates) {
+  # Adds the detection columns, all NA, to `n` rows of `df`.
   empty_cols <- function(df, n) {
     df$object <- rep(NA_integer_, n)
     df$distance <- rep(NA_real_, n)
@@ -249,10 +268,13 @@ assemble_flatfile <- function(base, det, covariates) {
     df
   }
 
+  # No detections: every segment gets one row with NA detection columns.
   if (is_empty_df(det)) {
     return(empty_cols(base, nrow(base)))
   }
 
+  # One row per detection, numbered by `object`. pick() returns a column if
+  # present, otherwise a vector of `default`.
   pick <- function(nm, default) {
     if (nm %in% names(det)) det[[nm]] else rep(default, nrow(det))
   }
@@ -266,6 +288,9 @@ assemble_flatfile <- function(base, det, covariates) {
     distance_source = as.character(pick("distance_source", NA_character_))
   )
 
+  # Segments with detections: one row per detection. Segments without: one
+  # row with NA detection columns. Then stack, keep the flatfile columns, and
+  # sort.
   with_det <- merge(base, rows, by = "Sample.Label")
   bare <- base[!base$Sample.Label %in% rows$Sample.Label, , drop = FALSE]
   bare <- empty_cols(bare, nrow(bare))
@@ -275,9 +300,12 @@ assemble_flatfile <- function(base, det, covariates) {
             "distance", "distbegin", "distend", "size", "distance_source",
             covariates)
   out <- out[, intersect(keep, names(out)), drop = FALSE]
-  dplyr::arrange(out, .data$Region.Label, .data$Sample.Label, .data$object)
+  dplyr::arrange(out, .data$Region.Label, seg_sort_key(.data$Sample.Label),
+                 .data$object)
 }
 
+# Print a summary: segments, detections, what was dropped and why, and the
+# g(0) = 1 assumption.
 report_detection_data <- function(dropped, out, units) {
   n_det <- sum(!is.na(out$object))
   lines <- paste0(
@@ -304,4 +332,24 @@ report_detection_data <- function(dropped, out, units) {
   }
   lines <- c(lines, "  g(0) = 1 is assumed; see `?detection_data`.")
   rlang::inform(paste(lines, collapse = "\n"))
+}
+
+# Study area for each segment's region. One number applies to every region;
+# several must be named by region label, because recycling them in row order
+# would give segments another region's area.
+area_by_region <- function(area, labels, call = rlang::caller_env()) {
+  area <- stats::setNames(as.numeric(area), names(area))
+  if (length(area) == 1L) {
+    return(rep(unname(area), length(labels)))
+  }
+  regions <- unique(labels)
+  if (is.null(names(area)) || !all(regions %in% names(area))) {
+    rlang::abort(paste0(
+      "`area` has ", length(area), " values, so it must be named by region: ",
+      "e.g. `area = c(", paste0(regions[seq_len(min(2, length(regions)))],
+                               " = ...", collapse = ", "),
+      ")`. Regions in these segments: ", paste(regions, collapse = ", "), "."
+    ), call = call)
+  }
+  unname(area[labels])
 }

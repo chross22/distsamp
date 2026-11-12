@@ -1,17 +1,16 @@
 #' Diagnose common reasons a segmentation might be wrong before you trust it
 #'
-#' Runs the reading and segmentation pipeline — `read_narwc()`,
+#' Runs the reading and segmentation pipeline (`read_narwc()`,
 #' [validate_narwc()], `make_leg_id()`, `flag_effort()`,
-#' [point_to_point_effort()] and [segment_survey()] — and reports on the ways a
-#' real extract goes wrong quietly. Meant to be run once against a new dataset,
-#' before any of its numbers are used.
+#' [point_to_point_effort()] and [segment_survey()]) and reports the ways a
+#' real extract goes wrong quietly. Run it once against a new dataset, before
+#' any of its numbers are used.
 #'
-#' The failure this exists for is not the one that errors. It is the one that
-#' returns a plausible number: effort that silently includes the ferry between
-#' two survey days, an altitude read as metres when the column was named in
-#' feet, a position taken from the vessel when the aircraft's GPS track was
-#' sitting in the file. Each of those produces a density estimate that is wrong
-#' by a factor and looks entirely reasonable.
+#' The target is not the failure that errors. It is the failure that returns a
+#' plausible number: effort that silently includes the ferry between two survey
+#' days, an altitude read as metres when the column was in feet, a position
+#' taken from the vessel when the aircraft's GPS track was in the file. Each
+#' gives a density estimate that is wrong by a factor and looks reasonable.
 #'
 #' Every check reports rather than fixes. This function never modifies the data
 #' or the arguments it was given.
@@ -24,25 +23,24 @@
 #'   takes that many days from the start; a `Date` or date string takes exactly
 #'   those days. `NULL` (default) uses everything.
 #'
-#'   `"auto"` is the one to reach for. The start of a season is often atypical
-#'   — a day may not record the altitude or sea state the rest of the file
-#'   does — and every criterion fails on a missing value, so an
-#'   unrepresentative day reports no effort at all while the file is fine.
+#'   `"auto"` is the recommended choice. The start of a season is often
+#'   atypical: a day may lack the altitude or sea state the rest of the file
+#'   records. Every criterion fails on a missing value, so an unrepresentative
+#'   day reports no effort at all while the file is fine.
 #'
 #'   Whole days are kept, never a sample of records. Effort and segmentation
 #'   are computed from consecutive positions along a line, so a random subset
-#'   of records would report distances across gaps that are an artefact of the
-#'   sampling — a diagnosis of the subset rather than of the data. Every total
-#'   printed is then for the subset, and the header says so.
+#'   of records would report distances across gaps created by the sampling.
+#'   Every total printed is for the subset, and the header says so.
 #' @param platform `"aerial"` (default), `"vessel"`, or `"ship"` as a synonym
-#'   for `"vessel"`. The platform you believe the file holds. Every check that
-#'   depends on it — the altitude ceiling, the speed the platform should be
-#'   moving at, which distance sources can exist — is asked against this, and
-#'   it is passed on to [segment_survey()]. See [platform_defaults()].
+#'   for `"vessel"`. The platform the file is believed to hold. Every check
+#'   that depends on it (the altitude ceiling, the expected speed, which
+#'   distance sources can exist) uses this, and it is passed on to
+#'   [segment_survey()]. See [platform_defaults()].
 #' @param seg_length Segment length in km, passed to [segment_survey()].
 #'   Default `10`.
 #' @param species Passed to [segment_survey()]. Default `NULL`.
-#' @param ... Passed to `read_narwc()` when `x` is a path — `profile`,
+#' @param ... Passed to `read_narwc()` when `x` is a path: `profile`,
 #'   `extra_columns`, `prefer_source` and so on.
 #'
 #' @return Invisibly, a list with whichever of `dat`, `findings` and `segments`
@@ -60,9 +58,14 @@
 #' @export
 diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
                               platform = c("aerial", "vessel", "ship"), ...) {
+  # Platform settings: effort criteria and distance sources (`defaults`) and
+  # the expected speed range in knots (`band`).
   platform <- resolve_platform(platform)
   defaults <- platform_defaults(platform)
   band <- platform_speed_band(platform)
+
+  # Report helpers. `ok` turns FALSE on the first WARN or FAIL; `verdict()`
+  # prints the closing line and returns what has been computed so far.
   ok <- TRUE
   header <- function(s) cat("\n== ", s, " ==\n", sep = "")
   pass <- function(...) cat("  ok    ", ..., "\n", sep = "")
@@ -80,11 +83,14 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
     invisible(res)
   }
 
+  # Number of survey days in the full file when `days` subsets it, else NULL.
   subset_of <- NULL
   cat("distsamp pipeline diagnosis, as a ", defaults$kind, " survey\n",
       sep = "")
 
   # --- Reading --------------------------------------------------------------
+  # Read the file (or take the data frame as given). Stop on failure or on an
+  # empty result.
   header("Reading")
   dat <- tryCatch(
     if (is.character(x)) narwcr::read_narwc(x, quiet = TRUE, ...) else x,
@@ -102,6 +108,8 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
   }
   pass(nrow(dat), " records, ", ncol(dat), " columns")
 
+  # Report column renames matched loosely, and columns rescaled to the
+  # standard unit.
   map <- narwcr::narwc_column_mapping(dat)
   if (nrow(map)) {
     inferred <- sum(map$match == "inferred")
@@ -117,14 +125,16 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
     }
   }
 
+  # Report columns replaced from the GPS track log; the reader keeps the
+  # file's own values as <NAME>_ORIGINAL.
   displaced <- grep("_ORIGINAL$", names(dat), value = TRUE)
   for (nm in displaced) {
     pass(sub("_ORIGINAL$", "", nm), " was taken from the GPS track log; the",
          " file's own column is kept as `", nm, "`")
   }
 
-  # Subsetting last in this section: `[` on a tibble drops the column mapping
-  # attribute, and the reporting above reads it.
+  # Restrict to the requested survey days. This comes last in the section
+  # because `[` on a tibble drops the column-mapping attribute read above.
   if (!is.null(days)) {
     if (!"DATE" %in% names(dat)) {
       warn("`days` needs a DATE column to subset by, and there is none.",
@@ -132,11 +142,10 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
     } else {
       all_days <- sort(unique(dat$DATE))
       keep <- if (identical(days, "auto")) {
-        # The most survey-like day in the file: the one with the most census
-        # records that also carry the criteria `flag_effort()` needs. Taking
-        # the first day instead can land on one that records no altitude, and
-        # a missing criterion fails every record — so the report says nothing
-        # was on effort when the file is fine.
+        # Pick the day with the most census records (LEGTYPE 2) that carry
+        # every criterion `flag_effort()` needs. The first day may record no
+        # altitude, and a missing criterion fails every record, so it would
+        # report no effort for a file that is fine.
         usable <- rep(TRUE, nrow(dat))
         for (nm in c("ALT", "BEAUFORT", "VISIBLTY")) {
           if (nm %in% names(dat)) usable <- usable & !is.na(dat[[nm]])
@@ -153,8 +162,10 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
           as.Date(names(score)[which.max(score)])
         }
       } else if (is.numeric(days)) {
+        # A number: the first `days` survey days.
         utils::head(all_days, days)
       } else {
+        # Dates: exactly those days, warning about any not in the data.
         asked <- as.Date(days)
         missing_days <- setdiff(as.character(asked), as.character(all_days))
         if (length(missing_days)) {
@@ -166,6 +177,7 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
         fail("`days` selected no survey day")
         return(verdict(list(dat = dat)))
       }
+      # Subset only when it removes something, and say which days were kept.
       if (length(keep) < length(all_days)) {
         dat <- dat[dat$DATE %in% keep, , drop = FALSE]
         subset_of <- length(all_days)
@@ -190,6 +202,8 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
   }
 
   # --- Validation -----------------------------------------------------------
+  # Run the per-record checks. Errors print as FAIL, warnings as WARN, and
+  # notes as ok.
   header("Handbook validation")
   findings <- tryCatch(validate_narwc(dat), error = function(e) {
     fail("validate_narwc() failed: ", conditionMessage(e))
@@ -213,10 +227,9 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
   }
 
   # --- Platform -------------------------------------------------------------
-  # Reported against the platform the caller says this is. Under the aerial
-  # criteria a vessel record cannot meet the altitude ceiling, so it leaves
-  # effort silently rather than being reported as a different kind of survey;
-  # that is what this section exists to catch.
+  # Checked against the platform the caller named. Under the aerial criteria
+  # a vessel record cannot meet the altitude ceiling, so it leaves effort
+  # silently. This section catches that.
   header("Platform")
   if (!"PLATFORM" %in% names(dat)) {
     pass("no PLATFORM column; every record is treated as one platform")
@@ -224,11 +237,11 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
     tab <- table(dat$PLATFORM, useNA = "ifany")
     pass(length(tab), " distinct PLATFORM value(s): ",
          paste(names(tab), unname(tab), sep = " x ", collapse = ", "))
-    # Several PLATFORM values is not by itself a problem. The handbook gives
-    # PLATFORM no code book, so the values identify particular platforms -
-    # three aircraft over a multi-decade programme is ordinary. What matters
-    # is whether they differ in *kind*, and speed answers that where the
-    # column cannot.
+    # Several PLATFORM values are not a problem in themselves. PLATFORM has no
+    # code book, so the values name particular platforms; three aircraft over
+    # several decades is ordinary. What matters is whether they differ in
+    # *kind*. classify_platform() decides that from speed, which the column
+    # cannot tell.
     if (length(tab) > 1) {
       kinds <- tryCatch(narwcr::classify_platform(dat), error = function(e) NULL)
       other <- if (is.null(kinds)) NULL else kinds[!is.na(kinds) &
@@ -253,22 +266,27 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
   }
 
   # --- Line identity --------------------------------------------------------
+  # Assign line-occupation IDs (LEGNO3).
   header("Line identity")
-  dat <- tryCatch(narwcr::make_leg_id(dat), error = function(e) {
+  # On failure, return the last data that worked, as documented in @return.
+  next_dat <- tryCatch(narwcr::make_leg_id(dat), error = function(e) {
     fail("make_leg_id() failed: ", conditionMessage(e))
     NULL
   })
-  if (is.null(dat)) {
+  if (is.null(next_dat)) {
     return(verdict(list(dat = dat, findings = findings)))
   }
-  # `NA` is not an occupation — it is every record that belongs to no line,
-  # the transit out and the ferry between lines.
+  dat <- next_dat
+  # Count occupations. An NA LEGNO3 is not an occupation: it marks records on
+  # no line (the transit out and the ferry between lines).
   occs <- unique(stats::na.omit(dat$LEGNO3))
   pass(length(occs), " line occupation(s) over ",
        if ("DATE" %in% names(dat)) length(unique(dat$DATE)) else "an unknown number of",
        " survey day(s), ",
        sum(is.na(dat$LEGNO3)), " record(s) on no line")
 
+  # IDs prefixed "derived" were inferred from runs of census track rather
+  # than read from LEGNO or a begin-line record.
   kind <- table(sub("_[0-9]+$", "", occs))
   inferred <- unname(kind["derived"])
   if (!is.na(inferred)) {
@@ -277,6 +295,7 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
          " That is a guess about where lines start and stop")
   }
 
+  # A constant FILEID across several days leaves DATE as the only separator.
   if ("FILEID" %in% names(dat) && "DATE" %in% names(dat)) {
     n_days <- length(unique(dat$DATE))
     if (length(unique(dat$FILEID)) == 1L && n_days > 1L) {
@@ -287,15 +306,13 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
   }
 
   # --- Altitude -------------------------------------------------------------
-  # Before effort, not after: ALT is one of the criteria `flag_effort()` uses,
-  # so an altitude in the wrong unit presents as "nothing was on effort", and
-  # the explanation is no use printed below the failure it caused.
+  # Checked before effort. ALT is an effort criterion, so an altitude in the
+  # wrong unit shows up as "nothing was on effort". The cause should print
+  # above that symptom.
   header("Altitude")
   if (platform == "vessel") {
-    # Not "ALT looks fine" and not silence. A vessel has no altitude, so the
-    # criterion does not apply and neither does the unit check that is the
-    # whole point of this section - saying so is what stops the reader
-    # wondering where it went.
+    # A vessel has no altitude, so neither the criterion nor the unit check
+    # applies. Say so explicitly rather than print nothing.
     pass("not a criterion for a vessel, and not checked. `flag_effort()` is",
          " called with `max_alt_m = NULL`, because a missing ALT fails any",
          " ceiling - see `platform_defaults(\"vessel\")`")
@@ -303,6 +320,7 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
     warn("no ALT column. `perp_distance()` needs it, so declination-angle",
          " distances are unavailable")
   } else {
+    # Median altitude in metres, over the records diagnosed.
     med <- stats::median(dat$ALT, na.rm = TRUE)
     if (is.na(med)) {
       warn("ALT is missing on all ", nrow(dat), " records diagnosed",
@@ -314,8 +332,8 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
            " nothing here can be on effort")
     } else if (med > 366) {
       # 366 m is `flag_effort()`'s default ceiling, so a median above it means
-      # nothing will survive to effort. The likeliest cause is a column that
-      # was recorded in feet: `ALT` is metres throughout (handbook 8.A.1).
+      # almost nothing reaches effort. The likeliest cause is a column recorded
+      # in feet; ALT is metres (handbook 8.A.1). 1 ft = 0.3048 m.
       warn("median ALT is ", round(med), " m, above the 366 m ceiling",
            " `flag_effort()` applies, so every record will be off effort.",
            if (med * 0.3048 <= 366) {
@@ -328,28 +346,30 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
   }
 
   # --- Effort ---------------------------------------------------------------
+  # Flag on-effort records with the platform's criteria.
   header("Effort")
-  dat <- tryCatch(
+  next_dat <- tryCatch(
     flag_effort_for_platform(dat, defaults$effort_args),
     error = function(e) {
       fail("flag_effort() failed: ", conditionMessage(e))
       NULL
     }
   )
-  if (is.null(dat)) {
+  if (is.null(next_dat)) {
     return(verdict(list(dat = dat, findings = findings)))
   }
+  dat <- next_dat
   n_on <- sum(dat$OnOff.Effort == 1, na.rm = TRUE)
 
-  # Which criterion excluded the records, on `flag_effort()`'s own defaults.
-  # Counted here rather than read back out of the result, because the result
-  # records only that a record is off effort, not what put it there.
+  # Count which criterion excluded the off-effort records, using
+  # `flag_effort()`'s default thresholds. The result of `flag_effort()` says
+  # only that a record is off effort, not why, so the counts are made here.
   if (n_on < nrow(dat)) {
     off <- dat$OnOff.Effort != 1 | is.na(dat$OnOff.Effort)
-    # Missing counts as failing, because `flag_effort()` defaults to
-    # `na_action = "fail"`. Reporting only the violations would name the wrong
-    # culprit whenever a criterion column is empty — an absent ALT excludes
-    # every record while showing nothing at all in this breakdown.
+    # Missing values count as failing, because `flag_effort()` defaults to
+    # `na_action = "fail"`. Without this, an empty ALT column would exclude
+    # every record and show nothing in the breakdown. An absent column counts
+    # every record.
     absent <- function(nm) {
       if (!nm %in% names(dat)) nrow(dat) else sum(off & is.na(dat[[nm]]))
     }
@@ -359,8 +379,7 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
           sum(off & !is.na(dat$BEAUFORT) & dat$BEAUFORT > 3)),
         c("BEAUFORT missing", absent("BEAUFORT"))
       ),
-      # Naming ALT here on a vessel would be listing a criterion that was
-      # never applied, against records it did not exclude.
+      # ALT is not a criterion for a vessel, so it is not listed.
       if (platform == "vessel") list() else list(
         c("ALT above 366 m", sum(off & !is.na(dat$ALT) & dat$ALT > 366)),
         c("ALT missing", absent("ALT"))
@@ -369,14 +388,14 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
         c("VISIBLTY below 2",
           sum(off & !is.na(dat$VISIBLTY) & dat$VISIBLTY < 2)),
         c("VISIBLTY missing", absent("VISIBLTY")),
-        # 5 and 6 are the shipboard codes, but they are a platform of
-        # opportunity rather than a designed line, so they are off effort for
-        # a vessel exactly as they are for an aircraft. See
-        # `platform_defaults()`.
+        # LEGTYPE 5 and 6 are shipboard codes for platforms of opportunity,
+        # not designed lines. They are off effort for a vessel as for an
+        # aircraft. See `platform_defaults()`.
         c("LEGTYPE not 2", sum(off & !is.na(dat$LEGTYPE) & dat$LEGTYPE != 2)),
         c("LEGTYPE missing", absent("LEGTYPE"))
       )
     )
+    # Print only the criteria that excluded at least one record.
     culprits <- Filter(function(p) as.integer(p[2]) > 0, culprits)
     if (length(culprits)) {
       cat("        off effort by criterion (defaults; a record can fail more",
@@ -392,8 +411,9 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
   }
   pass(n_on, " of ", nrow(dat), " records on effort")
 
-  # A file with no DATE cannot have its days separated at all, which is worth
-  # saying rather than erroring on — diagnosing that file is the point.
+  # Total on-effort distance in km, grouped by whichever of DATE, FILEID and
+  # LEGNO3 exist. A file with no DATE cannot have its days separated; that is
+  # reported below rather than raised as an error.
   has_date <- "DATE" %in% names(dat)
   by_now <- intersect(c("DATE", "FILEID", "LEGNO3"), names(dat))
   dat <- point_to_point_effort(dat, by = by_now)
@@ -406,11 +426,10 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
          " across days, those days are merged and the distance between them",
          " is counted as on-effort track")
   } else {
-    # The grouping hazard, quantified rather than described: if dropping DATE
-    # changes the total, the difference is ferry distance being counted as
-    # survey effort, and effort is the denominator of density.
+    # Measure the grouping hazard. Recompute effort without DATE; any
+    # difference is ferry distance between days counted as survey effort.
     merged <- sum(
-      point_to_point_effort(dat, by = c("FILEID", "LEGNO3"))$pt2pt.effort
+      point_to_point_effort(dat, by = setdiff(by_now, "DATE"))$pt2pt.effort
     )
     if (!isTRUE(all.equal(merged, total))) {
       warn("grouping without DATE gives ", round(merged, 1), " km, ",
@@ -421,10 +440,10 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
     }
   }
 
-  # The receiver's own measurement against the reconstruction, where both
-  # exist. A straight line between fixes is a chord, so the recorded total
-  # should be a little larger; a lot larger means the fixes are far enough
-  # apart to be cutting the corners of the track that was flown.
+  # Compare the receiver's recorded distance (TRKDIST) with the computed
+  # total. A straight line between fixes is a chord, so the recorded total
+  # should be slightly larger. More than 25% larger means the fixes are far
+  # enough apart to cut the corners of the track flown.
   if ("TRKDIST" %in% names(dat)) {
     rec <- sum(point_to_point_effort(dat, by = by_now,
                                      source = "recorded")$pt2pt.effort)
@@ -442,23 +461,28 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
     }
   }
 
-  # Is this the platform the caller said it was? Nothing in the data announces
-  # one, and a track of either kind runs through the whole pipeline returning
-  # numbers that look entirely reasonable under the other one's criteria and
-  # distance sources. Speed is the one thing that cannot be mistaken.
+  # Check that the platform matches the one named. Nothing in the data states
+  # it, and either kind of track runs through the pipeline under the other's
+  # criteria with plausible-looking results. Speed distinguishes them.
   if (all(c("TIME", "LATITUDE", "LONGITUDE") %in% names(dat)) && nrow(dat) > 2) {
+    # TIME is HHMMSS as a number; convert to seconds since midnight.
     tt <- sprintf("%06d", ifelse(is.na(dat$TIME), 0, round(dat$TIME)))
     tsec <- as.numeric(substr(tt, 1, 2)) * 3600 +
       as.numeric(substr(tt, 3, 4)) * 60 + as.numeric(substr(tt, 5, 6))
+    # Time gap (s) and distance (m) between consecutive records.
     gap <- diff(tsec)
     step <- gc_distance(utils::head(dat$LATITUDE, -1),
                         utils::head(dat$LONGITUDE, -1),
                         utils::tail(dat$LATITUDE, -1),
                         utils::tail(dat$LONGITUDE, -1)) * 1000
+    # Use only gaps of 1 s to 5 min, and only with more than 20 of them. Median
+    # speed in m/s is converted to knots (1 m/s = 1.94384 kn).
     use <- !is.na(gap) & gap > 0 & gap < 300 & !is.na(step)
     if (sum(use) > 20) {
       kn <- stats::median(step[use] / gap[use]) * 1.94384
       if (kn < band$min || kn > band$max) {
+        # Name what the speed looks like: under 2 kn barely moving, under
+        # 40 kn a vessel, otherwise an aircraft.
         seen <- if (kn < 2) "a platform barely moving" else
           if (kn < 40) "a vessel" else "a survey aircraft"
         warn("the platform is moving at a median ", round(kn),
@@ -476,20 +500,30 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
   }
 
   # --- Distance sources -----------------------------------------------------
+  # Count sightings that carry each distance source the platform can use.
   header("Right-angle distance sources")
-  is_sighting <- !is.na(dat$SPECCODE)
+  # A sighting has a non-blank species code, as everywhere else.
+  has_spec <- "SPECCODE" %in% names(dat)
+  is_sighting <- if (has_spec) {
+    !is.na(dat$SPECCODE) & dat$SPECCODE != ""
+  } else {
+    rep(FALSE, nrow(dat))
+  }
   n_sight <- sum(is_sighting)
-  if (!n_sight) {
+  if (!has_spec) {
+    warn("no SPECCODE column, so sightings cannot be identified")
+  } else if (!n_sight) {
     pass("no sightings in this file; effort-only")
   } else {
     pass(n_sight, " sighting record(s)")
+    # Number of sightings with a value in any of `cols`; 0 if a column is
+    # absent.
     have <- function(cols) {
       if (!all(cols %in% names(dat))) return(0L)
       sum(is_sighting & Reduce(`|`, lapply(cols, function(c) !is.na(dat[[c]]))))
     }
-    # Only the sources this platform can use. A declination angle counted on a
-    # vessel reads as a distance that is available, and it is not: it is an
-    # altitude divided by a tangent, on a platform with no altitude.
+    # Only the sources this platform can use. A declination-angle distance is
+    # altitude divided by a tangent, so it does not exist on a vessel.
     usable <- list(
       angle = list(n = have(c("ANGLEL", "ANGLER")),
                    what = "a declination angle"),
@@ -501,6 +535,7 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
       if (src$n) pass(src$n, " with ", src$what) else
         pass("none with ", src$what)
     }
+    # On a vessel, note aircraft-only measurements present but not used.
     if (platform == "vessel") {
       aerial_only <- have(c("ANGLEL", "ANGLER")) + have("STRIP")
       if (aerial_only) {
@@ -517,6 +552,7 @@ diagnose_pipeline <- function(x, days = NULL, seg_length = 10, species = NULL,
   }
 
   # --- Segments -------------------------------------------------------------
+  # Segment the survey and check that segments exist and carry effort.
   header("Segments")
   seg <- tryCatch(
     segment_survey(dat, seg_length = seg_length, species = species,

@@ -230,3 +230,17 @@ test_that("a complete TRKDIST is not warned about", {
   dat$TRKDIST <- c(NA, rep(0.01 * KM_PER_DEG * 1000, 4))
   expect_no_warning(point_to_point_effort(dat, source = "recorded"))
 })
+
+test_that("a recorded interval with no reading and no position counts as 0", {
+  d <- data.frame(DATE = as.Date("2024-04-01"), FILEID = "F", LEGNO3 = "1_1",
+                  EVENTNO = 1:4, LATITUDE = c(43, 43.01, NA, 43.03),
+                  LONGITUDE = -69, OnOff.Effort = 1,
+                  TRKDIST = c(NA, 1000, NA, 1000))
+  expect_warning(
+    expect_warning(o <- point_to_point_effort(d, source = "recorded"),
+                   "also lack a position"),
+    "1 on-effort interval has no TRKDIST reading"
+  )
+  expect_false(anyNA(o$pt2pt.effort))
+  expect_false(anyNA(o$Effort))
+})

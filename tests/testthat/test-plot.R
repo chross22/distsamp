@@ -192,3 +192,10 @@ test_that("the tracks view never joins one day's track to the next day's", {
   i <- which(vapply(p$layers, function(l) inherits(l$geom, "GeomPath"), NA))
   expect_equal(length(unique(ggplot2::layer_data(p, i)$group)), n_day_track)
 })
+
+test_that("the tracks view counts tracks per day, not track numbers", {
+  segs <- segment_survey(example_data(), seg_length = 5, seed = 1)
+  p <- plot(segs, what = "tracks")
+  n <- nrow(unique(segs$points[, c("DATE", "new_trackno")]))
+  expect_match(p$labels$subtitle, paste0("^", n, " tracks"))
+})

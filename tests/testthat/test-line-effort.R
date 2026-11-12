@@ -120,3 +120,19 @@ test_that("records with no LEGNO are left out rather than grouped together", {
   expect_gt(sum(is.na(dat$LEGNO)), 0)
   expect_false(any(is.na(line_effort(dat)$LEGNO)))
 })
+
+test_that("empty input gives the per-line columns when asked for lines", {
+  segs <- segment_survey(example_data(), seg_length = 5, seed = 1)
+  segs$points <- segs$points[0, ]
+  out <- line_effort(segs, combine = "line")
+  expect_named(out, c("LEGNO", "effort_km", "n_occupations", "n_days"))
+})
+
+test_that("occupations are numbered in flight order, not by text", {
+  # Ten occupations of one line on one day: as text, "1_10" sorts before "1_2".
+  d <- data.frame(DATE = as.Date("2024-04-01"), FILEID = "F", LEGNO = "1",
+                  LEGNO3 = paste0("1_", 1:10), EVENTNO = 1:10,
+                  pt2pt.effort = 1:10)
+  out <- line_effort(d)
+  expect_equal(out$occupation[match(paste0("1_", 1:10), out$LEGNO3)], 1:10)
+})

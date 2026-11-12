@@ -106,3 +106,13 @@ test_that("strip_distance is vectorised over codes and dates", {
   expect_equal(nrow(out), 3)
   expect_equal(out$scheme, c("cetap", "nlpsc", "nlpsc"))
 })
+
+test_that("a STRIP record with no date gets no interval, with a warning", {
+  expect_warning(
+    out <- strip_distance(c(5, 5), date = as.Date(c("2010-01-01", NA))),
+    "1 STRIP record has no date"
+  )
+  expect_false(is.na(out$distbegin[1]))
+  expect_true(is.na(out$distbegin[2]))
+  expect_true(is.na(out$scheme[2]))
+})

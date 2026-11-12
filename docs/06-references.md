@@ -1,15 +1,23 @@
 # References
 
-Every source the package relies on, and what it is relied on *for*. All DOIs and
-bibliographic details verified against CrossRef or against the source document
-itself; the grey literature is transcribed from the NARWC handbook's own
-reference list (Kenney 2023, chapter 10).
+*C. H. Ross. 2026-11-12. Distributed with the package source.*
 
-The consolidated list is at the [bottom of the README](../README.md#references).
+## 1. Scope
+
+This chapter lists every source the package relies on and states what each is
+relied on *for*. It also states what the published methods do not cover, how
+to cite the package, and how the citations are kept current.
+
+All DOIs and bibliographic details were verified against CrossRef or against
+the source document. The grey literature is transcribed from the reference
+list of the NARWC handbook (Kenney 2023, chapter 10). The consolidated list is
+at the [bottom of the README](../README.md#references).
 
 ---
 
-## 1. The segmentation method
+## 2. Segmentation and the statistical framework
+
+### The segmentation method
 
 > **Becker, E.A., Forney, K.A., Ferguson, M.C., Foley, D.G., Smith, R.C.,
 > Barlow, J. and Redfern, J.V. (2010)** Comparing California Current
@@ -17,13 +25,12 @@ The consolidated list is at the [bottom of the README](../README.md#references).
 > temperature data. *Marine Ecology Progress Series* **413**: 163–183.
 > <https://doi.org/10.3354/meps08696>
 
-The citation for the segment-chopping approach that `plan_segments()` and
-`cut_segments()` implement, and the paper behind the `segchopr` code that
-`original/compute_num_segs.R` was adapted from.
+The citation for the segment-chopping approach implemented by `plan_segments()`
+and `cut_segments()`. It is also the paper behind the `segchopr` code from which
+`original/compute_num_segs.R` was adapted.
 
-It is what the literature points at. Later papers in the same programme describe
-their samples by reference to it rather than restating the method — Becker et al.
-(2019):
+Later papers in the same programme cite it rather than restate the method.
+Becker et al. (2019):
 
 > "Continuous portions of survey effort were divided into approximate 5-km
 > segments to create samples for modelling using the approach described by Becker
@@ -31,28 +38,30 @@ their samples by reference to it rather than restating the method — Becker et 
 > (total number of sightings and average group size), and habitat covariates were
 > derived based on the segment's geographical mid-point."
 
-Three elements of `distsamp` come straight from that sentence: segments are cut
-from **continuous** effort (`split_tracks()`), sightings are assigned to the
-segment they fall in (`segment_sightings()`), and covariates are taken at the
-segment **mid-point** (`segment_midpoints()`).
+Three elements of `distsamp` come from that sentence:
+
+| Element | Function |
+|---|---|
+| Segments are cut from **continuous** effort | `split_tracks()` |
+| Sightings are assigned to the segment they fall in | `segment_sightings()` |
+| Covariates are taken at the segment **mid-point** | `segment_midpoints()` |
 
 ### What the published methods do not cover
 
-Worth being precise about, because it affects how you cite this package.
+This affects how the package is cited.
 
-The published descriptions state the target segment length and that segments come
-from continuous effort. They do **not** describe the handling of the leftover
-distance at the end of a track — the tolerance test that decides whether a
-remainder becomes its own segment or is absorbed, or the choice of a *random*
-segment to absorb it rather than the last one. Those are properties of the
-`segchopr` implementation, and I could not find them described in print.
+The published descriptions state the target segment length and that segments
+come from continuous effort. They do **not** describe the handling of the
+leftover distance at the end of a track: the tolerance test that decides
+whether a remainder becomes its own segment or is absorbed, and the choice of a
+*random* segment to absorb it rather than the last one. These are properties of
+the `segchopr` implementation. No printed description of them was found.
 
-So: cite Becker et al. (2010) for the method. For the remainder handling, the
-tolerance parameter, and the over/under cut rule, the description in
+Cite Becker et al. (2010) for the method. For the remainder handling, the
+tolerance parameter, and the over/under cut rule, the documentation of record is
 [02-implementation.md](02-implementation.md#step-8--plan_segments) and
-`?plan_segments` is the documentation of record. This matters if you are writing
-a methods section — those details are reproducible from here but are not
-attributable to the 2010 paper.
+`?plan_segments`. In a methods section, these details are reproducible from
+here but are not attributable to the 2010 paper.
 
 ### Restatements of the method, cited for specific details
 
@@ -61,8 +70,8 @@ attributable to the 2010 paper.
 > in a changing climate. *Diversity and Distributions* **25**: 626–643.
 > <https://doi.org/10.1111/ddi.12867>
 
-Quoted above. Also the source for covariates being sampled at the segment
-mid-point over a 3 × 3-pixel box — cited in `?segment_midpoints`.
+Quoted above. Also the source for covariates sampled at the segment mid-point
+over a 3 × 3-pixel box; cited in `?segment_midpoints`.
 
 > **Becker, E.A., Forney, K.A., Thayre, B.J., Debich, A.J., Campbell, G.S.,
 > Whitaker, K., Douglas, A.B., Gilles, A., Hoopes, R. and Hildebrand, J.A.
@@ -70,19 +79,17 @@ mid-point over a 3 × 3-pixel box — cited in `?segment_midpoints`.
 > California illustrate pronounced seasonal differences. *Frontiers in Marine
 > Science* **4**: 121. <https://doi.org/10.3389/fmars.2017.00121>
 
-Source of the practical guidance for choosing `seg_length`: segment size is
-selected for the oceanography and bathymetry of the study area, so that habitat
-is expected to vary little within a segment.
+Source of the guidance for choosing `seg_length`: segment size is chosen for
+the oceanography and bathymetry of the study area, so that habitat is expected
+to vary little within a segment.
 
----
-
-## 2. The statistical framework
+### The statistical framework
 
 > **Hedley, S.L. and Buckland, S.T. (2004)** Spatial models for line transect
 > sampling. *Journal of Agricultural, Biological, and Environmental Statistics*
 > **9**: 181–199. <https://doi.org/10.1198/1085711043578>
 
-The framework segmenting exists to serve: modelling counts per segment against
+The framework that segmenting serves: counts per segment are modelled against
 spatial covariates, with effort as an offset.
 
 > **Miller, D.L., Burt, M.L., Rexstad, E.A. and Thomas, L. (2013)** Spatial
@@ -90,15 +97,15 @@ spatial covariates, with effort as an offset.
 > *Methods in Ecology and Evolution* **4**: 1001–1010.
 > <https://doi.org/10.1111/2041-210X.12105>
 
-The density surface modelling formulation and the `dsm` package, which
-`segments_wide()` is shaped for.
+The density surface modelling formulation and the `dsm` package. The output of
+`segments_wide()` is shaped for it.
 
 > **Buckland, S.T., Anderson, D.R., Burnham, K.P., Laake, J.L., Borchers, D.L.
 > and Thomas, L. (2001)** *Introduction to Distance Sampling: Estimating
 > Abundance of Biological Populations.* Oxford University Press, New York, NY.
 
-The standard reference for line-transect distance sampling; the one the NARWC
-handbook names in section 3.1 as the place to begin.
+The standard reference for line-transect distance sampling. The NARWC handbook
+names it in section 3.1 as the place to begin.
 
 > **Kenney, R.D. and Shoop, C.R. (2012)** Aerial surveys for marine turtles. Pp.
 > 264–271 *in* R.W. McDiarmid, M.S. Foster, C. Guyer, J.W. Gibbons and N.
@@ -127,19 +134,18 @@ on p. 347:
 > where X₁ and X₂ are the latitudes of the two positions, and Y₁ and Y₂ are the
 > corresponding longitudes. This calculates great circle distance."
 
-That is exactly `dist.rdk` in `original/ds_data_dmr.R:62-66` — except that the
-original passes decimal degrees straight into `sin()` and `cos()` without
-converting to radians, so it never computed this. `gc_distance(method = "kenney")`
-computes what the paper published.
+This is `dist.rdk` in `original/ds_data_dmr.R:62-66`, except that the original
+passes decimal degrees to `sin()` and `cos()` without converting to radians, so
+it never computed this formula. `gc_distance(method = "kenney")` computes what
+the paper published.
 
-Note the disambiguation: there are **two** Kenney & Winn 1986 works, and the
-handbook cites both. This is the *Fishery Bulletin* paper. The other —
-*Marine Mammal Data Transfer and Documentation*, NMFS final report, contract no.
-40-EANF-501629 — concerns the CETAP database transfer and is not the source of
-the distance formula.
+Two Kenney & Winn 1986 works exist, and the handbook cites both. This entry is
+the *Fishery Bulletin* paper. The other, *Marine Mammal Data Transfer and
+Documentation* (NMFS final report, contract no. 40-EANF-501629), concerns the
+CETAP database transfer and is not the source of the distance formula.
 
-The same page also justifies using great-circle distance for a platform that
-actually flies rhumb lines:
+The same page justifies great-circle distance for a platform that flies rhumb
+lines:
 
 > "Flight or cruise tracks would actually be rhumb lines rather than great
 > circles, but the algorithm required to calculate rhumb line distance is much
@@ -150,31 +156,30 @@ actually flies rhumb lines:
 > **Sinnott, R.W. (1984)** Virtues of the haversine. *Sky and Telescope*
 > **68**(2): 159.
 
-The haversine formulation, and the standard reference for why it is preferred
-over the law of cosines at short range. `"haversine"` is the package default.
+The haversine formulation, and the standard reference for preferring it over the
+law of cosines at short range. `"haversine"` is the package default.
 
 > **Veness, C. (2019)** *Calculating distance, bearing and more between
 > latitude/longitude points.* Movable Type Scripts.
 > <https://www.movable-type.co.uk/scripts/latlong.html>
 
-The cross-track and along-track great-circle formulae, in the form used by
-`cross_track_distance()`, together with the initial-bearing and
-destination-point formulae behind `gc_bearing()`. These are standard spherical
-trigonometry rather than a research result; this is simply the clearest
-statement of them in the form implemented, and is cited so the implementation
-can be checked against something.
+The cross-track and along-track great-circle formulae used by
+`cross_track_distance()`, and the initial-bearing and destination-point
+formulae behind `gc_bearing()`. These are standard spherical trigonometry, not a
+research result. The source is cited because it states them in the form
+implemented, so the implementation can be checked against it.
 
-Becker's `fn.grcirclkm` — the `"becker"` method — has no separate published
-description that I could find; it appears in the `segchopr` code, reproduced at
-`original/ds_data_dmr.R:70-98`. As shown in
-[03-bug-fixes.md](03-bug-fixes.md#the-becker-and-kenney-methods-are-the-same-formula),
-it is algebraically identical to Kenney and Winn's.
+Becker's `fn.grcirclkm` (the `"becker"` method) has no separate published
+description that could be found. It appears in the `segchopr` code, reproduced
+at `original/ds_data_dmr.R:70-98`. It is algebraically identical to Kenney and
+Winn's formula, as shown in
+[03-bug-fixes.md](03-bug-fixes.md#the-becker-and-kenney-methods-are-the-same-formula).
 
 > **Shoemake, K. (1985)** Animating rotation with quaternion curves. *ACM
 > SIGGRAPH Computer Graphics* **19**(3): 245–254.
 > <https://doi.org/10.1145/325165.325242>
 
-Spherical linear interpolation, used by `gc_interpolate()` to place a segment
+Spherical linear interpolation. Used by `gc_interpolate()` to place a segment
 midpoint between two bracketing survey positions.
 
 ---
@@ -211,14 +216,14 @@ The input-format specification. Sections used, and where:
 > Cetacean and Turtle Assessment Program, University of Rhode Island. Bureau of
 > Land Management, Washington, DC.
 
-The programme whose protocol the effort defaults come from, and the origin of the
-data structures the NARWC database inherited.
+The programme whose protocol the effort defaults come from, and the origin of
+the data structures the NARWC database inherited.
 
-The on-effort criteria in `flag_effort()` are stated by Kenney and Winn (1986,
-p. 347) as those applied to the CETAP data: "observer(s) formally on watch, clear
+Kenney and Winn (1986, p. 347) state the on-effort criteria applied to the CETAP
+data, which `flag_effort()` uses: "observer(s) formally on watch, clear
 visibility of at least 2 miles, and sea states of Beaufort 3 or lower". Surveys
-were flown at 750 ft — 229 m (p. 346) — which is why the default altitude ceiling
-of 366 m (1,200 ft) sits comfortably above normal survey altitude.
+were flown at 750 ft, 229 m (p. 346). The default altitude ceiling of 366 m
+(1,200 ft) therefore sits well above normal survey altitude.
 
 > **Kenney, R.D. and Scott, G.P. (1981)** Calibration of the Beechcraft AT-11
 > forward observation bubble for population estimation purposes. Pp. III.1–III.11
@@ -254,22 +259,24 @@ Used by `segments_as_sf()` and `crop_to_bbox()`. In `Suggests`.
 > Distance sampling in R. *Journal of Statistical Software* **89**(1): 1–28.
 > <https://doi.org/10.18637/jss.v089.i01>
 
-The `Distance` package, a downstream consumer of this package's output. Not a
-dependency of v1.
+The `Distance` package, a downstream consumer of this package's output. It is
+in `Suggests`, used only by a test that fits a detection function to
+`detection_data()` output.
 
-For the remaining dependencies — `dplyr`, `tidyr`, `rlang`, `tibble`, `withr`,
-`testthat` — use `citation("dplyr")` and so on.
+For the remaining dependencies (`dplyr`, `tidyr`, `rlang`, `tibble`, `withr`,
+`narwcr`, `testthat`), use `citation("dplyr")` and so on.
 
 ---
 
 ## 6. How to cite the package
 
 ```
-Ross, C. (2026) distsamp: Segment Aerial Line-Transect Survey Data for Distance
+Ross, C. (2026) distsamp: Segment Line-Transect Survey Data for Distance
 Sampling. R package version 0.1.0. https://github.com/chross22/distsamp
 ```
 
-In a methods section, cite the method and the software separately — for example:
+In a methods section, the method and the software are cited separately. For
+example:
 
 > Continuous portions of on-effort survey trackline were divided into segments of
 > approximately 5 km following Becker et al. (2010), using the `distsamp` R
@@ -284,65 +291,51 @@ In a methods section, cite the method and the software separately — for exampl
 > observers, sightings detected in vertical photographs, and identifications
 > below "probable" reliability were excluded (Kenney 2023).
 
-Record the `seed` you used — without it the segmentation is not reproducible.
+Record the `seed` used. Without it the segmentation is not reproducible.
 
 ---
 
 ## 7. Keeping citations current
 
-Citations rot. A DOI gets corrected, a hosted PDF moves, and — the one that
-actually matters here — the NARWC publishes a new handbook version whose code
-books the package's correctness depends on.
+Citations go out of date: a DOI is corrected, a hosted PDF moves, or the NARWC
+publishes a new handbook version. The last matters most, because the package's
+correctness depends on the handbook's code books.
 
 `tools/citations.csv` is the registry: one row per source, with the DOI or URL
-and the metadata we print. `tools/check-citations.R` verifies it:
+and the metadata printed. `tools/check-citations.R` verifies it:
 
 ```bash
 Rscript tools/check-citations.R
 ```
 
-Four checks:
+| Check | What it verifies | Catches |
+|---|---|---|
+| 1. Registry coverage | Every DOI in the package is in the registry, and every registry DOI is cited. Offline, so it also runs in the test suite. | A new citation added unchecked |
+| 2. CrossRef metadata | First author, year, title, journal and volume still match | A transcription error here, or a correction by the publisher |
+| 3. URL liveness | The NARWC page, the NOAA-hosted Kenney and Winn PDF, and the R project page still resolve | Moved or removed pages |
+| 4. NARWC handbook version | The Consortium's sightings-database page still offers the cited version | A new handbook version |
+| 5. Self-citation | `inst/CITATION` parses and does not hard-code a stale version; the README has a citation section naming the package | A package that cannot be cited, or is cited at the wrong version |
+| 6. Reference list | The README's References section agrees with the registry | A README list that drifts from the sources |
 
-1. **Registry coverage** — every DOI appearing anywhere in the package is in the
-   registry, and every registry DOI is actually cited. Stops a new citation
-   slipping in unchecked. Offline, so it also runs in the test suite.
-2. **CrossRef metadata** — first author, year, title, journal, and volume still
-   match. Catches both a transcription error on our side and a correction on the
-   publisher's.
-3. **URL liveness** — the NARWC page, the NOAA-hosted Kenney and Winn PDF, and
-   the R project page still resolve.
-4. **NARWC handbook version** — the Consortium's sightings-database page still
-   offers the version we cite.
-
-`.github/workflows/check-citations.yaml` runs this on the first of each month
-and on any pull request touching `R/`, `docs/`, `README.md`, `DESCRIPTION`, or
-the registry. A scheduled failure opens a single issue labelled `citations`;
-it will not open a second while one is open.
+`.github/workflows/check-citations.yaml` runs the check on the first of each
+month and on any pull request touching `tools/`, `R/`, `docs/`, `README.md`,
+`DESCRIPTION` or `inst/CITATION`. A scheduled failure opens one issue labelled
+`citations`. A second issue is not opened while one is open.
 
 ### When the handbook version check fires
 
-Do not simply bump the citation. Diff the new version against
-`R/narwc-codes.R` first — `LEGTYPE`, `LEGSTAGE`, `IDREL`, `VISIBLTY`,
-`TAXCODE`, and `STRATUM` values are load-bearing, and section numbers shift
-whenever a variable is added.
+Do not simply bump the citation. First diff the new version against the code
+books, which live in `narwcr` (`narwc_codes()`). The `LEGTYPE`, `LEGSTAGE`, `IDREL`, `VISIBLTY`, `TAXCODE`
+and `STRATUM` values are load-bearing, and section numbers shift whenever a
+variable is added.
 
-That is exactly what happened on the check's first run. It found Version 8
-(October 2023, Reference Document 2023-01) while the package cited Version 7.
-Reviewing it:
+This happened on the check's first run. It found Version 8 (October 2023,
+Reference Document 2023-01) while the package cited Version 7. The review found:
 
-- **No code-book values changed.** `LEGTYPE`, `LEGSTAGE`, `IDREL`, `TAXCODE`,
-  `STRATUM`, `STRIP`, and — importantly — the negative `VISIBLTY` codes that
-  [03-bug-fixes.md](03-bug-fixes.md#1-legacy-visibility-codes-silently-discarded-all-pre-2004-effort)
-  turns on are identical. Nothing in the package's behaviour was wrong.
-- **Section numbers shifted by one** from `ANGLEL` onward, because Version 8
-  inserts a new section for `ANGLEL`/`ANGLER`. All 84 cross-references in the
-  code and docs were remapped.
-- **`ANGLEL` and `ANGLER` are new**: declination angles to a sighting. The New
-  England Aquarium survey team stopped recording `STRIP` in 2022 and switched to
-  these, which give a more precise right-angle distance and are less sensitive to
-  survey altitude (8.A.31). They are now carried through as optional columns;
-  converting them to perpendicular distance belongs with the detection-function
-  work ([05-next-steps.md](05-next-steps.md)).
-- **`WX`** is now in the code book (`narwc_codes("WX")`).
-- Version 8 dates the archive update that folded `OLDVIZ` into `VISIBLTY` to
-  2020; Version 7 said 2021. The package no longer names a year for it.
+| Change in Version 8 | Consequence |
+|---|---|
+| **No code-book values changed.** `LEGTYPE`, `LEGSTAGE`, `IDREL`, `TAXCODE`, `STRATUM`, `STRIP`, and the negative `VISIBLTY` codes that [03-bug-fixes.md](03-bug-fixes.md#1-legacy-visibility-codes-silently-discarded-all-pre-2004-effort) depends on are identical. | Nothing in the package's behaviour was wrong. |
+| **Section numbers shifted by one** from `ANGLEL` onward, because Version 8 inserts a new section for `ANGLEL`/`ANGLER`. | All 84 cross-references in the code and docs were remapped. |
+| **`ANGLEL` and `ANGLER` are new**: declination angles to a sighting. The New England Aquarium survey team stopped recording `STRIP` in 2022 and switched to these. They give a more precise right-angle distance and are less sensitive to survey altitude (8.A.31). | Carried through as optional columns. Converting them to perpendicular distance belongs with the detection-function work ([05-next-steps.md](05-next-steps.md)). |
+| **`WX`** is now in the code book. | Available as `narwc_codes("WX")`. |
+| Version 8 dates the archive update that folded `OLDVIZ` into `VISIBLTY` to 2020; Version 7 said 2021. | The package no longer names a year for it. |

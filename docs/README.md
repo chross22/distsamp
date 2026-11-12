@@ -1,45 +1,49 @@
 # distsamp documentation
 
-| Document | What is in it |
-|---|---|
-| [01-plan.md](01-plan.md) | Why the package exists, the decisions taken before building, the target layout and API, and what is deliberately out of scope |
-| [02-implementation.md](02-implementation.md) | How each pipeline stage was built, what it replaces in `original/`, and why it works the way it does |
-| [03-bug-fixes.md](03-bug-fixes.md) | The 16 defects found in `original/`, each with file and line, consequence, fix, and the test that guards it |
-| [04-verification.md](04-verification.md) | `R CMD check` and test-suite results, what the tests establish, and reference numbers for the fixture |
-| [05-next-steps.md](05-next-steps.md) | What v1 does not do, in the order it is worth doing |
-| [06-references.md](06-references.md) | Every citation, what it is relied on for, what the published methods do *not* cover, and how to cite this in a methods section |
-| [07-fitting-architecture.md](07-fitting-architecture.md) | Where detection-function and density-surface fitting should live, the model-selection sweep, and what can and cannot be done about `g(0)` |
-| [08-onboarding-a-real-extract.md](08-onboarding-a-real-extract.md) | Bringing a dataset the package has not seen before into the pipeline: the order to do it in, what `diagnose_pipeline()` is telling you, and the traps that have produced plausible wrong numbers |
-| [09-shipboard-surveys.md](09-shipboard-surveys.md) | Segmenting a survey that was not flown: what `platform = "vessel"` changes, why the altitude criterion is dropped rather than raised, and why `LEGTYPE` 5 and 6 are still off effort |
-| [10-code-guide.md](10-code-guide.md) ([PDF](10-code-guide.pdf)) | The pipeline walked through chunk by chunk, from `prepare_survey()` to `detection_data()`: what each piece of code does, the ordering constraints between steps, and the defects found in the 2026-11-05 audit |
-| [11-distance-sampling-steps.md](11-distance-sampling-steps.md) ([PDF](11-distance-sampling-steps.pdf)) | The distance sampling process step by step, from reading a file to an abundance estimate: the code for each step, run on the fixture, with brief notes |
+## Start here
 
-For using the package rather than understanding how it was built, start with the
-vignette:
+| Document | Contents |
+|---|---|
+| [11-distance-sampling-steps.md](11-distance-sampling-steps.md) ([PDF](11-distance-sampling-steps.pdf)) | From a survey file to an abundance estimate, one step at a time, with code. |
+| [10-code-guide.md](10-code-guide.md) ([PDF](10-code-guide.pdf)) | What each part of the pipeline code does, the order steps must run in, and the defects corrected in the 2026-11 audits. |
+| [08-onboarding-a-real-extract.md](08-onboarding-a-real-extract.md) | Bringing in a new dataset: the order of steps, reading `diagnose_pipeline()`, and known traps. |
+
+## Reference
+
+| Document | Contents |
+|---|---|
+| [01-plan.md](01-plan.md) | Why the package exists, design decisions, and what is out of scope. |
+| [02-implementation.md](02-implementation.md) | How each pipeline stage was built and what it replaces in `original/`. |
+| [03-bug-fixes.md](03-bug-fixes.md) | The 16 defects found in `original/`, with fix and guarding test. |
+| [04-verification.md](04-verification.md) | Check and test results, fixture numbers, and performance. |
+| [05-next-steps.md](05-next-steps.md) | Work not yet done, in priority order. |
+| [06-references.md](06-references.md) | Citations, what each is relied on for, and how to cite the package. |
+| [07-fitting-architecture.md](07-fitting-architecture.md) | Where model fitting lives, and the `g(0)` problem. |
+| [09-shipboard-surveys.md](09-shipboard-surveys.md) | What `platform = "vessel"` changes and why. |
+
+Tutorials:
 
 ```r
 vignette("segmenting-narwc-data", package = "distsamp")
+vignette("from-segments-to-density", package = "distsamp")
 ```
 
-> **A note on `original/`.** This package was rewritten from a set of internal
-> research scripts. Those scripts are **not distributed** — they contain
-> collaborators' working notes and local paths, and were never intended for
-> publication. References below of the form `original/ds_data_dmr.R:106` are
-> provenance: they record which defect came from where, so the rewrite can be
-> audited by anyone who has the original code. They are not links.
+## Summary
 
-## The short version
+`distsamp` segments NARWC line-transect survey data for distance sampling and
+density surface models. It replaces a set of research scripts (`original/`)
+that could not run end to end: they called two undefined functions, had no
+tests, used unseeded randomness, and discarded every pre-2004 record through a
+visibility test.
 
-`original/` could not run end-to-end: it called two functions that were never
-defined. Beyond that it had no package structure, no tests, unseeded randomness,
-and a visibility test that silently discarded every pre-2004 survey record.
+The package keeps the segmentation method of Becker et al. (2010) and fixes the
+defects, each listed in [03-bug-fixes.md](03-bug-fixes.md). It has 55 exported
+functions and 809 test assertions. `R CMD check --no-manual` passes with no
+errors, warnings or notes. `--as-cran` is not used, because the `narwcr`
+dependency is not on CRAN.
 
-`distsamp` is the segmentation core rebuilt as an installable package: NARWC
-ingest and validation grounded in the handbook's code books, effort
-determination, great-circle effort accumulation, track splitting, segment
-planning and cutting, along-track midpoints, per-segment sighting summaries, and
-right-angle distances from all four sources the archive records.
-33 exported functions, 359 test assertions, `R CMD check --as-cran` clean.
+## The `original/` scripts
 
-The Becker segmentation method is preserved. The defects are fixed and
-documented, one by one, in [03-bug-fixes.md](03-bug-fixes.md).
+The scripts are not distributed: they contain collaborators' working notes and
+local paths. References such as `original/ds_data_dmr.R:106` record where each
+defect came from. They are not links.

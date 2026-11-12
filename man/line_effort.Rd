@@ -24,9 +24,9 @@ Summarises on-effort distance by survey line rather than by continuous track.
 
 A \strong{track} is a continuous run of effort: it ends wherever effort breaks,
 which may be mid-line, and it says nothing about which line was being flown.
-A \strong{line} is a design element — the transect the survey set out to fly, named
-by \code{LEGNO}. Segmentation works on tracks, so \code{segs$tracks} cannot answer "how
-much of line 7 did we actually cover, and did we have to go back for it".
+A \strong{line} is a design element: the transect the survey set out to fly, named
+by \code{LEGNO}. Segmentation works on tracks, so \code{segs$tracks} cannot say how much
+of line 7 was covered, or whether it had to be flown again.
 }
 
 \section{Occupations and lines}{
@@ -54,11 +54,11 @@ Passing a \code{distsamp_segments} uses its \code{points} table, which holds onl
 records that reached a segment.
 
 Usually that costs nothing: the records segmentation leaves out are off
-effort, and an off-effort record carries zero \code{pt2pt.effort} — so dropping it
+effort, and an off-effort record carries zero \code{pt2pt.effort}, so dropping it
 removes no distance. But a track shorter than \code{min_track_km}, or a segment
-shorter than \code{min_segment_km}, is discarded \emph{with} its on-effort distance, and
-that effort was really flown. A line made up of such a track then reports less
-effort than the survey gave it, or disappears from the summary entirely.
+shorter than \code{min_segment_km}, is discarded \emph{with} its on-effort distance,
+which was really flown. A line made of such a track then reports too little
+effort, or disappears from the summary.
 
 So pass the point-level data after \code{\link[=flag_effort]{flag_effort()}} and
 \code{\link[=point_to_point_effort]{point_to_point_effort()}} when the total has to be right. A message says which

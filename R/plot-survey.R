@@ -7,17 +7,15 @@
 #'
 #' @section What each view is for:
 #' \describe{
-#'   \item{`"effort"`}{Positions coloured by `OnOff.Effort`. The first thing to
-#'     look at: a survey that is almost entirely off effort has a criterion
-#'     failing, and the map says whether it is everywhere or on particular
-#'     days.}
+#'   \item{`"effort"`}{Positions coloured by `OnOff.Effort`. Look here first: a
+#'     survey that is almost entirely off effort has a criterion failing, and
+#'     the map shows whether that is everywhere or on particular days.}
 #'   \item{`"occupations"`}{Positions coloured by `LEGNO3`, the line-occupation
-#'     identifier. Adjacent occupations take different colours, so a line that
-#'     should be one occupation and is drawn in three — or three that are drawn
-#'     as one — is visible immediately. This is the view that catches a bad
-#'     `make_leg_id()`, and a bad `LEGNO3` is the single most consequential
-#'     thing that can go wrong: effort is grouped by it and segments are cut
-#'     within it.}
+#'     identifier. Adjacent occupations take different colours, so one line
+#'     split into three occupations, or three merged into one, is visible
+#'     immediately. This view catches a bad `make_leg_id()`. A bad `LEGNO3` is
+#'     the most consequential error possible: effort is grouped by it and
+#'     segments are cut within it.}
 #'   \item{`"tracks"`}{Positions coloured by `new_trackno`, the stretches of
 #'     *continuous* effort that are actually chopped into segments. Differs
 #'     from `"occupations"` wherever effort broke mid-line.}
@@ -25,19 +23,17 @@
 #'     `narwcr::classify_platform()`. For an archive holding more than one kind
 #'     of survey.}
 #'   \item{`"legstage"`}{Positions coloured by `LEGSTAGE`. Shows where a line
-#'     begins, breaks off, resumes and ends — and, on a file that records the
+#'     begins, breaks off, resumes and ends, and, on a file that records the
 #'     code only at change points, how little of it is written down.}
 #'   \item{`"raw"`}{Every position, coloured by `LEGTYPE`, needing nothing but
-#'     the file as read. What the survey looks like before any of this package
-#'     has touched it — the view to compare the others against when a later
-#'     stage seems to have lost something.}
-#'   \item{`"positions"`}{Every position, uncoloured. The only view that cannot
-#'     fail for want of a column: it needs `LATITUDE` and `LONGITUDE` and
-#'     nothing else, so it works on a file that has not been through
-#'     [prepare_survey()], or one whose columns are not what you expected.
-#'     Where `"raw"` still asks for `LEGTYPE`, this asks for nothing. Add
-#'     `sightings = TRUE` and it is the whole survey — effort and what was seen
-#'     on it — in one map.}
+#'     the file as read. Shows the survey before this package has changed it;
+#'     compare the other views against it when a later stage seems to have lost
+#'     something.}
+#'   \item{`"positions"`}{Every position, uncoloured. It needs only `LATITUDE`
+#'     and `LONGITUDE`, so it works on a file that has not been through
+#'     [prepare_survey()], or one with unexpected columns. With
+#'     `sightings = TRUE` it shows the whole survey, effort and sightings, in
+#'     one map.}
 #' }
 #'
 #' @section Thinning:
@@ -46,44 +42,40 @@
 #' thinned to `max_points` by taking every *n*th. The subtitle says when it
 #' happened. Set `max_points = Inf` to draw every point.
 #'
-#' **Thinning never applies to the path.** Every *n*th preserves the shape of a
-#' straight line and loses it at every turn, so a path drawn through the
-#' survivors cuts the corners: at three million records that is a chord between
-#' fixes some 18 km apart, and against a coastline it draws a trackline over
-#' land that is not in the data. The lines in the `"occupations"` and
-#' `"tracks"` views are therefore built from every fix, whatever `max_points`
-#' says. On a whole archive that costs a few seconds of drawing, and it buys a
-#' map that does not invent a mistake for you to go looking for.
+#' **Thinning never applies to the path.** Every *n*th record preserves the
+#' shape of a straight line and loses it at every turn, so a path drawn through
+#' the survivors cuts the corners. At three million records that is a chord
+#' between fixes some 18 km apart, which can draw a trackline over land. The
+#' lines in the `"occupations"` and `"tracks"` views are therefore built from
+#' every fix, whatever `max_points` says. On a whole archive this costs a few
+#' seconds of drawing.
 #'
 #' @param dat A survey data frame at any stage: `LATITUDE` and `LONGITUDE` are
 #'   required, and each view needs the column it colours by.
 #' @param what Which view: `"effort"` (default), `"occupations"`, `"tracks"`,
 #'   `"platform"`, `"legstage"`, `"raw"`, or `"positions"`.
 #' @param coastline Land to draw underneath. `TRUE` (default) fetches Natural
-#'   Earth through `rnaturalearth`; `FALSE` draws none; a scale name —
-#'   `"small"`, `"medium"`, `"large"` — picks the resolution; or pass your own
-#'   `sf`, which is the better option at bay scale. Unlike
-#'   [plot.distsamp_segments()], a coastline that cannot be fetched here warns
-#'   and draws nothing rather than erroring: this is a look-at-it function, and
-#'   losing the land is better than losing the plot.
+#'   Earth through `rnaturalearth`; `FALSE` draws none; a scale name
+#'   (`"small"`, `"medium"`, `"large"`) picks the resolution; an `sf` object is
+#'   drawn as given, and is the better option at bay scale. Unlike
+#'   [plot.distsamp_segments()], a coastline that cannot be fetched here gives
+#'   a warning and no land, rather than an error.
 #' @param max_points Thin to at most this many records. Default `50000`.
 #' @param max_legend Most groups to name in the legend. Default `12`. Beyond
 #'   this, occupations and tracks take a recycled palette and the legend is
-#'   dropped — a hundred labels is not a legend, and a hundred colours cannot
-#'   be told apart.
+#'   dropped, since a hundred colours cannot be told apart.
 #' @param facet_by Column to facet on, or `NULL` for none. Defaults to `DATE`
-#'   when the data covers 2 to 12 days — beyond that the panels are too small
-#'   to read, and one map of everything is more use.
+#'   when the data covers 2 to 12 days. Beyond that the panels are too small
+#'   to read, and one map is drawn.
 #' @param dates,years,months Which survey days to draw, passed to
 #'   [filter_days()]. `NULL` (default) draws all of them. A decade of survey on
-#'   one map is a smear; `years = 2019, months = 8` is a question a map can
-#'   answer.
+#'   one map is unreadable; `years = 2019, months = 8` is not.
 #' @param sightings Draw the sightings over the effort? `FALSE` (default) draws
 #'   none, `TRUE` draws every species, and a character vector of `SPECCODE`
-#'   values draws only those — `sightings = "RIWH"`. They are taken from the
+#'   values draws only those (`sightings = "RIWH"`). They are taken from the
 #'   data *before* thinning, since a few thousand sighting rows in three million
-#'   would not survive it, and are drawn as outlined markers so they read on top
-#'   of the track rather than as more of it.
+#'   would not survive it, and are drawn as outlined markers on top of the
+#'   track.
 #'
 #' @return A `ggplot` object.
 #'
@@ -107,22 +99,22 @@ plot_survey <- function(dat, what = c("effort", "occupations", "tracks",
                         max_legend = 12, facet_by = NULL,
                         dates = NULL, years = NULL, months = NULL,
                         sightings = FALSE) {
+  # Check inputs and cut to the requested days.
   what <- match.arg(what)
   check_ggplot2()
   stopifnot(is.data.frame(dat))
   require_columns(dat, c("LATITUDE", "LONGITUDE"))
   dat <- filter_days(dat, dates, years, months)
 
-  # The one view that cannot fail for want of a column: everything is one
-  # group, so there is nothing to look up and nothing to colour by.
+  # "positions" colours by a constant column created here, so it needs no
+  # column from the data.
   if (what == "positions") {
     dat$.positions <- "position"
   }
 
-  # `unit` and `grey` are what the subtitle says in words. "8,175 occupations
-  # drawn; 5,787 on none" is only readable to someone who already knows what an
-  # occupation is and what having none means, which is nobody looking at the
-  # figure to find out.
+  # Per view: the column to colour by (`col`), the legend label (`lab`), and
+  # the title. For identifier views, `unit` says in words what one group is,
+  # and `grey` what the uncoloured (NA) records are; both go in the subtitle.
   spec <- switch(
     what,
     effort      = list(col = "OnOff.Effort", lab = "On effort",
@@ -144,6 +136,7 @@ plot_survey <- function(dat, what = c("effort", "occupations", "tracks",
     positions   = list(col = ".positions", lab = NULL,
                        title = "Every position, as recorded")
   )
+  # Stop with a hint on how to produce the column if it is missing.
   if (!spec$col %in% names(dat)) {
     rlang::abort(paste0(
       "The `", what, "` view needs a `", spec$col, "` column, which this data ",
@@ -151,62 +144,55 @@ plot_survey <- function(dat, what = c("effort", "occupations", "tracks",
     ))
   }
 
-  # Resolved once, softly: a failed fetch loses the land, not the plot.
+  # Resolve the coastline once. A failed fetch gives a warning and no land.
   coastline <- resolve_coastline_soft(coastline)
 
-  # Taken before thinning, deliberately. Sightings are the rare rows - a few
-  # thousand in three million - and keeping every 65th record would throw away
-  # 64 of every 65 of them. The effort layer is what thinning is for.
+  # Take sightings before thinning. They are rare rows, and keeping every nth
+  # record would discard most of them.
   sight <- if (isFALSE(sightings)) NULL else survey_sightings(dat, sightings)
 
+  # Record count before thinning, for the subtitle.
   n_before <- nrow(dat)
 
+  # `grouped` views colour by an identifier (occupation or track) and draw
+  # paths. `.grp` is the colouring value as character.
   grouped <- what %in% c("occupations", "tracks")
   dat$.grp <- as.character(dat[[spec$col]])
 
-  # The path is grouped by the day as well as by the identifier, because the
-  # identifiers are only unique within a day. `split_tracks()` restarts track
-  # numbers at 1 on every survey date, and a LEGNO3 built from a LEGNO the
-  # programme reuses - or from the `line_<n>` fallback, where no LEGNO was
-  # recorded at all - repeats just as freely. Grouping on the identifier alone
-  # joins one day's track 1 to the next day's: a straight line between two
-  # surveys, across whatever lies between them, which on this coast is land.
-  #
-  # It hides at small scale. Two to twelve days facet by DATE, so each panel
-  # holds one day and the join has nowhere to show. An archive does not facet,
-  # and every repeated identifier draws its line across the whole map.
+  # Path group: day plus identifier. Identifiers are unique only within a
+  # day: `split_tracks()` restarts track numbers at 1 each date, and LEGNO3
+  # repeats when a LEGNO is reused or built from the `line_<n>` fallback.
+  # Grouping on the identifier alone would join one day's path to the next
+  # day's with a straight line, often across land.
   dat$.pathgrp <- if ("DATE" %in% names(dat)) {
     paste(dat$DATE, dat$.grp)
   } else {
     dat$.grp
   }
 
-  # A view that is not an identifier - effort, platform, LEGSTAGE - has few
-  # enough levels to always name, and naming them is the whole point.
+  # Colour mapping. Non-identifier views (effort, platform, LEGSTAGE) have
+  # few levels and always keep their names (max_legend = Inf). Identifier
+  # views recycle colours beyond `max_legend`.
   cap <- capped_groups(dat$.grp, if (grouped) max_legend else Inf)
   named <- cap$named
   n_groups <- cap$n
   dat$.col <- cap$col
 
-  # The path is built from every fix. Only the points are thinned.
-  #
-  # Thinning keeps every nth record, which is right for a scatter and wrong
-  # for a line: joining survivors 65 records apart draws a straight chord
-  # through whatever the aircraft actually flew round, and against a coastline
-  # that is a trackline over land. It looks exactly like merged occupations,
-  # so it sends you hunting a bug in make_leg_id() that is not there.
-  #
-  # A record belonging to no occupation - the transit out, the ferry between
-  # lines - is not an occupation of its own. Joining those with a path draws a
-  # survey line where none was flown, so they are excluded here and shown as
-  # grey points below, unconnected.
+  # Build the path from every fix, before thinning. A path through thinned
+  # points cuts corners and can cross land. Records with no identifier
+  # (transit, ferrying between lines) are left out of the path; they are drawn
+  # as unconnected grey points instead.
   path <- if (grouped) dat[!is.na(dat[[spec$col]]), , drop = FALSE] else NULL
 
+  # Thin the points, then split them into coloured (`drawn`) and grey
+  # (`loose`, no identifier) records.
+  step <- thin_step(nrow(dat), max_points)
   dat <- thin_records(dat, max_points)
 
   loose <- if (grouped) is.na(dat[[spec$col]]) else rep(FALSE, nrow(dat))
   drawn <- dat[!loose, , drop = FALSE]
 
+  # Layers, bottom to top: land, grey loose points, coloured points.
   p <- ggplot2::ggplot(
     drawn,
     ggplot2::aes(x = .data$LONGITUDE, y = .data$LATITUDE, colour = .data$.col)
@@ -220,10 +206,9 @@ plot_survey <- function(dat, what = c("effort", "occupations", "tracks",
       )
     }) +
     ggplot2::geom_point(size = 0.5, na.rm = TRUE) +
-    # "positions" is one group, and giving it the first palette colour makes a
-    # map of bright orange effort that looks like it means something. It does
-    # not: neutral grey is the honest colour for "this is simply where the
-    # aircraft was", and it lets an overlaid sighting be the thing you see.
+    # "positions" is a single group, drawn in neutral grey with no legend. A
+    # palette colour would suggest a meaning it does not have, and grey lets
+    # overlaid sightings stand out.
     (if (what == "positions") {
       ggplot2::scale_colour_manual(values = "grey40", guide = "none")
     } else {
@@ -235,27 +220,30 @@ plot_survey <- function(dat, what = c("effort", "occupations", "tracks",
       colour = spec$lab,
       title = spec$title,
       subtitle = plot_survey_subtitle(drawn, spec, grouped, n_before,
-                                      sum(loose), named, sight)
+                                      sum(loose), named, sight, step)
     ) +
     ggplot2::theme_minimal()
 
+  # Paths for identifier views, from the unthinned records.
   if (grouped) {
     p <- p + ggplot2::geom_path(data = path,
                                 ggplot2::aes(group = .data$.pathgrp),
                                 linewidth = 0.3, na.rm = TRUE)
   }
-  # Not for "positions": `guides()` overrides the scale, so adding one here
-  # would put back the single-entry legend the scale just suppressed.
+  # Legend layout. Skipped for "positions": `guides()` overrides the scale and
+  # would restore the single-entry legend the scale suppressed.
   if (what != "positions") {
     p <- p + legend_guide(nlevels(dat$.col))
   }
 
-  # No legend where the colour carries no meaning: one recycled palette over
-  # 8,175 occupations says only "neighbours differ".
+  # No legend when colours are recycled: they then mean only that neighbours
+  # differ.
   if (grouped && !named) {
     p <- p + ggplot2::guides(colour = "none")
   }
 
+  # Sightings on the `fill` scale, with rare species lumped into "other" so at
+  # most 8 colours are needed.
   if (!is.null(sight)) {
     sight$.spp <- lump_levels(sight$SPECCODE, max_levels = min(max_legend, 8L))
     p <- p +
@@ -271,6 +259,7 @@ plot_survey <- function(dat, what = c("effort", "occupations", "tracks",
       ))
   }
 
+  # Facet by the requested column, or by DATE for 2 to 12 days.
   facet_by <- resolve_facet(dat, facet_by)
   if (!is.null(facet_by)) {
     p <- p + ggplot2::facet_wrap(stats::as.formula(paste("~", facet_by)))
@@ -278,14 +267,13 @@ plot_survey <- function(dat, what = c("effort", "occupations", "tracks",
   p
 }
 
-# Two lines: what the colours mean, then how much data is on the map.
-#
-# The old one line read "8175 occupations drawn, colours recycled; 43,453
-# records, 5,787 on none (grey)", which requires you to already know what an
-# occupation is and what having none of one means. If the figure cannot say it,
-# the figure is not saying it.
+# Subtitle for plot_survey(), in plain words. Line 1 (identifier views only):
+# how many groups there are, what one group is, and whether colours repeat.
+# Line 2: how many records are drawn, whether they were thinned, what the
+# grey points are, and how many sightings are drawn.
 plot_survey_subtitle <- function(dat, spec, grouped, n_before, n_loose = 0L,
-                                 named = TRUE, sight = NULL) {
+                                 named = TRUE, sight = NULL, step = 1L) {
+  # Records drawn after thinning, coloured plus grey.
   shown <- nrow(dat) + n_loose
   big <- fmt_count
 
@@ -293,9 +281,7 @@ plot_survey_subtitle <- function(dat, spec, grouped, n_before, n_loose = 0L,
     n <- length(unique(dat$.grp))
     paste0(
       big(n), " ", tolower(spec$lab), "s - ", spec$unit, ". ",
-      # Kept short. This runs on one line at the figure's width, and the
-      # longer wording it replaced was clipped mid-sentence - the reader saw
-      # "what to look for is that" and never the part that said what.
+      # Kept short so the line is not clipped at the figure's width.
       if (named) "Each has its own colour." else "Colours repeat; neighbours differ."
     )
   } else NULL
@@ -303,8 +289,7 @@ plot_survey_subtitle <- function(dat, spec, grouped, n_before, n_loose = 0L,
   how_much <- paste0(
     big(shown), " records",
     if (shown < n_before) {
-      paste0(" of ", big(n_before), " (every ",
-             ceiling(n_before / shown), "th)")
+      paste0(" of ", big(n_before), " (1 in every ", big(step), ")")
     } else "",
     if (n_loose) {
       paste0("; ", big(n_loose), " in grey are ", spec$grey)
@@ -317,16 +302,21 @@ plot_survey_subtitle <- function(dat, spec, grouped, n_before, n_loose = 0L,
   paste(c(what_colours, how_much), collapse = "\n")
 }
 
-# Every nth rather than a random sample: a track drawn from random points is a
-# cloud, and the shape is the thing being checked.
+# Thin to at most `max_points` rows by keeping every nth row, n =
+# ceiling(rows / max_points). Every nth rather than a random sample keeps the
+# shape of the track visible. Infinite `max_points` keeps everything.
 thin_records <- function(dat, max_points) {
-  if (!is.finite(max_points) || nrow(dat) <= max_points) {
-    return(dat)
-  }
-  dat[seq(1L, nrow(dat), by = ceiling(nrow(dat) / max_points)), , drop = FALSE]
+  dat[seq(1L, nrow(dat), by = thin_step(nrow(dat), max_points)), , drop = FALSE]
 }
 
-# Facet by day where that is readable, and not otherwise.
+# Every how many records thin_records() keeps one: 1 when no thinning is
+# needed.
+thin_step <- function(n, max_points) {
+  if (!is.finite(max_points) || n <= max_points) 1L else ceiling(n / max_points)
+}
+
+# Column to facet on, or NULL. A requested column is used if it exists.
+# Otherwise DATE is used when the data covers 2 to 12 days.
 resolve_facet <- function(dat, facet_by) {
   if (!is.null(facet_by)) {
     return(if (facet_by %in% names(dat)) facet_by else NULL)
@@ -338,19 +328,13 @@ resolve_facet <- function(dat, facet_by) {
   if (n >= 2L && n <= 12L) "DATE" else NULL
 }
 
-# What to do about a missing column.
+# Error-message hint for a missing column `col`.
 #
-# These used to name the single function that adds each column, which was true
-# and was bad advice: the steps are order-dependent, and every one of them is a
-# step of `prepare_survey()` for that reason. Told to run
-# `narwcr::classify_platform()` and filter, someone does it before
-# `make_leg_id()` — the message gave no reason not to — which makes two
-# occupations of one line adjacent so they merge, and the ferry between them
-# becomes survey effort. Measured at 224.5 km where 4.4 km was right.
-#
-# So each hint names the one call that gets the order right, and then says
-# where in that order this particular column appears — because which column is
-# missing is what tells you how far the data actually got.
+# The preparation steps must run in a fixed order. For example, filtering by
+# platform before `make_leg_id()` makes two occupations of one line adjacent,
+# so they merge and the ferry between them counts as effort. Each hint
+# therefore names `prepare_survey()`, which runs the steps in order, and says
+# where in that order the missing column is created.
 stage_hint <- function(col) {
   prep <- "Run `prepare_survey()`, which does these steps in the order they have to happen."
   switch(

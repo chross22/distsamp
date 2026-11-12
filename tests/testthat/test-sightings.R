@@ -114,3 +114,19 @@ test_that("write_segments writes what was asked for and nothing else", {
     c("segments_segments.csv", "segments_sightings.csv")
   )
 })
+
+test_that("an empty detections table has the same columns as a full one", {
+  full <- segment_survey(example_data(), seg_length = 5, seed = 1)$detections
+  empty <- segment_survey(example_data(), seg_length = 5, seed = 1,
+                          species = "NONE")$detections
+  expect_equal(nrow(empty), 0)
+  expect_setequal(names(empty), names(full))
+})
+
+test_that("segments and detections are in survey order", {
+  segs <- segment_survey(example_data(), seg_length = 5, seed = 1)
+  s <- segs$segments
+  expect_equal(order(s$DATE, as.numeric(s$new_trackno), s$seg_no), seq_len(nrow(s)))
+  k <- seg_sort_key(segs$detections$seg_id)
+  expect_false(is.unsorted(k))
+})

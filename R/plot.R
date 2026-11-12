@@ -7,52 +7,49 @@
 #' @section What each view is for:
 #' \describe{
 #'   \item{`"segments"`}{The track flown, the segment midpoints, and where the
-#'     sightings were. The first thing to look at: a segmentation that has gone
-#'     wrong is usually obvious here, as midpoints strung along a line the
-#'     aircraft never flew, or clustered where a track should have been split.}
+#'     sightings were. Look here first: a segmentation that has gone wrong is
+#'     usually obvious, as midpoints strung along a line the aircraft never
+#'     flew, or clustered where a track should have been split.}
 #'   \item{`"tracks"`}{The same positions coloured by `new_trackno`, faceted by
-#'     date. This is the view that shows whether [split_tracks()] did the right
-#'     thing — a break in effort should start a new colour, and a colour should
-#'     never span two places the aircraft could not have flown between.}
+#'     date. This view shows whether [split_tracks()] worked: a break in effort
+#'     should start a new colour, and a colour should never span two places the
+#'     aircraft could not have flown between.}
 #'   \item{`"effort"`}{Segment lengths against the target. The Becker method
 #'     produces segments near `seg_length` but not at it, with one absorbing
-#'     segment per track taking up the remainder, so a spread is expected. What
-#'     is not expected is mass outside the tolerance band, which the dashed lines
-#'     mark.}
+#'     segment per track taking up the remainder, so a spread is expected. Mass
+#'     outside the tolerance band (the dashed lines) is not expected.}
 #'   \item{`"distances"`}{The distribution of perpendicular distances. This is
 #'     the detection-function diagnostic: look for a shoulder near zero and a
 #'     tail that falls away. A spike at zero, a peak away from zero, or a long
 #'     flat tail all mean something, and all of them matter before
 #'     `Distance::ds()` is called. See the note on `g(0)` below.
 #'     The axis stops at the 99th percentile and the subtitle reports what lies
-#'     beyond it: a single implausible distance would otherwise set the scale
-#'     and put every real one in the first bin. Since such a distance is a bug
-#'     worth finding rather than a nuisance worth hiding, the subtitle says
-#'     outright when the largest is too far to be a detection.}
+#'     beyond it; otherwise one implausible distance would set the scale and put
+#'     every real one in the first bin. Such a distance is usually a bug, so the
+#'     subtitle says when the largest is too far to be a detection.}
 #' }
 #'
 #' @section Coastlines, and why the default is none:
 #' `coastline = TRUE` draws Natural Earth land under the track. That is enough
 #' to orient a shelf-scale survey, and **not** enough for a bay. Natural Earth's
-#' medium scale is 1:50,000,000; against a survey whose lines are a few
-#' kilometres apart, its shoreline is wrong by more than the thing you are
-#' looking at, and a segmentation that hugs the coast will appear to run over
-#' land.
+#' medium scale is 1:50,000,000. Against survey lines a few kilometres apart,
+#' its shoreline is wrong by more than the features being examined, and a
+#' segmentation that hugs the coast appears to run over land.
 #'
-#' So: use it to get your bearings, and pass your own `sf` object for anything
-#' anyone else will see.
+#' Use it for orientation, and pass an `sf` object of your own for any figure
+#' others will see.
 #'
 #' ```r
 #' plot(segs, coastline = sf::st_read("gshhg_cape_cod.shp"))
 #' ```
 #'
 #' `scale = "large"` (1:10m) is better and needs `rnaturalearthhires`, which is
-#' not on CRAN — install it from the rOpenSci r-universe.
+#' not on CRAN; install it from the rOpenSci r-universe.
 #'
 #' @section On reading the distance histogram:
-#' A dip in the first bin is not necessarily a sampling artefact — an aircraft
+#' A dip in the first bin is not necessarily a sampling artefact: an aircraft
 #' cannot see the water directly beneath it, and for the Skymaster the handbook
-#' says so explicitly (8.A.31). That is a reason to truncate on the left, not to
+#' says so (8.A.31). That is a reason to truncate on the left, not to
 #' assume the animals were not there. Neither is a smooth curve evidence that
 #' `g(0) = 1`: animals submerged when the aircraft passed leave no trace in this
 #' plot at all. See `docs/07-fitting-architecture.md` in the package repository.
@@ -63,22 +60,21 @@
 #' @param species Optional character vector of `SPECCODE` values to show, for
 #'   the views that draw sightings. `NULL` (default) shows all.
 #' @param sightings Draw the sightings over the segments? Default `TRUE`. Set
-#'   `FALSE` on the whole-archive segments view: 2,204 markers over 8,628
-#'   segments cover the colouring that says where the cuts fall, which is what
-#'   that view is for. The per-day figures are where a sighting's position
-#'   against its segment can actually be read.
+#'   `FALSE` for the whole-archive segments view, where thousands of markers
+#'   hide the colouring that shows where the cuts fall. A sighting's position
+#'   against its segment is readable in the per-day figures.
 #' @param max_legend Most groups to name in the legend. Default `8`. Species
-#'   beyond it are gathered into one "other" entry — they stay on the map, they
-#'   just stop having their own colour — and tracks beyond it take a recycled
-#'   palette with the legend dropped. A survey with 36 species or 130 tracks
-#'   produces a legend that squeezes the map to nothing otherwise.
+#'   beyond it are gathered into one "other" entry (they stay on the map
+#'   without their own colour). Tracks beyond it take a recycled palette and no
+#'   legend. Otherwise a survey with 36 species or 130 tracks gives a legend
+#'   that squeezes the map to nothing.
 #' @param dates,years,months Which survey days to draw, passed to
 #'   [filter_days()]. `NULL` (default) draws all of them. Every table in the
-#'   object — points, segments, detections — is cut to the same days.
+#'   object (points, segments, detections) is cut to the same days.
 #' @param coastline Land to draw under the map views. `FALSE` (default) draws
-#'   none. `TRUE` fetches Natural Earth countries through `rnaturalearth`; a
-#'   scale name — `"small"`, `"medium"`, `"large"` — picks the resolution; or
-#'   pass your own `sf` object. Ignored by the `"effort"` and `"distances"`
+#'   none. `TRUE` fetches Natural Earth countries through `rnaturalearth`. A
+#'   scale name (`"small"`, `"medium"`, `"large"`) picks the resolution. An
+#'   `sf` object is drawn as given. Ignored by the `"effort"` and `"distances"`
 #'   views. See the note on resolution below.
 #' @param ... Ignored, for compatibility with [plot()].
 #'
@@ -116,6 +112,7 @@ plot.distsamp_segments <- function(x, what = c("segments", "tracks", "effort",
                                    species = NULL, coastline = FALSE,
                                    max_legend = 8, dates = NULL, years = NULL,
                                    months = NULL, sightings = TRUE, ...) {
+  # Cut every table to the requested days, then dispatch to the chosen view.
   what <- match.arg(what)
   check_ggplot2()
   x <- filter_segments_days(x, dates, years, months)
@@ -128,6 +125,8 @@ plot.distsamp_segments <- function(x, what = c("segments", "tracks", "effort",
   )
 }
 
+# Errors, attributed to the caller, if the suggested package ggplot2 is not
+# installed.
 check_ggplot2 <- function(call = rlang::caller_env()) {
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
     rlang::abort(
@@ -140,7 +139,8 @@ check_ggplot2 <- function(call = rlang::caller_env()) {
   }
 }
 
-# Sighting records carrying a position, from the point-level table.
+# Sighting records (non-blank SPECCODE) from the point-level table,
+# optionally restricted to `species`. NULL when there are none.
 sightings_with_position <- function(x, species = NULL) {
   pts <- x$points
   if (is_empty_df(pts) || !"SPECCODE" %in% names(pts)) {
@@ -153,42 +153,26 @@ sightings_with_position <- function(x, species = NULL) {
   if (!nrow(out)) NULL else out
 }
 
+# The "segments" view: positions coloured by segment, with sightings on top.
 plot_segments_map <- function(x, species = NULL, coastline = FALSE,
                               max_legend = 8, sightings = TRUE) {
   segs <- x$segments
   pts <- x$points
   sight <- if (isFALSE(sightings)) NULL else sightings_with_position(x, species)
 
-  # The positions are coloured by the segment they were cut into, so the cuts
-  # themselves are on the map.
-  #
-  # They used to be one flat grey, which showed where the aircraft went and
-  # nothing about how that was divided - and this is the segments view, so the
-  # division is the subject. 8,628 segments cannot have 8,628 distinguishable
-  # colours and do not need to: what has to be visible is that a segment is
-  # not the one before it. `capped_groups()` recycles the qualitative palette
-  # in event order, so consecutive segments take consecutive colours and a cut
-  # is a colour change.
-  #
-  # Only the cut positions are drawn.
-  #
-  # Two other layers used to be here and both were taken off, because at
-  # archive scale each of them hid the one thing this view is for. The
-  # off-effort positions - transits, ferrying between lines - were a pale grey
-  # underlay showing what was NOT cut, which is a real question and belongs to
-  # the "tracks" and "effort" views, where it is not competing with anything.
-  # And a white-ringed midpoint per segment falls every few pixels along every
-  # line at this scale, so 8,628 of them read as a string of beads laid over
-  # the colouring rather than as the centres of anything.
-  #
-  # What is left says one thing: here is the flying that became segments, and
-  # here is where each one ends and the next begins.
+  # Draw only positions that belong to a segment, coloured by segment so that
+  # each cut shows as a colour change. Thousands of segments cannot each have
+  # a distinct colour; only neighbours need to differ. Positions are put in
+  # survey order (DATE, EVENTNO) so that `capped_groups()` recycles the palette
+  # along the track. Off-effort positions and segment midpoints are not drawn:
+  # at archive scale they hide the colouring.
   on_seg <- pts[!is.na(pts$seg_id), , drop = FALSE]
   if (nrow(on_seg)) {
     on_seg <- on_seg[order(on_seg$DATE, on_seg$EVENTNO), , drop = FALSE]
     on_seg$.col <- capped_groups(on_seg$seg_id, max_legend)$col
   }
 
+  # Land (if any) first, then the segment positions with no colour legend.
   p <- ggplot2::ggplot() + coastline_layer(coastline)
 
   if (nrow(on_seg)) {
@@ -203,6 +187,8 @@ plot_segments_map <- function(x, species = NULL, coastline = FALSE,
       ggplot2::guides(colour = "none")
   }
 
+  # Sightings as outlined markers on the `fill` scale, so they keep their own
+  # legend. Rare species are lumped into one "other" entry.
   n_spp <- 0L
   if (!is.null(sight)) {
     n_spp <- length(unique(as.character(sight$SPECCODE)))
@@ -222,9 +208,8 @@ plot_segments_map <- function(x, species = NULL, coastline = FALSE,
   }
 
   p +
-    # The extent follows the segments now that the off-effort positions are not
-    # drawn. Taken from `pts` it would leave margins of empty water around a
-    # transit nothing on the map explains.
+    # Map extent from the segment positions, not all positions, so that
+    # undrawn transits do not add empty margins.
     map_coord(coastline,
               if (nrow(on_seg)) on_seg$LONGITUDE else pts$LONGITUDE,
               if (nrow(on_seg)) on_seg$LATITUDE else pts$LATITUDE) +
@@ -236,6 +221,8 @@ plot_segments_map <- function(x, species = NULL, coastline = FALSE,
     ggplot2::theme_minimal()
 }
 
+# Subtitle for the segments view: segment count, total effort (km), and the
+# sighting and species counts when sightings are drawn.
 segments_map_subtitle <- function(segs, sight, n_spp, max_legend) {
   effort <- paste0(
     fmt_count(nrow(segs)), " segments over ",
@@ -254,31 +241,30 @@ segments_map_subtitle <- function(segs, sight, n_spp, max_legend) {
   ), sep = "\n")
 }
 
+# The "tracks" view: positions coloured by continuous-effort track.
 plot_tracks_map <- function(x, coastline = FALSE, max_legend = 12) {
   pts <- x$points
 
-  # 130 tracks gave a 130-entry legend that squeezed the map into a corner and
-  # overlapped its own axis labels. `plot_survey()` had already solved this;
-  # this view had never been given it.
-  cap <- capped_groups(pts$new_trackno, max_legend)
-  pts$.track <- cap$col
-
-  # Grouped by day as well as by track: track numbers restart at 1 on every
-  # survey date, so grouping on the number alone joins one day's track 1 to
-  # the next day's and draws the line between two surveys.
+  # Colour by track number, recycling colours and dropping the legend when
+  # there are too many tracks to name.
+  # A track is identified by day plus track number: numbers restart at 1 on
+  # every survey date. This key groups the paths, sets the colours, and gives
+  # the count in the subtitle.
   pts$.pathgrp <- if ("DATE" %in% names(pts)) {
     paste(pts$DATE, pts$new_trackno)
   } else {
     as.character(pts$new_trackno)
   }
+  cap <- capped_groups(pts$.pathgrp, max_legend)
+  pts$.track <- cap$col
 
   p <- ggplot2::ggplot(
     pts,
     ggplot2::aes(x = .data$LONGITUDE, y = .data$LATITUDE, colour = .data$.track)
   ) +
     coastline_layer(coastline) +
-    # Grouped by the track itself, never by the colour: once colours recycle,
-    # two tracks share one and a path would join them across open water.
+    # Paths are grouped by track, not by colour: once colours recycle, two
+    # tracks share a colour and must not be joined.
     ggplot2::geom_path(ggplot2::aes(group = .data$.pathgrp),
                        linewidth = 0.4, na.rm = TRUE) +
     ggplot2::geom_point(size = 0.7, na.rm = TRUE) +
@@ -299,14 +285,15 @@ plot_tracks_map <- function(x, coastline = FALSE, max_legend = 12) {
     ) +
     ggplot2::theme_minimal()
 
+  # Legend only when the tracks are named.
   p <- if (cap$named) {
     p + legend_guide(nlevels(pts$.track))
   } else {
     p + ggplot2::guides(colour = "none")
   }
 
-  # Faceting a decade gives 187 panels a few millimetres across. The same
-  # 2-to-12 window `plot_survey()` uses, for the same reason.
+  # Facet by day only for 2 to 12 days, as in `plot_survey()`. More days give
+  # panels too small to read.
   if ("DATE" %in% names(pts)) {
     n_days <- length(unique(stats::na.omit(pts$DATE)))
     if (n_days >= 2L && n_days <= 12L) {
@@ -316,9 +303,12 @@ plot_tracks_map <- function(x, coastline = FALSE, max_legend = 12) {
   p
 }
 
+# The "effort" view: histogram of segment effort (km), with the target length
+# as a solid line and the tolerance band as dashed lines.
 plot_effort_hist <- function(x) {
   segs <- x$segments
   target <- x$settings$seg_length
+  # Tolerance in km: target x seg_tol_frac (0.5 if the setting is absent).
   tol <- target * (x$settings$seg_tol_frac %||% 0.5)
 
   ggplot2::ggplot(segs, ggplot2::aes(x = .data$seg_eff)) +
@@ -339,7 +329,10 @@ plot_effort_hist <- function(x) {
     ggplot2::theme_minimal()
 }
 
+# The "distances" view: histogram of perpendicular distances, in the units
+# the segmentation used.
 plot_distance_hist <- function(x, species = NULL, trim = 0.99) {
+  # Detections with a distance, optionally for chosen species only.
   det <- x$detections
   if (!is.null(species)) {
     det <- det[det$SPECCODE %in% species, , drop = FALSE]
@@ -355,10 +348,10 @@ plot_distance_hist <- function(x, species = NULL, trim = 0.99) {
     ))
   }
 
-  # One distance of six million metres put every real distance in the first bin
-  # and the whole detection function out of sight. The outlier is the finding,
-  # so the axis stops at a quantile and the subtitle reports what was left off -
-  # trimming the view, never the data.
+  # Stop the axis at the `trim` quantile so that one huge outlier cannot put
+  # every real distance in the first bin. Only the view is trimmed; the
+  # subtitle reports what lies beyond. If the quantile is unusable, use the
+  # maximum.
   d <- det$distance
   hi <- unname(stats::quantile(d, trim, na.rm = TRUE))
   if (!is.finite(hi) || hi <= 0) {
@@ -378,13 +371,16 @@ plot_distance_hist <- function(x, species = NULL, trim = 0.99) {
     ggplot2::theme_minimal()
 }
 
+# Subtitle for the distances view: how many detections carry a distance,
+# where the axis stops and what lies beyond, and a warning if the largest
+# distance is implausible.
 distance_hist_subtitle <- function(det, all_det, d, hi, beyond, units) {
   have <- paste0(
     fmt_count(nrow(det)), " of ", fmt_count(nrow(all_det)),
     " detections carry a distance. g(0) = 1 is assumed unless corrected."
   )
-  # The drawn maximum, not the quantile that produced it. The reader is looking
-  # at an axis; a cut-off they cannot find on it explains nothing.
+  # Report the largest distance drawn, not the quantile value, so the number
+  # matches the axis.
   axis <- if (beyond > 0) {
     paste0(
       "\nAxis stops at ", fmt_count(max(d[d <= hi], na.rm = TRUE)), " ", units,
@@ -393,10 +389,9 @@ distance_hist_subtitle <- function(det, all_det, d, hi, beyond, units) {
     )
   } else ""
 
-  # A perpendicular distance is bounded by how far anyone can see from the
-  # aircraft. Past that it is not a wide detection, it is a broken one - a
-  # sighting matched to the wrong segment, or a coordinate with a sign error -
-  # and the plot should say so instead of drawing it.
+  # A perpendicular distance cannot exceed how far an observer can see from
+  # the aircraft. A larger one is an error (a sighting matched to the wrong
+  # segment, or a coordinate with a sign error), and the subtitle says so.
   cap <- plausible_max(units)
   warn <- if (!is.na(cap) && max(d, na.rm = TRUE) > cap) {
     paste0(
@@ -408,12 +403,15 @@ distance_hist_subtitle <- function(det, all_det, d, hi, beyond, units) {
   paste0(have, axis, warn)
 }
 
+# Largest plausible perpendicular distance in `units`: 20 km (about 11 nmi).
+# NA for unknown units, which disables the check.
 plausible_max <- function(units) {
   switch(units, m = 20000, km = 20, nmi = 11, nm = 11, NA_real_)
 }
 
 
-# The land layer, or nothing. Drawn before the survey so the track sits on top.
+# The land layer, or NULL for none. Added before the survey layers so the
+# track is drawn on top.
 coastline_layer <- function(coastline) {
   land <- resolve_coastline(coastline)
   if (is.null(land)) {
@@ -425,13 +423,14 @@ coastline_layer <- function(coastline) {
   )
 }
 
-# coord_sf() once there is an sf layer to reconcile, coord_quickmap() otherwise.
-# The limits come from the survey rather than the land, or a world coastline
-# would zoom the plot out to the world.
+# Map coordinates. coord_quickmap() when there is no land layer; coord_sf()
+# when there is an sf layer. Limits come from the survey positions (degrees),
+# not the land, or a world coastline would zoom out to the world.
 map_coord <- function(coastline, lon, lat) {
   if (is.null(resolve_coastline(coastline))) {
     return(ggplot2::coord_quickmap())
   }
+  # Pad each range by 8% of its width, and by at least 0.05 degrees.
   pad <- function(r) {
     d <- diff(r)
     r + c(-1, 1) * max(d * 0.08, 0.05)
@@ -443,10 +442,9 @@ map_coord <- function(coastline, lon, lat) {
   )
 }
 
-# NULL for no coastline, otherwise an sf object.
-# A coastline that cannot be fetched is fatal where the caller asked for a
-# publication map, and merely a nuisance where they asked to look at their
-# tracks. `soft = TRUE` warns and returns NULL instead of aborting.
+# As resolve_coastline(), but a coastline that cannot be fetched gives a
+# warning and NULL instead of an error. For exploratory plots, where a missing
+# coastline is a nuisance rather than a failure.
 resolve_coastline_soft <- function(coastline) {
   tryCatch(resolve_coastline(coastline), error = function(e) {
     rlang::warn(paste0(
@@ -456,6 +454,9 @@ resolve_coastline_soft <- function(coastline) {
   })
 }
 
+# The land to draw: NULL for no coastline, otherwise an sf object. FALSE or
+# NULL gives NULL; an sf object is returned as given; TRUE or a scale name
+# fetches Natural Earth countries. Errors if they cannot be fetched.
 resolve_coastline <- function(coastline) {
   if (isFALSE(coastline) || is.null(coastline)) {
     return(NULL)
@@ -465,6 +466,7 @@ resolve_coastline <- function(coastline) {
   }
   check_sf()
 
+  # TRUE means the medium scale. Anything else must be a scale name.
   scale <- if (isTRUE(coastline)) "medium" else coastline
   if (!is.character(scale) || length(scale) != 1L ||
       !scale %in% c("small", "medium", "large")) {
@@ -473,6 +475,8 @@ resolve_coastline <- function(coastline) {
       "\"large\", or an `sf` object to draw."
     ))
   }
+  # Fetch the countries layer, with a specific message for the large scale,
+  # which needs a package not on CRAN.
   if (!requireNamespace("rnaturalearth", quietly = TRUE)) {
     rlang::abort(paste0(
       "`coastline = \"", scale, "\"` needs the `rnaturalearth` package. ",

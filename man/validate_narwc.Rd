@@ -27,16 +27,15 @@ A zero-row tibble means every check passed.
 }
 \description{
 \code{\link[narwcr:validate_narwc]{narwcr::validate_narwc()}} with this package's checks added to the default,
-so that \code{validate_narwc(dat)} reports everything it reported before the
-reading layer was split into \pkg{narwcr}.
+so that \code{validate_narwc(dat)} runs both the handbook checks from
+\pkg{narwcr} and the distance-sampling checks from this package.
 }
 \section{Why this wrapper exists}{
 
 The handbook-general checks live in \pkg{narwcr}, and calling its
-\code{validate_narwc()} directly runs only those. Silently dropping four checks
-from a function people already call would be a regression, so this package
-keeps its own default. To run only the handbook rules, call
-\code{narwcr::validate_narwc()}.
+\code{validate_narwc()} directly runs only those. This package keeps its own
+default so that existing calls do not silently lose four checks. To run only
+the handbook rules, call \code{narwcr::validate_narwc()}.
 }
 
 \examples{

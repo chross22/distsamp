@@ -40,7 +40,7 @@ test_that("thinning takes every nth and says so", {
   d <- staged()
   p <- plot_survey(d, "effort", max_points = 20)
   expect_lte(nrow(p$data), 20)
-  expect_match(p$labels$subtitle, "of 113 \\(every \\d+th\\)")
+  expect_match(p$labels$subtitle, "of 113 \\(1 in every 6\\)")
 })
 
 test_that("nothing is thinned when it fits", {

@@ -27,26 +27,25 @@
 the views that draw sightings. \code{NULL} (default) shows all.}
 
 \item{coastline}{Land to draw under the map views. \code{FALSE} (default) draws
-none. \code{TRUE} fetches Natural Earth countries through \code{rnaturalearth}; a
-scale name — \code{"small"}, \code{"medium"}, \code{"large"} — picks the resolution; or
-pass your own \code{sf} object. Ignored by the \code{"effort"} and \code{"distances"}
+none. \code{TRUE} fetches Natural Earth countries through \code{rnaturalearth}. A
+scale name (\code{"small"}, \code{"medium"}, \code{"large"}) picks the resolution. An
+\code{sf} object is drawn as given. Ignored by the \code{"effort"} and \code{"distances"}
 views. See the note on resolution below.}
 
 \item{max_legend}{Most groups to name in the legend. Default \code{8}. Species
-beyond it are gathered into one "other" entry — they stay on the map, they
-just stop having their own colour — and tracks beyond it take a recycled
-palette with the legend dropped. A survey with 36 species or 130 tracks
-produces a legend that squeezes the map to nothing otherwise.}
+beyond it are gathered into one "other" entry (they stay on the map
+without their own colour). Tracks beyond it take a recycled palette and no
+legend. Otherwise a survey with 36 species or 130 tracks gives a legend
+that squeezes the map to nothing.}
 
 \item{dates, years, months}{Which survey days to draw, passed to
 \code{\link[=filter_days]{filter_days()}}. \code{NULL} (default) draws all of them. Every table in the
-object — points, segments, detections — is cut to the same days.}
+object (points, segments, detections) is cut to the same days.}
 
 \item{sightings}{Draw the sightings over the segments? Default \code{TRUE}. Set
-\code{FALSE} on the whole-archive segments view: 2,204 markers over 8,628
-segments cover the colouring that says where the cuts fall, which is what
-that view is for. The per-day figures are where a sighting's position
-against its segment can actually be read.}
+\code{FALSE} for the whole-archive segments view, where thousands of markers
+hide the colouring that shows where the cuts fall. A sighting's position
+against its segment is readable in the per-day figures.}
 
 \item{...}{Ignored, for compatibility with \code{\link[=plot]{plot()}}.}
 }
@@ -62,28 +61,26 @@ modified, saved, or faceted further like any other.
 
 \describe{
 \item{\code{"segments"}}{The track flown, the segment midpoints, and where the
-sightings were. The first thing to look at: a segmentation that has gone
-wrong is usually obvious here, as midpoints strung along a line the
-aircraft never flew, or clustered where a track should have been split.}
+sightings were. Look here first: a segmentation that has gone wrong is
+usually obvious, as midpoints strung along a line the aircraft never
+flew, or clustered where a track should have been split.}
 \item{\code{"tracks"}}{The same positions coloured by \code{new_trackno}, faceted by
-date. This is the view that shows whether \code{\link[=split_tracks]{split_tracks()}} did the right
-thing — a break in effort should start a new colour, and a colour should
-never span two places the aircraft could not have flown between.}
+date. This view shows whether \code{\link[=split_tracks]{split_tracks()}} worked: a break in effort
+should start a new colour, and a colour should never span two places the
+aircraft could not have flown between.}
 \item{\code{"effort"}}{Segment lengths against the target. The Becker method
 produces segments near \code{seg_length} but not at it, with one absorbing
-segment per track taking up the remainder, so a spread is expected. What
-is not expected is mass outside the tolerance band, which the dashed lines
-mark.}
+segment per track taking up the remainder, so a spread is expected. Mass
+outside the tolerance band (the dashed lines) is not expected.}
 \item{\code{"distances"}}{The distribution of perpendicular distances. This is
 the detection-function diagnostic: look for a shoulder near zero and a
 tail that falls away. A spike at zero, a peak away from zero, or a long
 flat tail all mean something, and all of them matter before
 \code{Distance::ds()} is called. See the note on \code{g(0)} below.
 The axis stops at the 99th percentile and the subtitle reports what lies
-beyond it: a single implausible distance would otherwise set the scale
-and put every real one in the first bin. Since such a distance is a bug
-worth finding rather than a nuisance worth hiding, the subtitle says
-outright when the largest is too far to be a detection.}
+beyond it; otherwise one implausible distance would set the scale and put
+every real one in the first bin. Such a distance is usually a bug, so the
+subtitle says when the largest is too far to be a detection.}
 }
 }
 
@@ -91,26 +88,25 @@ outright when the largest is too far to be a detection.}
 
 \code{coastline = TRUE} draws Natural Earth land under the track. That is enough
 to orient a shelf-scale survey, and \strong{not} enough for a bay. Natural Earth's
-medium scale is 1:50,000,000; against a survey whose lines are a few
-kilometres apart, its shoreline is wrong by more than the thing you are
-looking at, and a segmentation that hugs the coast will appear to run over
-land.
+medium scale is 1:50,000,000. Against survey lines a few kilometres apart,
+its shoreline is wrong by more than the features being examined, and a
+segmentation that hugs the coast appears to run over land.
 
-So: use it to get your bearings, and pass your own \code{sf} object for anything
-anyone else will see.
+Use it for orientation, and pass an \code{sf} object of your own for any figure
+others will see.
 
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{plot(segs, coastline = sf::st_read("gshhg_cape_cod.shp"))
 }\if{html}{\out{</div>}}
 
 \code{scale = "large"} (1:10m) is better and needs \code{rnaturalearthhires}, which is
-not on CRAN — install it from the rOpenSci r-universe.
+not on CRAN; install it from the rOpenSci r-universe.
 }
 
 \section{On reading the distance histogram}{
 
-A dip in the first bin is not necessarily a sampling artefact — an aircraft
+A dip in the first bin is not necessarily a sampling artefact: an aircraft
 cannot see the water directly beneath it, and for the Skymaster the handbook
-says so explicitly (8.A.31). That is a reason to truncate on the left, not to
+says so (8.A.31). That is a reason to truncate on the left, not to
 assume the animals were not there. Neither is a smooth curve evidence that
 \code{g(0) = 1}: animals submerged when the aircraft passed leave no trace in this
 plot at all. See \code{docs/07-fitting-architecture.md} in the package repository.

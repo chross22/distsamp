@@ -1,9 +1,9 @@
 #' Get a NARWC extract ready to segment
 #'
 #' Runs the steps between reading a file and segmenting it, in the order they
-#' have to happen: line occupations, line state, platform, effort. Each is
-#' exported and can be run by hand; this exists because the order is not
-#' obvious and getting it wrong is quiet.
+#' must happen: line occupations, line state, platform, effort. Each step is
+#' exported and can be run by hand. This function exists because the order is
+#' not obvious, and a wrong order gives no error.
 #'
 #' `prepare_aerial()` is the same function with `platform = "aerial"` in its
 #' name rather than its arguments. It takes the platform argument too, so
@@ -57,10 +57,10 @@
 #' })
 #' ```
 #'
-#' `correct` runs after the platform filter and before effort is flagged, which
-#' is the only place it can go: applying it earlier scales ship altitudes that
-#' were already metres, and applying it later leaves every record failing the
-#' altitude ceiling that `flag_effort()` has already tested.
+#' `correct` runs after the platform filter and before effort is flagged. This
+#' is the only place it can go. Applied earlier, it would also scale ship
+#' altitudes that were already in metres. Applied later, every record would
+#' already have failed the altitude ceiling tested by `flag_effort()`.
 #'
 #' @param dat A NARWC data frame from `narwcr::read_narwc()`.
 #' @param platform Which platform to keep: `"aerial"` (default), `"vessel"`
@@ -69,11 +69,10 @@
 #' @param fill_legstage Reconstruct the line state where no `LEGSTAGE` was
 #'   written? Default `TRUE`. See `narwcr::fill_legstage()`.
 #' @param correct A function applied to the filtered frame *before* effort is
-#'   flagged, or `NULL`. This is where a correction that only applies to the
-#'   records being kept goes — an altitude recorded in feet, most often. It has
-#'   to happen here: `flag_effort()` reads `ALT`, so correcting afterwards
-#'   leaves every record failing the altitude ceiling, and correcting before
-#'   the platform filter scales ship altitudes that were already metres.
+#'   flagged, or `NULL`. Use it for a correction that applies only to the
+#'   records being kept, most often an altitude recorded in feet. It must
+#'   return the same number of rows. See the section on what this function
+#'   does not do for why it runs at this point.
 #' @param effort_args Named list passed to `narwcr::flag_effort()`, for a
 #'   programme whose criteria differ from the defaults. Merged over the
 #'   platform's own defaults, so naming an argument here overrides it.
@@ -101,28 +100,34 @@
 prepare_survey <- function(dat, platform = c("aerial", "vessel", "ship", "all"),
                            fill_legstage = TRUE, correct = NULL,
                            effort_args = list(), quiet = FALSE) {
+  # 0. Check the arguments. "ship" becomes "vessel".
   platform <- resolve_platform(platform, allow_all = TRUE)
   stopifnot(is.data.frame(dat))
   stopifnot(is.list(effort_args))
   n_in <- nrow(dat)
 
-  # "all" keeps both kinds, so no platform's criteria are the right ones and
-  # the aerial defaults stand. Filtering is what licenses changing them.
+  # Merge the platform's default effort arguments under the caller's. Under
+  # "all" no platform is filtered to, so the narwcr (aerial) defaults stand.
   if (platform != "all") {
     defaults <- platform_defaults(platform)
-    # The caller's arguments win, name by name. `modifyList()` would drop a
-    # `max_alt_m = NULL` the caller passed explicitly, which is the one value
-    # a vessel most needs to be able to set.
+    # The caller's arguments win, name by name. modifyList() is not used: it
+    # deletes elements set to NULL, and a vessel needs `max_alt_m = NULL`.
     keep_names <- setdiff(names(defaults$effort_args), names(effort_args))
     effort_args <- c(effort_args, defaults$effort_args[keep_names])
   }
 
+  # 1. Line occupations (LEGNO2, LEGNO3).
   dat <- narwcr::make_leg_id(dat, quiet = quiet)
 
+  # 2. Fill LEGSTAGE = 2 where the file recorded it only on change. Needed
+  #    before distances, which use only LEGSTAGE == 2 records.
   if (fill_legstage && "LEGSTAGE" %in% names(dat)) {
     dat <- narwcr::fill_legstage(dat, quiet = quiet)
   }
 
+  # 3. Label each record's platform from its speed, then keep only the
+  #    requested platform. The labels need positions and times; without them
+  #    every record is kept, with a warning.
   if (all(c("LATITUDE", "LONGITUDE", "TIME") %in% names(dat))) {
     dat$PLATFORM_KIND <- narwcr::classify_platform(dat)
     if (!quiet) {
@@ -135,8 +140,8 @@ prepare_survey <- function(dat, platform = c("aerial", "vessel", "ship", "all"),
     if (platform != "all") {
       keep <- !is.na(dat$PLATFORM_KIND) &
         dat$PLATFORM_KIND == defaults$kind
-      # After make_leg_id(), never before: filtering first makes two
-      # occupations of one line adjacent and merges them.
+      # This filter must follow make_leg_id(). Filtering first makes two
+      # occupations of one line adjacent, so they merge.
       dat <- dat[keep, , drop = FALSE]
       if (!quiet) {
         rlang::inform(paste0(
@@ -153,8 +158,9 @@ prepare_survey <- function(dat, platform = c("aerial", "vessel", "ship", "all"),
     ))
   }
 
-  # Between the filter and the effort flags, because that is the only place a
-  # correction to a criterion column can go and be seen by the criteria.
+  # 4. Apply the caller's correction. It runs after the filter, so it touches
+  #    only kept records, and before the effort flags, so the criteria see the
+  #    corrected columns. It must not add or remove rows.
   if (!is.null(correct)) {
     stopifnot(is.function(correct))
     n_before <- nrow(dat)
@@ -163,10 +169,12 @@ prepare_survey <- function(dat, platform = c("aerial", "vessel", "ship", "all"),
     if (!quiet) rlang::inform("Applied `correct()` to the filtered records.")
   }
 
+  # 5. Effort flag (OnOff.Effort), unless the input already has one.
   if (!"OnOff.Effort" %in% names(dat)) {
     dat <- flag_effort_for_platform(dat, effort_args)
   }
 
+  # Report how many records are on effort.
   if (!quiet && "OnOff.Effort" %in% names(dat)) {
     rlang::inform(paste0(
       format(sum(dat$OnOff.Effort == 1, na.rm = TRUE), big.mark = ","), " of ",
@@ -183,6 +191,7 @@ prepare_survey <- function(dat, platform = c("aerial", "vessel", "ship", "all"),
 prepare_aerial <- function(dat, platform = c("aerial", "vessel", "ship", "all"),
                            fill_legstage = TRUE, correct = NULL,
                            effort_args = list(), quiet = FALSE) {
+  # Same as prepare_survey(); kept so existing code keeps working.
   prepare_survey(dat, platform = platform, fill_legstage = fill_legstage,
                  correct = correct, effort_args = effort_args, quiet = quiet)
 }
