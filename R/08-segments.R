@@ -22,10 +22,9 @@
 #' * If `rem` is smaller than the tolerance, it is absorbed instead: one segment
 #'   is stretched to `s + rem`.
 #'
-#' Either way the leftover is assigned to a **randomly chosen** segment rather
-#' than always the last one, so that the short (or long) segment is not
-#' systematically at the end of every track. The target lengths always sum to
-#' `L`.
+#' Either way the odd length goes to a **randomly chosen** segment, not always
+#' the last one, so the short (or long) segment is not always at the end of a
+#' track. The target lengths always sum to `L`.
 #'
 #' @section Reproducibility:
 #' The random choice makes segmentation non-deterministic. Pass a `seed` to fix
@@ -43,15 +42,14 @@
 #'   `tgtdist` (target length in km).
 #'
 #' @section On the published record:
-#' Becker et al. (2010) is the citation the literature uses for this approach —
+#' Becker et al. (2010) is the citation the literature uses for this approach;
 #' later papers describe their samples as "divided into approximate 5-km segments
 #' of continuous survey effort using the approach described by Becker et al.
-#' (2010)" (Becker et al. 2019). What the published methods state is the target
-#' length and the use of continuous effort; the specific handling of the leftover
-#' distance at the end of a track — the tolerance test, and assigning the
-#' remainder to a randomly chosen segment rather than the last one — is a
-#' property of the `segchopr` implementation and does not appear to be described
-#' in print. It is documented here instead, and is controlled by `seg_tol_frac`.
+#' (2010)" (Becker et al. 2019). The published methods state the target length
+#' and the use of continuous effort. The handling of the leftover distance (the
+#' tolerance test, and giving the remainder to a random segment) comes from the
+#' `segchopr` code and does not appear to be described in print. It is
+#' documented here instead, and is controlled by `seg_tol_frac`.
 #'
 #' @references
 #' Becker, E.A., Forney, K.A., Ferguson, M.C., Foley, D.G., Smith, R.C., Barlow,
@@ -88,6 +86,7 @@ plan_segments <- function(tracks, seg_length, seg_tol_frac = 0.5, seed = NULL) {
   require_columns(tracks, c("DATE", "new_trackno", "track_effort", "start_time"))
   stopifnot(is.numeric(seg_length), length(seg_length) == 1L, seg_length > 0)
 
+  # No tracks: return an empty plan with the right columns.
   if (is_empty_df(tracks)) {
     return(tibble::tibble(
       DATE = tracks$DATE, new_trackno = tracks$new_trackno,
@@ -96,8 +95,11 @@ plan_segments <- function(tracks, seg_length, seg_tol_frac = 0.5, seed = NULL) {
     ))
   }
 
+  # A remainder at least this long becomes its own segment.
   seg_tol <- seg_tol_frac * seg_length
 
+  # Plan each track and stack the results: one row per planned segment.
+  # Runs under `seed` because plan_one_track() draws a random number.
   with_optional_seed(seed, {
     plans <- lapply(seq_len(nrow(tracks)), function(i) {
       total <- tracks$track_effort[i]
@@ -115,8 +117,10 @@ plan_segments <- function(tracks, seg_length, seg_tol_frac = 0.5, seed = NULL) {
   })
 }
 
-# Target lengths for one track. Returns a numeric vector summing to `total`.
+# Target lengths (km) for one track of `total` km. Returns a numeric vector
+# summing to `total`, one element per segment.
 plan_one_track <- function(total, seg_length, seg_tol) {
+  # No effort: no segments. Shorter than one segment: one segment.
   if (!is.finite(total) || total <= 0) {
     return(numeric(0))
   }
@@ -124,22 +128,24 @@ plan_one_track <- function(total, seg_length, seg_tol) {
     return(total)
   }
 
+  # Count the whole segments that fit, and the remainder.
   n_whole <- floor(total / seg_length)
   leftover <- total - n_whole * seg_length
 
   if (leftover >= seg_tol || n_whole == 0) {
-    # Big enough to be a segment in its own right.
+    # Remainder of at least seg_tol: it becomes an extra, short segment.
     n_seg <- n_whole + 1L
     extra <- leftover
   } else {
-    # Too short to stand alone; stretch one segment to swallow it.
+    # Remainder shorter than seg_tol: one segment is lengthened to hold it.
     n_seg <- n_whole
     extra <- seg_length + leftover
   }
 
+  # All segments get seg_length, except one, chosen at random, which gets the
+  # odd length. sample.int() can pick any of the n_seg segments, including
+  # the last; floor(runif(1, 1, n_seg)) could not.
   tgt <- rep(seg_length, n_seg)
-  # sample.int, not floor(runif(1, 1, n_seg)): the latter can never return
-  # n_seg, so the leftover could never land on the final segment.
   tgt[sample.int(n_seg, 1L)] <- extra
   tgt
 }
@@ -166,8 +172,8 @@ plan_one_track <- function(total, seg_length, seg_tol) {
 #' @param plan A tibble from [plan_segments()].
 #' @param dat The point-level survey data, with `DATE`, `new_trackno`,
 #'   `pt2pt.effort`, and `EVENTNO`.
-#' @param min_segment_km Segments shorter than this are dropped from the result.
-#'   Default `1`.
+#' @param min_segment_km Segments of this length or less are dropped from the
+#'   result. Default `1`.
 #' @param seed Integer RNG seed for the coin flips, or `NULL`.
 #'
 #' @return The point-level data, restricted to records that fell inside a kept
@@ -181,8 +187,8 @@ plan_one_track <- function(total, seg_length, seg_tol) {
 #'   }
 #'
 #' @details
-#' The `case` column records why each segment ended, preserving the diagnostic
-#' labels from the original implementation:
+#' The `case` column records why each segment ended. The labels are those of
+#' the original implementation, which is why there is no `case1`:
 #' \describe{
 #'   \item{`case2`}{The first remaining record alone met the target.}
 #'   \item{`case3`}{Several records were needed; the coin flip decided whether
@@ -220,13 +226,20 @@ cut_segments <- function(plan, dat, min_segment_km = 1, seed = NULL) {
   require_columns(plan, c("DATE", "new_trackno", "seg_no", "tgtdist"), what = "plan")
   require_columns(dat, c("DATE", "new_trackno", "pt2pt.effort", "EVENTNO"))
 
+  # Nothing to cut: return the input's columns plus the segment columns, with
+  # no rows.
   if (is_empty_df(plan) || is_empty_df(dat)) {
     return(empty_chopped(dat))
   }
 
+  # A track is identified by DATE and new_trackno (track numbers restart each
+  # day). The key joins them with "\r", a character neither can contain.
   plan_key <- paste(plan$DATE, plan$new_trackno, sep = "\r")
   dat_key <- paste(dat$DATE, dat$new_trackno, sep = "\r")
 
+  # Cut each planned track. Only tracks in the plan are cut, so records of
+  # dropped tracks (off effort, or too short) are left out here. Runs under
+  # `seed` because cut_one_track() draws random numbers.
   pieces <- with_optional_seed(seed, {
     lapply(unique(plan_key), function(k) {
       cut_one_track(
@@ -236,6 +249,7 @@ cut_segments <- function(plan, dat, min_segment_km = 1, seed = NULL) {
     })
   })
 
+  # Stack the tracks and drop segments of min_segment_km or less.
   out <- dplyr::bind_rows(pieces)
   if (is_empty_df(out)) {
     return(empty_chopped(dat))
@@ -243,8 +257,8 @@ cut_segments <- function(plan, dat, min_segment_km = 1, seed = NULL) {
   dplyr::filter(out, .data$seg_eff > min_segment_km)
 }
 
-# Cut a single track. `plan_i` is that track's planned segments in order;
-# `dat_i` is its records in survey order.
+# Cut a single track. `plan_i` is that track's planned segments; `dat_i` is
+# its records in survey order. Returns the records with segment columns added.
 cut_one_track <- function(plan_i, dat_i) {
   n_rows <- nrow(dat_i)
   n_seg <- nrow(plan_i)
@@ -252,28 +266,40 @@ cut_one_track <- function(plan_i, dat_i) {
     return(NULL)
   }
 
+  # Cut points are measured from the start of the track (cumulative targets),
+  # not from where the previous segment ended. A cut can fall only on a
+  # record, so each segment ends a little over or under its target; measuring
+  # from the track start stops those errors adding up along the track.
+  #   cut_at  - cumulative target (km) at the end of each segment
+  #   covered - effort (km) already assigned to earlier segments
+  #   pos     - first record not yet assigned
   plan_i <- plan_i[order(plan_i$seg_no), , drop = FALSE]
-  # Cut points measured from the start of the track, not from wherever the
-  # previous segment happened to end. Because a cut can only fall on a record
-  # boundary, each segment lands a little over or under its target; measuring
-  # from the track start stops those errors accumulating down the track and
-  # dumping the arrears on the final segment.
   cut_at <- cumsum(plan_i$tgtdist)
   covered <- 0
   pos <- 1L
   pieces <- vector("list", n_seg)
 
   for (i in seq_len(n_seg)) {
+    # All records used: later planned segments get no records.
     if (pos > n_rows) break
 
+    # The remaining records, their effort, and the effort still needed to
+    # reach this segment's cut point (`tgt`; 0 if already passed).
     idx <- pos:n_rows
     eff <- dat_i$pt2pt.effort[idx]
     eff[is.na(eff)] <- 0
     tgt <- max(cut_at[i] - covered, 0)
 
+    # Decide how many records (`take`) this segment gets:
+    #   case5 - last planned segment: all remaining records, so no effort is
+    #           lost off the end of the track.
+    #   case2 - the first remaining record alone reaches the target.
+    #   case4 - all remaining effort falls short of the target: take it all.
+    #   case3 - usual case. k is the first record at which cumulative effort
+    #           reaches the target. A random draw keeps that record (segment
+    #           slightly long) or stops one record before it (slightly short).
+    #           k > 1 ensures at least one record is taken.
     if (i == n_seg) {
-      # Last planned segment: take everything that is left, so that no effort
-      # falls off the end of the track.
       take <- length(idx)
       case <- "case5"
     } else if (eff[1] >= tgt) {
@@ -284,7 +310,6 @@ cut_one_track <- function(plan_i, dat_i) {
       case <- "case4"
     } else {
       k <- which(cumsum(eff) >= tgt)[1]
-      # Heads, overshoot; tails, undershoot. Never take zero records.
       if (stats::runif(1) >= 0.5 && k > 1L) {
         k <- k - 1L
       }
@@ -292,6 +317,8 @@ cut_one_track <- function(plan_i, dat_i) {
       case <- "case3"
     }
 
+    # Label the taken records with this segment. seg_eff is the sum of their
+    # pt2pt.effort (km); events is the first and last EVENTNO.
     rows <- pos:(pos + take - 1L)
     piece <- dat_i[rows, , drop = FALSE]
     piece$seg_no <- plan_i$seg_no[i]
@@ -307,6 +334,7 @@ cut_one_track <- function(plan_i, dat_i) {
     piece$case <- case
     pieces[[i]] <- piece
 
+    # Advance past the taken records.
     covered <- covered + piece$seg_eff[1]
     pos <- pos + take
   }
@@ -314,6 +342,7 @@ cut_one_track <- function(plan_i, dat_i) {
   dplyr::bind_rows(pieces)
 }
 
+# A zero-row `chopped` table: the columns of `dat` plus the segment columns.
 empty_chopped <- function(dat) {
   out <- dat[0, , drop = FALSE]
   out$seg_no <- integer(0)

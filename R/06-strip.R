@@ -7,10 +7,10 @@
 #' @section Choosing the scheme:
 #' With `scheme = "auto"` (the default) the scheme is chosen from `date`: the
 #' NLPSC / Mass CEC breakpoints for October 2011 onwards, the CETAP ones before.
-#' That is a reasonable default but not a guarantee — a survey flown after 2011
-#' under the older protocol would be misread — so pass `scheme` explicitly when
-#' you know which applies. With no `date` and no `scheme`, this errors rather
-#' than guess.
+#' This is a default, not a guarantee: a survey flown after 2011 under the older
+#' protocol would be misread. Pass `scheme` explicitly when it is known. With no
+#' `date` and no `scheme`, this errors rather than guess; a record whose date
+#' is missing gets no interval, with a warning.
 #'
 #' @section The Skymaster blind spot:
 #' Handbook 8.A.31 notes that the Skymaster's restricted downward visibility
@@ -18,8 +18,9 @@
 #' about 1/8 mile to either side of the survey line". The strip boundaries do
 #' not record this, so distances near zero are not what they appear: the region
 #' under the aircraft was never searched. Set `left_truncation = TRUE` to shift
-#' the innermost bins accordingly, and see `detection_data()` (not yet implemented) for fitting with a
-#' left truncation, which is the statistically correct treatment.
+#' the innermost bins accordingly. It is applied to Skymaster records under
+#' either code book. Fitting with a left truncation is the statistically
+#' correct treatment.
 #'
 #' @param strip Integer vector of `STRIP` codes.
 #' @param platform `"skymaster"` (default) or `"at-11"`.
@@ -53,6 +54,9 @@ strip_distance <- function(strip,
   strip <- as.integer(strip)
   n <- length(strip)
 
+  # Pick the code book for each record. "auto" uses the date: NLPSC from
+  # 2011-10-01 on, CETAP before. A record with no date gets no code book and
+  # so no interval: the same code means different distances in the two books.
   if (scheme == "auto") {
     if (is.null(date)) {
       rlang::abort(paste0(
@@ -61,17 +65,27 @@ strip_distance <- function(strip,
       ))
     }
     date <- as.Date(rep_len(date, n))
-    which_scheme <- ifelse(!is.na(date) & date >= as.Date("2011-10-01"),
-                           "nlpsc", "cetap")
+    which_scheme <- ifelse(date >= as.Date("2011-10-01"), "nlpsc", "cetap")
+    undated <- is.na(which_scheme) & !is.na(strip)
+    if (any(undated)) {
+      rlang::warn(paste0(
+        sum(undated), " STRIP record", if (sum(undated) > 1) "s have" else " has",
+        " no date, so the code book cannot be chosen and no interval is given. ",
+        "Pass `scheme` if it is known."
+      ))
+    }
   } else {
     which_scheme <- rep(scheme, n)
   }
 
+  # Start with all intervals missing; unknown codes stay NA.
   out <- tibble::tibble(
     distbegin = rep(NA_real_, n), distend = rep(NA_real_, n),
     side = rep(NA_character_, n), scheme = which_scheme
   )
 
+  # For each scheme in use, look each code up in that scheme's bin table and
+  # copy its interval (in `units`) and side.
   for (sc in unique(stats::na.omit(which_scheme))) {
     bins <- narwc_strip_bins(sc, platform = platform, units = units)
     i <- which(which_scheme == sc)
@@ -82,8 +96,9 @@ strip_distance <- function(strip,
   }
 
   if (left_truncation && platform == "skymaster") {
-    # The inner 1/8 nmi was not searched, so a bin starting at zero really
-    # starts there.
+    # The inner 1/8 nmi was not searched. Express it in `units` (1 nmi =
+    # 1852 m). A bin that straddles the offset now starts at the offset. A bin
+    # lying wholly inside it was never searched and becomes NA.
     offset <- (1 / 8) * switch(units, nmi = 1, m = 1852, km = 1.852)
     inner <- !is.na(out$distbegin) & out$distbegin < offset & out$distend > offset
     out$distbegin[inner] <- offset

@@ -446,3 +446,9 @@ test_that("without LEGSTAGE a circling sighting is never its own anchor", {
   expect_equal(nrow(ci), 1)
   expect_equal(ci$break_off_distance, 1111.2, tolerance = 1e-3)
 })
+
+test_that("flag_circling() never carries an open circle into another file", {
+  d <- data.frame(DATE = as.Date("2024-04-01"), FILEID = c("A", "A", "B", "B"),
+                  LEGNO3 = "1_1", LEGTYPE = 2, LEGSTAGE = c(2, 3, 2, 2))
+  expect_equal(flag_circling(d)$CIRCLE, c(0L, 0L, 0L, 0L))
+})

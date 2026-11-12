@@ -46,7 +46,8 @@
 #' @importFrom stats runif
 "_PACKAGE"
 
-# Abort on a bad enum-style argument, listing the permitted values.
+# Error for an argument whose value is not one of `allowed`, listing the
+# permitted values.
 cli_abort_bad_arg <- function(arg, value, allowed, call = rlang::caller_env()) {
   rlang::abort(
     paste0(
@@ -58,7 +59,8 @@ cli_abort_bad_arg <- function(arg, value, allowed, call = rlang::caller_env()) {
   )
 }
 
-# Abort when required columns are missing.
+# Error naming the missing columns. `what` names the argument they are
+# missing from.
 abort_missing_columns <- function(missing, what = "input", call = rlang::caller_env()) {
   rlang::abort(
     paste0(
@@ -70,7 +72,8 @@ abort_missing_columns <- function(missing, what = "input", call = rlang::caller_
   )
 }
 
-# Stop unless every name in `cols` is present in `dat`.
+# Error unless every name in `cols` is a column of `dat`. Returns `dat`
+# invisibly.
 require_columns <- function(dat, cols, what = "dat", call = rlang::caller_env()) {
   missing <- setdiff(cols, names(dat))
   if (length(missing)) {
@@ -79,7 +82,8 @@ require_columns <- function(dat, cols, what = "dat", call = rlang::caller_env())
   invisible(dat)
 }
 
-# Treat the NARWC missing-value placeholder "." (and blanks) as NA.
+# Convert the NARWC missing-value placeholder "." and blank, "NA" or "na"
+# strings to NA. Non-character input is returned unchanged.
 blank_to_na <- function(x) {
   if (!is.character(x)) {
     return(x)
@@ -88,9 +92,8 @@ blank_to_na <- function(x) {
   x
 }
 
-# Run `expr` under a fixed RNG seed when one is supplied, otherwise as-is.
-# Isolates the caller's RNG stream either way, so segmenting never perturbs the
-# global random state.
+# Evaluate `expr` with seed `seed` if given. Either way the caller's random
+# number state is restored afterwards, so segmenting never changes it.
 with_optional_seed <- function(seed, expr) {
   if (is.null(seed)) {
     withr::with_preserve_seed(expr)
@@ -100,30 +103,43 @@ with_optional_seed <- function(seed, expr) {
 }
 
 # Run-length id: 1, 1, 2, 2, 2, 3, ... incrementing whenever `x` changes.
-# Used to separate a survey line that was flown, abandoned, and later re-flown
-# on the same day into distinct occupations.
+# Used, for example, to separate runs of identical positions, or a line flown,
+# abandoned, and re-flown on the same day.
 rle_id <- function(x) {
   if (!length(x)) {
     return(integer(0))
   }
+  # NA is treated as a value of its own, so consecutive NAs form one run.
   key <- ifelse(is.na(x), "NA", as.character(x))
   cumsum(c(TRUE, key[-1] != key[-length(key)]))
 }
 
-# `%||%` without depending on a particular rlang export version.
-`%|NA|%` <- function(x, y) ifelse(is.na(x), y, x)
+# Sort key that puts segment ids ("DATE_track_segno") in survey order: by
+# date, then track and segment as numbers, so segment 2 comes before 19.
+# Sorting the ids as text does not.
+seg_sort_key <- function(seg_id) {
+  seg_id <- as.character(seg_id)
+  date <- sub("_.*$", "", seg_id)
+  track <- suppressWarnings(as.numeric(sub("^[^_]*_([^_]*)_.*$", "\\1", seg_id)))
+  segno <- suppressWarnings(as.numeric(sub("^.*_", "", seg_id)))
+  u <- unique(seg_id)
+  ord <- u[order(date[match(u, seg_id)], track[match(u, seg_id)],
+                 segno[match(u, seg_id)], u)]
+  match(seg_id, ord)
+}
 
+# TRUE for NULL or a data frame with no rows.
 is_empty_df <- function(x) is.null(x) || nrow(x) == 0L
 
-# Numbers as a reader writes them: thousands separated, never in scientific
-# notation. `format(6e6, big.mark = ",")` gives "6e+06" - and on a subtitle
-# whose whole job is to show that a distance is implausibly large, that is the
-# one thing it must not print.
+# Format numbers for display: rounded to whole numbers, with thousands
+# separators, never in scientific notation (`format(6e6, big.mark = ",")`
+# alone gives "6e+06").
 fmt_count <- function(x) {
   format(round(x), big.mark = ",", scientific = FALSE, trim = TRUE)
 }
 
-# One string per row identifying its group, from the columns in `by`.
+# One string per row identifying its group: the values of the columns in `by`
+# joined by "\r", a character that does not occur in the data.
 group_key <- function(dat, by) {
   do.call(paste, c(lapply(by, function(nm) as.character(dat[[nm]])), sep = "\r"))
 }

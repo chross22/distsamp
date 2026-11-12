@@ -29,21 +29,27 @@ segments_as_sf <- function(x, what = c("midpoints", "lines"), crs = 4326) {
   what <- match.arg(what)
   check_sf()
 
+  # Midpoints: one POINT per segment with a known midpoint. The coordinate
+  # columns are kept as attributes as well.
   if (what == "midpoints") {
     segs <- x$segments[!is.na(x$segments$mid_lon) & !is.na(x$segments$mid_lat), ]
     return(sf::st_as_sf(segs, coords = c("mid_lon", "mid_lat"), crs = crs,
                         remove = FALSE))
   }
 
+  # Lines: build each segment's trackline from its positioned points, in
+  # their stored order. A LINESTRING needs at least two positions, so
+  # segments with fewer are left out.
   pts <- x$points
   pts <- pts[!is.na(pts$LONGITUDE) & !is.na(pts$LATITUDE), ]
-  # A LINESTRING needs at least two positions.
   keep <- names(which(table(pts$seg_id) >= 2))
   pts <- pts[pts$seg_id %in% keep, ]
   if (!nrow(pts)) {
     rlang::abort("No segment has two or more positions to build a line from.")
   }
 
+  # Points -> one MULTIPOINT per segment (do_union = FALSE keeps the order)
+  # -> LINESTRING, then attach the segment attributes.
   geom <- sf::st_as_sf(pts, coords = c("LONGITUDE", "LATITUDE"), crs = crs)
   lines <- dplyr::summarise(
     dplyr::group_by(geom, .data$seg_id),
@@ -82,13 +88,25 @@ segments_as_sf <- function(x, what = c("midpoints", "lines"), crs = 4326) {
 crop_to_bbox <- function(x, bbox, coords = c("LONGITUDE", "LATITUDE")) {
   box <- as_bbox(bbox)
 
+  # A segmentation: crop segments on their midpoints and points on their
+  # positions, then keep the sightings of the segments that remain.
   if (inherits(x, "distsamp_segments")) {
     x$segments <- crop_to_bbox(x$segments, box, coords = c("mid_lon", "mid_lat"))
     x$points <- crop_to_bbox(x$points, box, coords = coords)
-    x$sightings <- x$sightings[x$sightings$seg_id %in% x$segments$seg_id, ]
+    kept <- x$segments$seg_id
+    x$sightings <- x$sightings[x$sightings$seg_id %in% kept, ]
+    if (!is.null(x$detections)) {
+      x$detections <- x$detections[x$detections$seg_id %in% kept, ]
+    }
+    # Tracks are kept when any of their segments is.
+    if (!is.null(x$tracks) && all(c("DATE", "new_trackno") %in% names(x$tracks))) {
+      on <- paste(x$segments$DATE, x$segments$new_trackno)
+      x$tracks <- x$tracks[paste(x$tracks$DATE, x$tracks$new_trackno) %in% on, ]
+    }
     return(x)
   }
 
+  # An sf object: let sf crop it, in its own CRS.
   if (inherits(x, "sf")) {
     check_sf()
     return(sf::st_crop(x, sf::st_bbox(
@@ -98,6 +116,8 @@ crop_to_bbox <- function(x, bbox, coords = c("LONGITUDE", "LATITUDE")) {
     )))
   }
 
+  # A plain data frame: use `coords`, or the midpoint columns of a segment
+  # table if `coords` are absent.
   if (!all(coords %in% names(x))) {
     alt <- c("mid_lon", "mid_lat")
     if (all(alt %in% names(x))) {
@@ -107,6 +127,7 @@ crop_to_bbox <- function(x, bbox, coords = c("LONGITUDE", "LATITUDE")) {
     }
   }
 
+  # Keep rows inside the box, edges included. Rows without a position go.
   lon <- x[[coords[1]]]
   lat <- x[[coords[2]]]
   keep <- !is.na(lon) & !is.na(lat) &
@@ -115,6 +136,9 @@ crop_to_bbox <- function(x, bbox, coords = c("LONGITUDE", "LATITUDE")) {
   x[keep, , drop = FALSE]
 }
 
+# Normalises `bbox` to a named numeric vector c(xmin, xmax, ymin, ymax) in
+# the bbox's own units (decimal degrees for NARWC data). Accepts a named
+# vector or anything sf::st_bbox() understands.
 as_bbox <- function(bbox) {
   if (is.numeric(bbox) && all(c("xmin", "xmax", "ymin", "ymax") %in% names(bbox))) {
     b <- bbox[c("xmin", "xmax", "ymin", "ymax")]
@@ -124,13 +148,15 @@ as_bbox <- function(bbox) {
     b <- c(xmin = b0[["xmin"]], xmax = b0[["xmax"]],
            ymin = b0[["ymin"]], ymax = b0[["ymax"]])
   }
-  # Tolerate a box given with its corners the other way round.
+  # Accept a box given with its corners the other way round.
   c(
     xmin = min(b[["xmin"]], b[["xmax"]]), xmax = max(b[["xmin"]], b[["xmax"]]),
     ymin = min(b[["ymin"]], b[["ymax"]]), ymax = max(b[["ymin"]], b[["ymax"]])
   )
 }
 
+# Errors, attributed to the caller, if the suggested package sf is not
+# installed.
 check_sf <- function(call = rlang::caller_env()) {
   if (!requireNamespace("sf", quietly = TRUE)) {
     rlang::abort(
@@ -144,13 +170,12 @@ check_sf <- function(call = rlang::caller_env()) {
 #' Write segmentation results to CSV
 #'
 #' Writes the tables from a [segment_survey()] result to a directory. Nothing
-#' else in the package writes to disk, so output is always something you asked
-#' for.
+#' else in the package writes to disk.
 #'
 #' @param x A `distsamp_segments` object.
 #' @param dir Directory to write to. Created if it does not exist.
 #' @param prefix Filename prefix. Default `"segments"`.
-#' @param tables Which tables to write. Default all four.
+#' @param tables Which tables to write. Default all five.
 #'
 #' @return The paths written, invisibly.
 #'
@@ -167,6 +192,8 @@ write_segments <- function(x, dir, prefix = "segments",
   stopifnot(inherits(x, "distsamp_segments"))
   tables <- match.arg(tables, several.ok = TRUE)
 
+  # Create the directory, then write one CSV per table, named
+  # <prefix>_<table>.csv.
   if (!dir.exists(dir)) {
     dir.create(dir, recursive = TRUE)
   }

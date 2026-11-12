@@ -5,9 +5,9 @@
 #' @section Why this is not `segs$tracks`:
 #' A **track** is a continuous run of effort: it ends wherever effort breaks,
 #' which may be mid-line, and it says nothing about which line was being flown.
-#' A **line** is a design element — the transect the survey set out to fly, named
-#' by `LEGNO`. Segmentation works on tracks, so `segs$tracks` cannot answer "how
-#' much of line 7 did we actually cover, and did we have to go back for it".
+#' A **line** is a design element: the transect the survey set out to fly, named
+#' by `LEGNO`. Segmentation works on tracks, so `segs$tracks` cannot say how much
+#' of line 7 was covered, or whether it had to be flown again.
 #'
 #' @section Occupations and lines:
 #' A line can be started, abandoned for weather, and flown again hours later.
@@ -29,11 +29,11 @@
 #' records that reached a segment.
 #'
 #' Usually that costs nothing: the records segmentation leaves out are off
-#' effort, and an off-effort record carries zero `pt2pt.effort` — so dropping it
+#' effort, and an off-effort record carries zero `pt2pt.effort`, so dropping it
 #' removes no distance. But a track shorter than `min_track_km`, or a segment
-#' shorter than `min_segment_km`, is discarded *with* its on-effort distance, and
-#' that effort was really flown. A line made up of such a track then reports less
-#' effort than the survey gave it, or disappears from the summary entirely.
+#' shorter than `min_segment_km`, is discarded *with* its on-effort distance,
+#' which was really flown. A line made of such a track then reports too little
+#' effort, or disappears from the summary.
 #'
 #' So pass the point-level data after [flag_effort()] and
 #' [point_to_point_effort()] when the total has to be right. A message says which
@@ -66,10 +66,18 @@
 #'
 #' @export
 line_effort <- function(x, combine = c("occupation", "line")) {
+  # Get point-level records (from a segmentation, its `points` table).
   combine <- match.arg(combine)
   dat <- line_effort_points(x)
 
+  # Empty input gives an empty table of the requested shape.
   if (is_empty_df(dat)) {
+    if (combine == "line") {
+      return(tibble::tibble(
+        LEGNO = character(0), effort_km = numeric(0),
+        n_occupations = integer(0), n_days = integer(0)
+      ))
+    }
     return(tibble::tibble(
       DATE = as.Date(character(0)), FILEID = character(0), LEGNO = character(0),
       LEGNO3 = character(0), occupation = integer(0),
@@ -77,27 +85,39 @@ line_effort <- function(x, combine = c("occupation", "line")) {
     ))
   }
 
+  # Line-occupation IDs are created if missing.
   require_columns(dat, c("pt2pt.effort", "LEGNO"))
   if (!"LEGNO3" %in% names(dat)) {
     dat <- make_leg_id(dat)
   }
 
-  # A line occupation is one attempt at one line on one day.
+  # A line occupation is one attempt at one line on one day; `keys` are the
+  # columns that identify it. Records on no line (LEGNO missing) are dropped.
   keys <- intersect(c("DATE", "FILEID", "LEGNO", "LEGNO3"), names(dat))
   dat <- dat[!is.na(dat$LEGNO), , drop = FALSE]
   if (is_empty_df(dat)) {
     return(line_effort(dat[0, , drop = FALSE], combine = combine))
   }
 
+  # Sum on-effort distance (km) and count records per occupation, in key
+  # order.
+  # Occupations are put in the order they were flown: by day and file, then
+  # by first EVENTNO. Sorting LEGNO3 as text would put "_10" before "_9".
+  ev <- if ("EVENTNO" %in% names(dat)) as.numeric(dat$EVENTNO) else seq_len(nrow(dat))
+  dat$.first_ev <- ev
   per <- dplyr::summarise(
     dplyr::group_by(dat, dplyr::across(dplyr::all_of(keys))),
     effort_km = sum(.data$pt2pt.effort, na.rm = TRUE),
     n_records = dplyr::n(),
+    .first_ev = min(.data$.first_ev, na.rm = TRUE),
     .groups = "drop"
   )
-  per <- dplyr::arrange(per, dplyr::across(dplyr::all_of(keys)))
+  order_by <- c(intersect(c("DATE", "FILEID"), names(per)), ".first_ev")
+  per <- dplyr::arrange(per, dplyr::across(dplyr::all_of(order_by)))
+  per$.first_ev <- NULL
 
-  # Which attempt at this line this is: 1 for the first, 2 for a re-flight.
+  # Number the attempts at each line in key order: 1 for the first, 2 for
+  # the first re-flight, and so on.
   per <- dplyr::mutate(
     dplyr::group_by(per, .data$LEGNO),
     occupation = seq_len(dplyr::n())
@@ -108,6 +128,8 @@ line_effort <- function(x, combine = c("occupation", "line")) {
     return(per)
   }
 
+  # Per line: total effort over all attempts, the number of attempts, and the
+  # number of distinct days flown.
   out <- dplyr::summarise(
     dplyr::group_by(per, .data$LEGNO),
     effort_km = sum(.data$effort_km),
@@ -125,23 +147,21 @@ line_effort <- function(x, combine = c("occupation", "line")) {
 
 #' How much of the survey was re-flown
 #'
-#' Counts lines that took more than one attempt, and reports the rate two ways
-#' because they are different numbers and the distinction matters.
+#' Counts lines that took more than one attempt, and reports the rate in two
+#' ways because the two numbers differ.
 #'
 #' @section Two rates, deliberately both:
 #' Suppose ten occupations covered eight lines, because two lines were flown
 #' twice.
 #'
-#' * `prop_lines_reflown` is 2/8 = 0.25 — a quarter of the lines needed a second
-#'   attempt. This is what "what fraction of lines were re-flown" asks.
-#' * `prop_occupations_repeat` is 2/10 = 0.20 — a fifth of the flying was a
-#'   repeat of something already attempted. This is the one that bears on
-#'   effort.
+#' * `prop_lines_reflown` is 2/8 = 0.25: a quarter of the lines needed a second
+#'   attempt. This answers "what fraction of lines were re-flown".
+#' * `prop_occupations_repeat` is 2/10 = 0.20: a fifth of the flying repeated a
+#'   line already attempted. This is the one that bears on effort.
 #'
-#' The scripts this package was rewritten from computed the second and labelled
-#' it the first (`ds_data_dmr.R:229`, carrying the comment "ask dan about this").
-#' Both are reported here, named for what they measure, so neither can stand in
-#' for the other by accident.
+#' The original processing scripts computed the second and labelled it the
+#' first (`ds_data_dmr.R:229`). Both are reported here, each named for what it
+#' measures.
 #'
 #' @param x Point-level survey data, or a `distsamp_segments`; as
 #'   [line_effort()].
@@ -159,6 +179,7 @@ line_effort <- function(x, combine = c("occupation", "line")) {
 #'
 #' @export
 reflight_summary <- function(x) {
+  # Per-occupation effort; an empty survey gives zero counts and NA rates.
   per <- line_effort(x, combine = "occupation")
 
   if (is_empty_df(per)) {
@@ -169,6 +190,7 @@ reflight_summary <- function(x) {
     ))
   }
 
+  # Count lines, occupations, and lines with more than one occupation.
   by_line <- line_effort(x, combine = "line")
   n_lines <- nrow(by_line)
   n_occ <- nrow(per)
@@ -179,15 +201,17 @@ reflight_summary <- function(x) {
     n_occupations = n_occ,
     n_lines_reflown = as.integer(reflown),
     prop_lines_reflown = reflown / n_lines,
-    # Occupations beyond the first, over all occupations.
+    # Occupations beyond the first of each line, over all occupations.
     prop_occupations_repeat = (n_occ - n_lines) / n_occ,
+    # Total effort, and the part flown on repeat occupations.
     effort_km = sum(per$effort_km),
     effort_km_repeat = sum(per$effort_km[per$occupation > 1L])
   )
 }
 
-# Point-level records, from either accepted input. A segmentation only carries
-# the records that made it into a segment, so say so when that has cost effort.
+# Point-level records from either accepted input. A data frame is returned
+# as is. A segmentation returns its `points` table, which holds only records
+# that reached a segment, with a message saying so.
 line_effort_points <- function(x) {
   if (!inherits(x, "distsamp_segments")) {
     return(x)

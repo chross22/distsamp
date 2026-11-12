@@ -1,40 +1,37 @@
 ## What "aerial" and "vessel" mean, in one place.
 ##
-## Every platform-dependent choice in this package resolves through here:
-## which effort criteria apply, which right-angle distance sources exist, and
-## which `PLATFORM_KIND` label a record must carry to be kept. Scattering those
-## decisions across prepare, segment and diagnose is how they drift apart, and
-## a survey segmented under one platform's effort rules and another's distance
-## geometry produces numbers that look entirely reasonable.
+## Every platform-dependent choice in this package is made here: which effort
+## criteria apply, which right-angle distance sources exist, and which
+## `PLATFORM_KIND` label a record must carry to be kept. Keeping them together
+## stops prepare, segment and diagnose from disagreeing. A survey segmented
+## under one platform's effort rules and another's distance sources gives
+## numbers that look reasonable and are wrong.
 
 #' The platforms this package can segment
 #'
-#' `distsamp` was aerial by construction and is now aerial by default. A
-#' shipboard survey differs in three ways that matter, and this is where all
-#' three are written down.
+#' `distsamp` is aerial by default. A shipboard survey differs in three ways
+#' that matter, and this is where all three are set.
 #'
 #' @section What changes with the platform:
 #' \describe{
 #'   \item{Effort criteria}{The handbook's altitude ceiling (8.A.1) is an
-#'     aircraft criterion, and it cannot be widened into one that applies to a
-#'     ship — a record with no `ALT` fails it at any height, because a missing
-#'     value fails a criterion, so `max_alt_m = Inf` rescues nothing. The
-#'     vessel defaults drop it instead
-#'     (`narwcr::flag_effort(max_alt_m = NULL)`). Sea state and visibility
-#'     apply to both, and are left alone.
+#'     aircraft criterion. It cannot be widened to suit a ship: a missing value
+#'     fails a criterion, so a record with no `ALT` fails at any ceiling, and
+#'     `max_alt_m = Inf` does not help. The vessel defaults drop the criterion
+#'     instead (`narwcr::flag_effort(max_alt_m = NULL)`). Sea state and
+#'     visibility apply to both platforms and are unchanged.
 #'
-#'   How much this costs depends on the file, so measure it rather than
-#'   assume it. Some programmes leave `ALT` empty on their vessel records
-#'   and every one of them is excluded; others write the observer's eye
-#'   height there, which passes an aircraft's ceiling comfortably and hides
-#'   the problem until the records that *are* empty go missing. On one real
+#'   The effect depends on the file, so measure it. Some programmes leave
+#'   `ALT` empty on vessel records, and every such record is excluded. Others
+#'   write the observer's eye height there, which passes an aircraft's ceiling
+#'   and hides the problem until the empty records go missing. On one real
 #'   extract of 1,037,180 vessel records, 338,562 had no `ALT` — 32% of the
 #'   vessel effort, and 277 of 741 eligible sightings.}
 #'   \item{Right-angle distance sources}{`"angle"` is \eqn{h/\tan\theta} from
 #'     an aircraft altitude, and the `"strip"` code books are the Skymaster's
-#'     and the AT-11's (8.A.31). Neither means anything on a vessel, so the
-#'     vessel default is `"exact"` alone — a sighting position projected onto
-#'     the track, which is geometry rather than platform. See
+#'     and the AT-11's (8.A.31). Neither exists on a vessel, so the vessel
+#'     default is `"exact"` alone: a sighting position projected onto the
+#'     track, which does not depend on the platform. See
 #'     [sighting_distances()].}
 #'   \item{Which records are kept}{`narwcr::classify_platform()` labels each
 #'     stretch from its median speed. The platform names the label to keep.}
@@ -42,23 +39,21 @@
 #'
 #' @section What does not change:
 #' `LEGTYPE` 5 and 6 mark shipboard records (8.A.21), but they mark a *platform
-#' of opportunity* — a ship that recorded what it saw while going somewhere.
-#' That is not a designed line-transect, and counting it as effort would put
-#' unsearched track into the denominator of a density estimate. So the vessel
-#' defaults keep `legtype_on_effort = 2`, a designated census line, exactly as
-#' the aerial ones do. A dedicated shipboard line-transect survey codes its
-#' lines `LEGTYPE = 2` and needs nothing here; a POP file is not a distance
-#' sampling dataset and no argument to this package makes it one.
+#' of opportunity* (POP): a ship that recorded what it saw while going
+#' somewhere. That is not a designed line-transect. Counting it as effort would
+#' put unsearched track into the denominator of a density estimate. The vessel
+#' defaults therefore keep `legtype_on_effort = 2`, a designated census line,
+#' as the aerial ones do. A dedicated shipboard line-transect survey codes its
+#' lines `LEGTYPE = 2` and needs nothing here. A POP file is not a distance
+#' sampling dataset.
 #'
-#' Segmentation itself is platform-free. Great-circle distance between
-#' consecutive fixes, splitting at breaks in effort, and cutting a track into
-#' lengths are all geometry, and a ship's track segments the same way a
-#' plane's does.
+#' Segmentation itself does not depend on the platform. Great-circle distance
+#' between consecutive fixes, splitting at breaks in effort, and cutting a
+#' track into lengths work the same for a ship as for a plane.
 #'
 #' @section Naming:
 #' `"vessel"` is the documented spelling, because it is the `PLATFORM_KIND`
-#' level the filter actually compares against — nothing is translated on the
-#' way through. `"ship"` is accepted everywhere `"vessel"` is, and resolves to
+#' level the filter compares against. `"ship"` is accepted everywhere `"vessel"` is, and resolves to
 #' it.
 #'
 #' @param platform `"aerial"` (default), `"vessel"`, or `"ship"` as a synonym
@@ -83,6 +78,8 @@
 #'
 #' @export
 platform_defaults <- function(platform = c("aerial", "vessel", "ship")) {
+  # Aerial: the narwcr effort defaults and all three aircraft-era sources.
+  # Vessel: no altitude criterion, and only the exact-position source.
   platform <- resolve_platform(platform)
   if (platform == "aerial") {
     list(
@@ -103,14 +100,17 @@ platform_defaults <- function(platform = c("aerial", "vessel", "ship")) {
   }
 }
 
-# The canonical platform name. `match.arg()` cannot do this on its own, because
-# "ship" and "vessel" must both be accepted and must not be two answers.
+# Return the canonical platform name: "aerial" or "vessel" (or "all" when
+# allowed). "ship" becomes "vessel". match.arg() alone would accept "ship" but
+# return it unchanged, giving two names for one platform.
 resolve_platform <- function(platform, allow_all = FALSE,
                              call = rlang::caller_env()) {
   allowed <- c("aerial", "vessel", "ship", if (allow_all) "all")
-  # The default is the full formals vector, as `match.arg()` expects.
+  # An unchanged default argument is the full vector of choices; take the
+  # first, as match.arg() does.
   if (length(platform) > 1L) platform <- platform[[1L]]
   platform <- as.character(platform)
+  # Reject anything that is not a single allowed name.
   if (length(platform) != 1L || is.na(platform)) {
     cli_abort_bad_arg("platform", paste(platform, collapse = ", "),
                       allowed, call = call)
@@ -121,10 +121,9 @@ resolve_platform <- function(platform, allow_all = FALSE,
   if (platform == "ship") "vessel" else platform
 }
 
-# The distance sources this platform can supply, as an error rather than a
-# silent drop. Asking for a declination angle on a vessel is not a preference
-# that can be honoured partway - it is a measurement that does not exist, and
-# `sighting_distances()` would leave the column NA and report nothing.
+# Stop when an aircraft-only distance source ("angle", "strip") is requested
+# for a vessel. Those measurements do not exist on a vessel; without this
+# check sighting_distances() would leave the column NA with no reason given.
 check_distance_sources <- function(sources, platform,
                                    call = rlang::caller_env()) {
   if (platform != "vessel") return(invisible(sources))
@@ -153,15 +152,11 @@ check_distance_sources <- function(sources, platform,
   )
 }
 
-# Effort flags, with a readable failure when the installed narwcr predates
-# skippable criteria.
-#
-# Dropping a criterion is `narwcr::flag_effort(max_alt_m = NULL)`, and an older
-# narwcr computes `dat$ALT < NULL` instead - a zero-length logical, which the
-# internal `stopifnot(length(ok) == n)` reports as `length(ok) == n is not
-# TRUE`. That is a true statement about narwcr's internals and no help at all
-# about the pin that caused it. This package's callers pin by commit, so a
-# narwcr from before this feature is an ordinary thing to be running.
+# Call narwcr::flag_effort() with `effort_args`. A criterion is dropped by
+# passing it as NULL (e.g. `max_alt_m = NULL`). Older narwcr versions do not
+# support this and fail with an unhelpful internal error, so check first and
+# stop with an explanation. Callers pin narwcr by commit, so an older version
+# may well be installed.
 flag_effort_for_platform <- function(dat, effort_args,
                                      call = rlang::caller_env()) {
   drops <- vapply(effort_args, is.null, logical(1))
@@ -181,9 +176,10 @@ flag_effort_for_platform <- function(dat, effort_args,
   do.call(narwcr::flag_effort, c(list(dat), effort_args))
 }
 
-# Asked once per session, against a two-row frame rather than the formals: the
-# argument has always been there, and it is only what narwcr does with a NULL
-# that changed.
+# TRUE if the installed narwcr accepts NULL to drop an effort criterion.
+# Tested by behaviour on a two-row frame, not by the function's formals: the
+# argument exists in all versions; only the handling of NULL differs. The
+# answer is cached for the session.
 narwcr_can_drop_criteria <- local({
   answer <- NULL
   function() {
@@ -199,9 +195,9 @@ narwcr_can_drop_criteria <- local({
 })
 
 
-# The speed band a platform is expected to be moving in, for the checks that
-# ask "is this the platform you said it was?". Bounds are knots, and match
-# `narwcr::classify_platform()`'s thresholds so the two never disagree.
+# The speed band (knots) a platform is expected to move in, for checks that
+# the data are from the stated platform. The bounds match the thresholds of
+# narwcr::classify_platform().
 platform_speed_band <- function(platform) {
   switch(platform,
     aerial = list(min = 40, max = Inf,

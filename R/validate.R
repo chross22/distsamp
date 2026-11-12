@@ -1,15 +1,14 @@
 #' Check survey data against the handbook and against distance sampling
 #'
 #' [narwcr::validate_narwc()] with this package's checks added to the default,
-#' so that `validate_narwc(dat)` reports everything it reported before the
-#' reading layer was split into \pkg{narwcr}.
+#' so that `validate_narwc(dat)` runs both the handbook checks from
+#' \pkg{narwcr} and the distance-sampling checks from this package.
 #'
 #' @section Why this wrapper exists:
 #' The handbook-general checks live in \pkg{narwcr}, and calling its
-#' `validate_narwc()` directly runs only those. Silently dropping four checks
-#' from a function people already call would be a regression, so this package
-#' keeps its own default. To run only the handbook rules, call
-#' `narwcr::validate_narwc()`.
+#' `validate_narwc()` directly runs only those. This package keeps its own
+#' default so that existing calls do not silently lose four checks. To run only
+#' the handbook rules, call `narwcr::validate_narwc()`.
 #'
 #' @param dat A data frame of NARWC survey data, ideally from
 #'   [narwcr::read_narwc()].
@@ -43,19 +42,18 @@ validate_narwc <- function(dat,
 #' [narwcr::narwc_checks()] provides.
 #'
 #' @section Why these are separate:
-#' Everything here is a problem *only if you are computing a right-angle
-#' distance*. A declination angle above the horizon and an exact sighting
-#' position 200 km from the aircraft that logged it are both perfectly ordinary
-#' columns to carry around; they become defects at the point where a detection
-#' function is fitted to them. So they live with the package that fits one,
-#' rather than in the reader that every analysis shares.
+#' Everything here is a problem *only when a right-angle distance is computed*.
+#' A declination angle above the horizon, or an exact sighting position 200 km
+#' from the aircraft that logged it, is harmless until a detection function is
+#' fitted to it. These checks therefore live with the package that fits one,
+#' not in the reader that every analysis shares.
 #'
 #' \describe{
 #'   \item{`exact_position_far_from_event`}{An exact sighting position more than
 #'     `r EXACT_POSITION_MAX_KM` km from the event position that recorded it. A
-#'     sighting is made from the aircraft, so this is a coordinate problem —
-#'     usually a dropped minus sign, or degrees and decimal minutes read as
-#'     decimal degrees — rather than a distant animal.}
+#'     sighting is made from the aircraft, so this is a coordinate problem
+#'     (usually a dropped minus sign, or degrees and decimal minutes read as
+#'     decimal degrees) rather than a distant animal.}
 #'   \item{`angle_out_of_range`}{`ANGLEL` or `ANGLER` outside `(0, 90]`.
 #'     Handbook 8.A.2 defines these as declination angles below the horizon, so
 #'     a value at or below zero is at or above the horizon and one above 90 is
@@ -88,20 +86,25 @@ validate_narwc <- function(dat,
 #'
 #' @export
 distsamp_checks <- function() {
+  # Each check takes `dat` and returns NULL or a list of narwcr findings.
   list(
     exact_position_plausible = check_exact_position_plausible,
     declination_angles       = check_declination_angles
   )
 }
 
-# A sighting is seen from the aircraft, so it cannot be far from the position
-# that logged it. Anything beyond a few km is a coordinate problem, not a whale.
+# Flags exact sighting positions more than EXACT_POSITION_MAX_KM (km) from the
+# event position. A sighting is seen from the aircraft, so a larger gap is a
+# coordinate error, not a distant whale. Returns NULL when nothing is found.
 check_exact_position_plausible <- function(dat) {
+  # Skip silently when the position columns are absent.
   needed <- c("S_LAT", "S_LONG", "LATITUDE", "LONGITUDE")
   if (!all(needed %in% names(dat))) {
     return(NULL)
   }
 
+  # Distance in km from the event position to the sighting position.
+  # Unparseable values become NA and are not flagged.
   s_lat <- suppressWarnings(as.numeric(dat$S_LAT))
   s_lon <- suppressWarnings(as.numeric(dat$S_LONG))
   away <- gc_distance(dat$LATITUDE, dat$LONGITUDE, s_lat, s_lon)
@@ -122,12 +125,17 @@ check_exact_position_plausible <- function(dat) {
   ))
 }
 
+# Checks the declination angles ANGLEL and ANGLER (degrees below the horizon,
+# handbook 8.A.2). Returns a list of findings, one per problem found.
 check_declination_angles <- function(dat) {
+  # Skip when neither angle column is present.
   angle_cols <- intersect(c("ANGLEL", "ANGLER"), names(dat))
   if (!length(angle_cols)) {
     return(NULL)
   }
 
+  # Range: a usable angle is in (0, 90]. Zero or less is at or above the
+  # horizon; above 90 is behind the aircraft.
   out <- lapply(angle_cols, function(nm) {
     a <- suppressWarnings(as.numeric(dat[[nm]]))
     rows <- which(!is.na(a) & (a <= 0 | a > 90))
@@ -143,6 +151,7 @@ check_declination_angles <- function(dat) {
     )
   })
 
+  # Both sides recorded on one record: the side is ambiguous.
   if (length(angle_cols) == 2L) {
     rows <- which(!is.na(dat$ANGLEL) & !is.na(dat$ANGLER))
     if (length(rows)) {
@@ -157,9 +166,11 @@ check_declination_angles <- function(dat) {
     }
   }
 
+  # An angle needs a positive altitude to become a distance.
   if ("ALT" %in% names(dat)) {
     has_angle <- Reduce(`|`, lapply(angle_cols, function(nm) !is.na(dat[[nm]])))
-    rows <- which(has_angle & (is.na(dat$ALT) | dat$ALT <= 0))
+    alt <- suppressWarnings(as.numeric(dat$ALT))
+    rows <- which(has_angle & (is.na(alt) | alt <= 0))
     if (length(rows)) {
       out[[length(out) + 1L]] <- narwcr::narwc_finding(
         "angle_without_altitude", "warning", "ALT", rows,

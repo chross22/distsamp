@@ -16,8 +16,8 @@
 #' * `IDREL` of `1` (possible) or `9` (unknown). Handbook 8.A.16 records
 #'   Kenney's own practice of using only definite and probable identifications.
 #'
-#' The original processing code excluded `LEGSTAGE == 7` but kept `LEGSTAGE == 6`,
-#' which lets pilot sightings inflate counts.
+#' Off-effort sightings are also excluded, except circling sightings added by
+#' [attach_circling_sightings()].
 #'
 #' @section Beaufort summaries:
 #' Two are produced. `mean_beaufort` is the plain mean over the segment's
@@ -39,14 +39,14 @@
 #' `ANGLEL`/`ANGLER` are available. That is the shape a detection function wants:
 #' pass it to `Distance::ds()`, keyed back to the segments by `seg_id`.
 #'
-#' A sighting recorded while circling depends on
+#' How a sighting recorded while circling is handled depends on
 #' `attach_circling_sightings(distance = )`. Under `"with_group"` (the default)
 #' its animals were added to the on-effort group it was counted with, it is
-#' marked `circling_counted = FALSE`, and it is skipped here, so it is not a
-#' detection at all. Under `"break_off"` it is a detection of its own: at the
-#' perpendicular distance of its exact position from the census line
-#' (`distance_source == "circling"`) where one was recorded, and otherwise at
-#' the great-circle distance from where the aircraft broke off
+#' marked `circling_counted = FALSE`, and it is skipped here: it is not a
+#' detection. Under `"break_off"` it is a detection of its own. Its distance is
+#' the perpendicular distance of its exact position from the census line
+#' (`distance_source == "circling"`) where one was recorded, and otherwise the
+#' great-circle distance from where the aircraft broke off
 #' (`distance_source == "break_off"`). The first is fixed minutes after the
 #' detection and the second is not perpendicular, so [detection_data()]
 #' excludes circling detections by default. `break_off_distance` is carried
@@ -100,6 +100,7 @@ segment_sightings <- function(chopped,
                               idrel_keep = c(2, 3)) {
   require_columns(chopped, c("seg_id", "pt2pt.effort", "seg_eff"))
 
+  # Empty tables, returned when there are no sightings to count.
   empty_sight <- tibble::tibble(
     seg_id = character(0), SPECCODE = character(0),
     n_sightings = integer(0), n_animals = numeric(0)
@@ -107,11 +108,14 @@ segment_sightings <- function(chopped,
   empty_det <- tibble::tibble(
     seg_id = character(0), DATE = as.Date(character(0)),
     SPECCODE = character(0), size = numeric(0), distance = numeric(0),
-    side = character(0), EVENTNO = numeric(0), SIGHTNO = numeric(0),
+    distbegin = numeric(0), distend = numeric(0), side = character(0),
+    distance_source = character(0), EVENTNO = numeric(0), SIGHTNO = numeric(0),
     circling = integer(0), break_off_distance = numeric(0)
   )
 
-  # --- conditions ----------------------------------------------------------
+  # 1. Conditions per segment, over all its records: the plain mean Beaufort,
+  #    the effort-weighted mean, and the record count. mean() of all-NA values
+  #    gives NaN; set it to NA. Without BEAUFORT both means are NA.
   if ("BEAUFORT" %in% names(chopped)) {
     conditions <- dplyr::summarise(
       dplyr::group_by(chopped, .data$seg_id),
@@ -131,32 +135,36 @@ segment_sightings <- function(chopped,
     )
   }
 
-  # --- sightings -----------------------------------------------------------
+  # 2. Sightings. Without SPECCODE there are none.
   if (!"SPECCODE" %in% names(chopped)) {
     return(list(sightings = empty_sight, conditions = conditions,
                 detections = empty_det))
   }
 
+  # 2a. Sighting records are those with a species code.
   sight <- dplyr::filter(chopped, !is.na(.data$SPECCODE), .data$SPECCODE != "")
 
-  # On-effort sightings only. Track splitting keeps a lone off-effort record
-  # inside a track, so `chopped` can hold off-effort sightings. Attached
-  # circling sightings are off effort by definition and are kept.
+  # 2b. Keep on-effort sightings and attached circling sightings. split_tracks()
+  #     keeps a lone off-effort record inside a track, so `chopped` can hold
+  #     off-effort sightings; they are not counted. Attached circling
+  #     sightings (case "circling") are off effort but are kept.
   attached <- if ("case" %in% names(sight)) sight$case %in% "circling" else
     rep(FALSE, nrow(sight))
   sight <- sight[on_effort(sight) | attached, , drop = FALSE]
 
-  # A circling record already counted into the group it was found with.
-  #
-  # `attach_circling_sightings(distance = "with_group")` adds those animals to
-  # the on-effort sighting's `NUMBER` and marks the record so it is not counted
-  # a second time here. It still rides along in `points`, because where the
-  # animals were logged is a fact worth keeping and nothing else records it.
+  # 2c. Drop circling records already counted with their group
+  #     (circling_counted = FALSE). Under distance = "with_group",
+  #     attach_circling_sightings() added their animals to the group's NUMBER.
+  #     The record stays in `points`, as the only record of where the animals
+  #     were logged.
   if ("circling_counted" %in% names(sight)) {
     sight <- dplyr::filter(sight, is.na(.data$circling_counted) |
                              .data$circling_counted)
   }
 
+  # 2d. Drop excluded LEGSTAGE values (default 6, 7) and unreliable
+  #     identifications (default: keep IDREL 2, 3). Missing values are kept.
+  #     Then restrict to the requested species.
   if ("LEGSTAGE" %in% names(sight) && length(legstage_exclude)) {
     sight <- dplyr::filter(
       sight,
@@ -178,6 +186,7 @@ segment_sightings <- function(chopped,
                 detections = empty_det))
   }
 
+  # 3. Count sightings and animals (sum of NUMBER) per segment and species.
   n_col <- if ("NUMBER" %in% names(sight)) sight$NUMBER else rep(NA_real_, nrow(sight))
   sight$.n_animals <- as.numeric(n_col)
 
@@ -188,12 +197,15 @@ segment_sightings <- function(chopped,
     .groups = "drop"
   )
 
+  # 4. Detections: one row per counted sighting.
   list(sightings = sightings, conditions = conditions,
        detections = build_detections(sight))
 }
 
 # One row per qualifying sighting, in the shape a detection function wants.
+# `sight` is the filtered sighting records, with `.n_animals` added.
 build_detections <- function(sight) {
+  # A column if present, otherwise a vector of `default`.
   pick <- function(nm, default) {
     if (nm %in% names(sight)) sight[[nm]] else rep(default, nrow(sight))
   }
@@ -210,18 +222,17 @@ build_detections <- function(sight) {
     EVENTNO = as.numeric(pick("EVENTNO", NA_real_)),
     SIGHTNO = as.numeric(pick("SIGHTNO", NA_real_)),
     circling = as.integer(pick("CIRCLE", NA_integer_)),
-    # Metres from the break-off point on the line to where the animals were
-    # logged, and `NA` for every sighting made from the line - which has no
-    # break-off to be measured from. See `attach_circling_sightings()` for why
-    # this is not, and must not be used as, a perpendicular distance.
+    # Metres from the break-off to where the animals were logged; NA for
+    # sightings made from the line. Not a perpendicular distance; see
+    # attach_circling_sightings().
     break_off_distance = as.numeric(pick("break_off_distance", NA_real_))
   )
-  dplyr::arrange(out, .data$DATE, .data$seg_id, .data$EVENTNO)
+  dplyr::arrange(out, seg_sort_key(.data$seg_id), .data$EVENTNO)
 }
 
-# weighted.mean() returns NaN when every weight is zero, which happens on a
-# segment whose records all sit at the same position. Fall back to the plain
-# mean there.
+# Mean of `x` weighted by `w`, ignoring pairs with a missing value. When all
+# weights are zero (a segment whose records all sit at one position),
+# weighted.mean() would return NaN; the plain mean is returned instead.
 weighted_mean_safe <- function(x, w) {
   keep <- !is.na(x) & !is.na(w)
   if (!any(keep)) return(NA_real_)

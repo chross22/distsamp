@@ -1,6 +1,6 @@
-# How far an exact sighting position may plausibly sit from the event position
-# that logged it. A sighting is made from the aircraft; anything beyond this is
-# a coordinate problem. Used by validate_narwc().
+# Largest plausible distance, in km, between an exact sighting position and
+# the event position that logged it. Sightings are made from the aircraft, so
+# a larger gap means a coordinate error. Used by validate_narwc().
 EXACT_POSITION_MAX_KM <- 20
 
 #' Perpendicular distance from a track to an exact sighting position
@@ -27,15 +27,15 @@ EXACT_POSITION_MAX_KM <- 20
 #' A sighting is not always logged at the moment it is abeam. If it is recorded
 #' 300 m before the aircraft draws level, the straight distance from the event
 #' position to the animal is \eqn{\sqrt{x^2 + 300^2}} where \eqn{x} is the
-#' perpendicular distance the detection function needs — for a whale 130 m off
-#' the track, that is 327 m rather than 130 m, an error of a factor of two and
-#' always in the same direction. Distance sampling assumes perpendicular
-#' distances, and inflating them biases the detection function towards a wider
-#' effective strip and so density downwards.
+#' perpendicular distance the detection function needs. For a whale 130 m off
+#' the track, that is 327 m rather than 130 m: a factor of two, always in the
+#' same direction. Distance sampling assumes perpendicular distances. Inflating
+#' them biases the detection function towards a wider effective strip, and so
+#' biases density downwards.
 #'
-#' `along` is returned so that this can be checked rather than assumed: it is
+#' `along` is returned so that this can be checked rather than assumed. It is
 #' the along-track offset between the logged position and the point where the
-#' sighting was abeam. Values near zero mean the two measures would have agreed.
+#' sighting was abeam. Values near zero mean the two measures agree.
 #'
 #' @param lat,lon Position on the track-line, in decimal degrees — normally the
 #'   event position of the sighting record.
@@ -78,6 +78,7 @@ cross_track_distance <- function(lat, lon, bearing, target_lat, target_lon,
                                  units = c("m", "km", "nmi")) {
   units <- match.arg(units)
 
+  # Recycle all inputs to a common length, as numeric.
   n <- max(length(lat), length(lon), length(bearing),
            length(target_lat), length(target_lon))
   lat <- rep_len(as.numeric(lat), n)
@@ -86,34 +87,46 @@ cross_track_distance <- function(lat, lon, bearing, target_lat, target_lon,
   target_lat <- rep_len(as.numeric(target_lat), n)
   target_lon <- rep_len(as.numeric(target_lon), n)
 
+  # Zero-length input gives a zero-row result.
   if (n == 0L) {
     return(tibble::tibble(
       distance = numeric(0), along = numeric(0), side = character(0)
     ))
   }
 
+  # Point 1 is the track point, point 2 lies ahead on the track, point 3 is
+  # the sighting. The radius is in km, so angles x radius gives km.
   d2r <- pi / 180
   radius <- gc_radius_km()
 
-  # Angular distance and bearing from the track point to the sighting.
+  # delta13: angular distance (radians) from the track point to the sighting.
+  # theta13: initial bearing (radians) from the track point to the sighting.
+  # theta12: track bearing (radians).
   delta13 <- gc_distance(lat, lon, target_lat, target_lon) / radius
   theta13 <- gc_bearing(lat, lon, target_lat, target_lon) * d2r
   theta12 <- bearing * d2r
 
+  # rel is the angle between the track and the line of sight. Cross-track
+  # angle: delta_xt = asin(sin(delta13) sin(rel)), positive to the right.
+  # Along-track angle: acos(cos(delta13) / cos(delta_xt)), positive when the
+  # sighting is ahead (cos(rel) > 0). Arguments are clamped to [-1, 1] so
+  # rounding cannot produce NaN.
   rel <- theta13 - theta12
   delta_xt <- asin(pmin(1, pmax(-1, sin(delta13) * sin(rel))))
   ratio <- pmin(1, pmax(-1, cos(delta13) / cos(delta_xt)))
   delta_at <- acos(ratio) * sign(cos(rel))
 
+  # Angles (radians) to distances (km).
   distance <- abs(delta_xt) * radius
   along <- delta_at * radius
 
-  # A sighting logged at the event position itself has no bearing from it, but
-  # its perpendicular distance is unambiguously zero.
+  # A sighting logged at the track point itself has no bearing from it, but
+  # its perpendicular distance is zero.
   coincident <- !is.na(delta13) & delta13 == 0
   distance[coincident] <- 0
   along[coincident] <- 0
 
+  # Side of the track from the sign of the cross-track angle.
   side <- rep(NA_character_, n)
   known <- !is.na(delta_xt)
   side[known & delta_xt > 0] <- "right"
@@ -121,11 +134,13 @@ cross_track_distance <- function(lat, lon, bearing, target_lat, target_lon,
   side[known & delta_xt == 0] <- "on-track"
   side[coincident] <- "on-track"
 
+  # A missing position or a missing track bearing gives NA throughout.
   unusable <- is.na(delta13) | is.na(bearing)
   distance[unusable] <- NA_real_
   along[unusable] <- NA_real_
   side[unusable] <- NA_character_
 
+  # Convert from km to the requested units (1 nmi = 1.852 km).
   scale <- switch(units, km = 1, m = 1000, nmi = 1 / 1.852)
   tibble::tibble(
     distance = distance * scale,
@@ -141,9 +156,9 @@ cross_track_distance <- function(lat, lon, bearing, target_lat, target_lon,
 #' positions logged either side of it on the same survey line.
 #'
 #' @section How the bearing is taken:
-#' Consecutive records often share a position — a sighting is logged at the same
-#' latitude and longitude as the routine position it follows (handbook 4.2) — and
-#' a bearing between two identical points is undefined. Records are therefore
+#' Consecutive records often share a position: a sighting is logged at the same
+#' latitude and longitude as the routine position it follows (handbook 4.2). A
+#' bearing between two identical points is undefined. Records are therefore
 #' collapsed into runs of distinct positions first, and the bearing for a run is
 #' taken from the previous distinct position to the next one. That centred
 #' difference is less sensitive to a single jittery fix than a forward
@@ -158,9 +173,9 @@ cross_track_distance <- function(lat, lon, bearing, target_lat, target_lon,
 #'   [make_leg_id()] has been run, then `c("FILEID", "LEGNO")`, then `"FILEID"`,
 #'   and prepends `DATE` to whichever it picks when that column is present.
 #'   Getting this wrong joins the end of one line to the start of the next and
-#'   produces a bearing that belongs to neither — which is why `DATE` is
-#'   included: two days sharing a `LEGNO` are separated by `FILEID` alone, and
-#'   some extracts carry a constant `FILEID`.
+#'   produces a bearing that belongs to neither. `DATE` is included because two
+#'   days sharing a `LEGNO` are separated by `FILEID` alone, and some extracts
+#'   carry a constant `FILEID`.
 #' @param track_rows Logical vector marking the records that define the track.
 #'   `NULL` (default) uses the census records, `LEGTYPE == 2`, when `LEGTYPE` is
 #'   present. Circling and transit positions must be excluded: an aircraft
@@ -184,10 +199,13 @@ track_bearing <- function(dat, by = NULL, track_rows = NULL) {
     return(numeric(0))
   }
 
+  # Choose the line-occupation grouping if none was given.
   n <- nrow(dat)
   if (is.null(by)) by <- default_track_grouping(dat)
   require_columns(dat, by)
 
+  # Track rows default to census records (LEGTYPE 2). Rows without a position
+  # cannot define the track and are always excluded.
   if (is.null(track_rows)) {
     track_rows <- if ("LEGTYPE" %in% names(dat)) {
       !is.na(dat$LEGTYPE) & dat$LEGTYPE == 2
@@ -198,6 +216,8 @@ track_bearing <- function(dat, by = NULL, track_rows = NULL) {
   track_rows <- rep_len(as.logical(track_rows), n)
   track_rows <- track_rows & !is.na(dat$LATITUDE) & !is.na(dat$LONGITUDE)
 
+  # Compute bearings one line occupation at a time, from its track rows only.
+  # Rows that are not track rows keep NA.
   key <- group_key(dat, by)
 
   out <- rep(NA_real_, n)
@@ -208,30 +228,36 @@ track_bearing <- function(dat, by = NULL, track_rows = NULL) {
   out
 }
 
-# Bearings for one line occupation, already subset to its track records.
+# Bearings (degrees) for one line occupation, already subset to its track
+# records and in survey order. Returns one bearing per input record.
 bearing_along_line <- function(lat, lon) {
+  # Collapse consecutive repeats of a position into runs. `run` is the run
+  # number of each record; plat/plon hold one position per run.
   run <- rle_id(paste(lat, lon, sep = "/"))
   first <- !duplicated(run)
   plat <- lat[first]
   plon <- lon[first]
   k <- length(plat)
 
+  # One distinct position has no direction.
   if (k < 2L) {
     return(rep(NA_real_, length(lat)))
   }
 
-  # Centred difference in the interior, one-sided at the ends.
+  # Bearing from the previous distinct position to the next one (centred
+  # difference), one-sided at the first and last positions.
   from <- pmax(seq_len(k) - 1L, 1L)
   to <- pmin(seq_len(k) + 1L, k)
   b <- gc_bearing(plat[from], plon[from], plat[to], plon[to])
 
+  # Give every record the bearing of its run.
   b[run]
 }
 
-# Columns that identify one continuous occupation of a survey line, most
-# specific first. `DATE` is prepended whenever it is available: `LEGNO3` alone
-# does not separate two days that share a `LEGNO`, and a constant `FILEID`
-# leaves nothing that does.
+# Columns that identify one continuous occupation of a survey line. The first
+# available set is used, most specific first. `DATE` is prepended when present:
+# `LEGNO3` alone does not separate two days that share a `LEGNO`, and a
+# constant `FILEID` does not either.
 default_track_grouping <- function(dat) {
   prefix <- if ("DATE" %in% names(dat)) "DATE" else character(0)
   for (cols in list(c("FILEID", "LEGNO3"), c("FILEID", "LEGNO"), "FILEID")) {
@@ -253,13 +279,12 @@ default_track_grouping <- function(dat) {
 #'
 #' @section Where this fits:
 #' This is the most direct of the three right-angle distance sources this package
-#' supports, because it measures the quantity a detection function is defined on
-#' rather than inferring it. It needs the sighting position to have been fixed
-#' independently — from a GPS mark, a photograph, or a circling pass — so it is
-#' available only where the survey recorded one, which in the NARWC archive is
-#' mostly the NLPSC-era and later data. Where `S_LAT`/`S_LONG` and a declination
-#' angle both exist, comparing the two is a useful check on both; they are
-#' independent measurements of the same thing.
+#' supports. It measures the quantity a detection function is defined on rather
+#' than inferring it. It needs a sighting position fixed independently (from a
+#' GPS mark, a photograph, or a circling pass), so it exists only where the
+#' survey recorded one. In the NARWC archive that is mostly the NLPSC-era and
+#' later data. Where `S_LAT`/`S_LONG` and a declination angle both exist, they
+#' are independent measurements of the same thing and check each other.
 #'
 #' @section How it differs from the original scripts:
 #' The processing scripts this package was rewritten from computed the
@@ -273,11 +298,10 @@ default_track_grouping <- function(dat) {
 #' @section Restricted to census records:
 #' Like [sighting_distances()], and for the same reason, distances are computed
 #' only for on-effort records on a census line at `LEGSTAGE == 2` by default.
-#' Off the census line there is no track-line to be perpendicular to: a position
-#' logged while circling has a well-defined distance to the animal and no useful
-#' perpendicular distance at all. Setting `on_effort_only = FALSE` computes them
-#' anyway, which is occasionally useful for diagnostics and never appropriate for
-#' fitting.
+#' Off the census line there is no track-line to be perpendicular to. A position
+#' logged while circling has a defined distance to the animal but no useful
+#' perpendicular distance. `on_effort_only = FALSE` computes them anyway; this
+#' is useful for diagnostics and not appropriate for fitting.
 #'
 #' @param dat A data frame of NARWC survey data with `LATITUDE`, `LONGITUDE`,
 #'   and ideally `S_LAT`/`S_LONG`. Data without the sighting-position columns
@@ -323,15 +347,19 @@ exact_distance <- function(dat, by = NULL, units = c("m", "km", "nmi"),
     ))
   }
 
+  # Sighting positions, or all NA when the columns are absent.
   n <- nrow(dat)
   s_lat <- if ("S_LAT" %in% names(dat)) as.numeric(dat$S_LAT) else rep(NA_real_, n)
   s_lon <- if ("S_LONG" %in% names(dat)) as.numeric(dat$S_LONG) else rep(NA_real_, n)
 
+  # Track bearing at each record, then project each sighting onto the track
+  # through the record's own position.
   bearing <- track_bearing(dat, by = by)
   out <- cross_track_distance(
     dat$LATITUDE, dat$LONGITUDE, bearing, s_lat, s_lon, units = units
   )
 
+  # Blank the results for records that are not on-effort census records.
   if (on_effort_only) {
     drop <- !on_effort_census_rows(dat)
     out$distance[drop] <- NA_real_
@@ -355,24 +383,23 @@ exact_distance <- function(dat, by = NULL, units = c("m", "km", "nmi"),
 #' @section Why these detections matter:
 #' A circling sighting is usually a genuine on-effort detection: the animal was
 #' seen from the track-line, which is why the aircraft left it. Giving it no
-#' distance drops it from the detection function altogether, and the dropped
-#' detections are not a random sample — they are disproportionately the close,
-#' conspicuous, or high-priority groups that were worth breaking off for. Losing
-#' those thins the near-zero end of the distance distribution, exactly where a
-#' detection function is most sensitive.
+#' distance drops it from the detection function. The dropped detections are not
+#' a random sample: they are mostly the close, conspicuous, or high-priority
+#' groups that were worth breaking off for. Losing them thins the near-zero end
+#' of the distance distribution, where a detection function is most sensitive.
 #'
 #' @section The anchor:
-#' The reference point is the last census record before the circling began — the
+#' The reference point is the last census record before the circling began: the
 #' `LEGSTAGE == 3` break-off record where one exists (handbook 8.A.20), and
 #' otherwise the last record still on the line. `anchor_event` reports which
 #' record was used so the choice can be checked.
 #'
 #' The bearing is the *inbound* heading: from the previous distinct census
 #' position to the anchor, which is the direction the aircraft was flying when
-#' the animal was detected. It is deliberately not the centred difference
-#' [track_bearing()] uses, because the record after a break-off is the resume
-#' record, and a resume point offset from the break-off would swing the bearing
-#' by an amount that has nothing to do with the track being flown.
+#' the animal was detected. It is not the centred difference [track_bearing()]
+#' uses. The record after a break-off is the resume record, and a resume point
+#' offset from the break-off would swing the bearing by an amount unrelated to
+#' the track being flown.
 #'
 #' @section Break-off point, or the line through it:
 #' The aircraft usually flies past a group before turning, so the break-off point
@@ -380,16 +407,16 @@ exact_distance <- function(dat, by = NULL, units = c("m", "km", "nmi"),
 #' distance from the break-off point to the animal; `distance` is that position
 #' projected perpendicularly onto the census line, and `along` is how far back
 #' along the line the animal was abeam. **`distance` is the one a detection
-#' function needs** — `radial` will generally be larger, by exactly the margin
-#' `along` records.
+#' function needs.** `radial` is generally larger, by the margin `along`
+#' records.
 #'
 #' @section What this cannot fix:
 #' The position is recorded some minutes after detection, so the animal has
 #' moved, and the distance is an estimate of where it was when detected rather
-#' than a measurement of it. That error is not quantified here. Treat circling
-#' distances as a distinct and less reliable source — which is why
-#' `distance_source` marks them, and why they should be excluded from a detection
-#' function unless their inclusion is a deliberate, stated choice.
+#' than a measurement of it. That error is not quantified here. Circling
+#' distances are a distinct and less reliable source. `distance_source` marks
+#' them, and they should be excluded from a detection function unless their
+#' inclusion is a deliberate, stated choice.
 #'
 #' @param dat A data frame of NARWC survey data in survey order, with `LATITUDE`,
 #'   `LONGITUDE`, `LEGTYPE`, and ideally `CIRCLE` from [flag_circling()] and
@@ -399,10 +426,10 @@ exact_distance <- function(dat, by = NULL, units = c("m", "km", "nmi"),
 #' @param units `"m"` (default), `"km"`, or `"nmi"`.
 #' @param position Which position to treat as the animal's. `"exact"` (default)
 #'   uses `S_LAT`/`S_LONG` only. `"logged"` falls back to the record's own
-#'   `LATITUDE`/`LONGITUDE` where no exact position exists — but that is the
-#'   *aircraft* orbiting the animal, offset by the radius of the circle, which at
-#'   a few hundred metres is the same size as the distances being measured. Use
-#'   it knowing that, and read `position_source` to see which applied.
+#'   `LATITUDE`/`LONGITUDE` where no exact position exists. That position is the
+#'   *aircraft* orbiting the animal, offset by the radius of the circle (a few
+#'   hundred metres, the same size as the distances being measured).
+#'   `position_source` records which position was used.
 #'
 #' @return A tibble with one row per row of `dat`, populated only for circling
 #'   sightings:
@@ -438,6 +465,7 @@ circling_distance <- function(dat, by = NULL, units = c("m", "km", "nmi"),
   units <- match.arg(units)
   position <- match.arg(position)
 
+  # Template for the result; also returned for empty input.
   empty <- tibble::tibble(
     distance = numeric(0), along = numeric(0), side = character(0),
     radial = numeric(0), bearing = numeric(0), anchor_event = numeric(0),
@@ -447,11 +475,13 @@ circling_distance <- function(dat, by = NULL, units = c("m", "km", "nmi"),
     return(empty)
   }
 
+  # Choose the line-occupation grouping if none was given.
   require_columns(dat, c("LATITUDE", "LONGITUDE"))
   n <- nrow(dat)
   if (is.null(by)) by <- default_track_grouping(dat)
   require_columns(dat, by)
 
+  # Circling rows: CIRCLE == 1 from flag_circling(), else LEGTYPE 4.
   circling <- if ("CIRCLE" %in% names(dat)) {
     !is.na(dat$CIRCLE) & dat$CIRCLE == 1
   } else if ("LEGTYPE" %in% names(dat)) {
@@ -460,11 +490,14 @@ circling_distance <- function(dat, by = NULL, units = c("m", "km", "nmi"),
     rep(FALSE, n)
   }
 
-  # This is about sightings, not about every position logged during the circle.
+  # Keep only circling rows that carry a sighting (a species code), not every
+  # position logged during the circle.
   if ("SPECCODE" %in% names(dat)) {
     circling <- circling & !is.na(dat$SPECCODE) & dat$SPECCODE != ""
   }
 
+  # Census rows that can serve as anchors: LEGTYPE 2, not circling, with a
+  # position.
   census <- if ("LEGTYPE" %in% names(dat)) {
     !is.na(dat$LEGTYPE) & dat$LEGTYPE == 2 & !circling
   } else {
@@ -472,6 +505,8 @@ circling_distance <- function(dat, by = NULL, units = c("m", "km", "nmi"),
   }
   census <- census & !is.na(dat$LATITUDE) & !is.na(dat$LONGITUDE)
 
+  # For each line occupation with a circling sighting, find each sighting's
+  # anchor row and the inbound track bearing (degrees) at that anchor.
   key <- group_key(dat, by)
 
   anchor <- rep(NA_integer_, n)
@@ -483,6 +518,9 @@ circling_distance <- function(dat, by = NULL, units = c("m", "km", "nmi"),
     bearing[rows] <- found$bearing
   }
 
+  # Animal position: the exact sighting position where present. With
+  # position = "logged", fall back to the record's own (aircraft) position.
+  # `source` records which was used.
   s_lat <- if ("S_LAT" %in% names(dat)) as.numeric(dat$S_LAT) else rep(NA_real_, n)
   s_lon <- if ("S_LONG" %in% names(dat)) as.numeric(dat$S_LONG) else rep(NA_real_, n)
 
@@ -496,21 +534,29 @@ circling_distance <- function(dat, by = NULL, units = c("m", "km", "nmi"),
     source[fallback] <- "logged"
   }
 
+  # A row is usable when it is a circling sighting with an anchor and an
+  # animal position. `a` indexes the anchor row; NA for unusable rows makes
+  # their anchor coordinates NA, and so their results NA.
   usable <- circling & !is.na(anchor) & !is.na(source)
   a <- anchor
   a[!usable] <- NA_integer_
 
+  # Perpendicular distance from the census line through the anchor.
   out <- cross_track_distance(
     dat$LATITUDE[a], dat$LONGITUDE[a], bearing,
     ifelse(usable, s_lat, NA_real_), ifelse(usable, s_lon, NA_real_),
     units = units
   )
 
+  # Straight-line distance from the anchor to the animal, km converted to the
+  # requested units.
   scale <- switch(units, km = 1, m = 1000, nmi = 1 / 1.852)
   out$radial <- gc_distance(
     dat$LATITUDE[a], dat$LONGITUDE[a],
     ifelse(usable, s_lat, NA_real_), ifelse(usable, s_lon, NA_real_)
   ) * scale
+  # Diagnostics: the bearing used, which record anchored the sighting, and
+  # which position was used for the animal.
   out$bearing <- bearing
   out$anchor_event <- if ("EVENTNO" %in% names(dat)) {
     as.numeric(dat$EVENTNO)[a]
@@ -522,22 +568,29 @@ circling_distance <- function(dat, by = NULL, units = c("m", "km", "nmi"),
   out[, names(empty)]
 }
 
-# Anchor record and inbound bearing for each circling row of one line
-# occupation. The anchor is the last census record before the circle began; the
-# bearing is from the previous distinct census position to it, which is the
-# heading the aircraft was on when the animal was detected.
+# Anchor row and inbound bearing for each circling row of one line
+# occupation. `rows` are the occupation's row numbers in survey order; the
+# other arguments are full-length vectors over the whole frame. The anchor is
+# the last census record before the circle began. The bearing (degrees) runs
+# from the previous distinct census position to the anchor's position: the
+# heading when the animal was detected. Non-circling rows get NA.
 anchor_along_line <- function(rows, lat, lon, census, circling) {
   anchor <- rep(NA_integer_, length(rows))
   bearing <- rep(NA_real_, length(rows))
 
+  # State carried along the line: the latest census row, the bearing into
+  # it, and the latest distinct census position.
   last_census <- NA_integer_
   last_bearing <- NA_real_
   prev_lat <- NA_real_
   prev_lon <- NA_real_
 
+  # Walk the line in order.
   for (k in seq_along(rows)) {
     i <- rows[k]
     if (census[i]) {
+      # Census row: update the bearing only when the position has changed,
+      # because two identical positions have no bearing.
       moved <- is.na(prev_lat) || lat[i] != prev_lat || lon[i] != prev_lon
       if (moved) {
         if (!is.na(prev_lat)) {
@@ -548,6 +601,7 @@ anchor_along_line <- function(rows, lat, lon, census, circling) {
       }
       last_census <- i
     } else if (circling[i]) {
+      # Circling sighting: tie it to the latest census row seen so far.
       anchor[k] <- last_census
       bearing[k] <- last_bearing
     }

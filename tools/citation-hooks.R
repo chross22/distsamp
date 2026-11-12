@@ -11,7 +11,7 @@
 # is left here is the handbook's *definitions* - declination angles (8.A.2),
 # the right-angle distance rules (8.A.31) - which the distance sources depend
 # on just as directly. Bump only after diffing the new version's relevant
-# sections against R/exact.R, R/distances.R and R/strip.R.
+# sections against R/05-exact.R, R/04-distances.R and R/06-strip.R.
 cited_version <- 8L
 
 #' Has the NARWC published a newer handbook?

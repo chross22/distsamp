@@ -41,3 +41,15 @@ test_that("segment_sightings() counts everything when there is no effort column"
   out <- segment_sightings(chopped)
   expect_equal(out$sightings$n_animals, 2)
 })
+
+test_that("cropping keeps detections and tracks in step with segments", {
+  segs <- segment_survey(example_data(), seg_length = 5, seed = 1)
+  m <- segs$segments
+  box <- c(xmin = min(m$mid_lon) - 0.01, xmax = stats::median(m$mid_lon),
+           ymin = min(m$mid_lat) - 0.01, ymax = max(m$mid_lat) + 0.01)
+  out <- crop_to_bbox(segs, box)
+  expect_lt(nrow(out$segments), nrow(segs$segments))
+  expect_true(all(out$detections$seg_id %in% out$segments$seg_id))
+  on <- paste(out$segments$DATE, out$segments$new_trackno)
+  expect_true(all(paste(out$tracks$DATE, out$tracks$new_trackno) %in% on))
+})

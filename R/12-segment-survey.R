@@ -11,13 +11,16 @@
 #' @section Pipeline:
 #' 1. [make_leg_id()] — separate re-occupations of the same survey line.
 #'    Then `narwcr::fill_legstage()`, unless `LEGSTAGE_FILLED` shows it has run.
+#'    A warning is given if records move at another platform's speed, and
+#'    circling records are flagged (`CIRCLE`).
 #' 2. [flag_effort()] — decide which records are on effort.
 #' 3. [point_to_point_effort()] — great-circle distance between consecutive
-#'    on-effort positions.
+#'    on-effort positions. Then perpendicular sighting distances.
 #' 4. [split_tracks()] — start a new track wherever effort breaks.
 #' 5. [track_effort()] — total effort per continuous track.
 #' 6. [plan_segments()] — how many segments, and how long each should be.
-#' 7. [cut_segments()] — walk the records and make the cuts.
+#' 7. [cut_segments()] — walk the records and make the cuts. Then circling
+#'    sightings are added back.
 #' 8. [segment_midpoints()] — the along-track midpoint of each segment.
 #' 9. [segment_sightings()] — counts and conditions per segment.
 #'
@@ -25,14 +28,13 @@
 #' `OnOff.Effort` respectively, so you can substitute your own definitions.
 #'
 #' @section Aerial or vessel:
-#' Segmentation is platform-free — great-circle distance between fixes,
-#' splitting at breaks in effort, and cutting a track into lengths are geometry,
-#' and a ship's track segments the same way a plane's does. What is not
-#' platform-free is either end of it: the effort criteria that decide which
-#' records count, and the right-angle distance sources that exist. `platform`
-#' sets both at once, because setting one without the other is how a survey
-#' ends up with a vessel's records and an aircraft's criteria — which is a
-#' survey with no effort at all. See [platform_defaults()].
+#' Segmentation itself does not depend on the platform: great-circle distance
+#' between fixes, splitting at breaks in effort, and cutting a track into
+#' lengths work the same for a ship as for a plane. Two things do depend on it:
+#' the effort criteria that decide which records count, and which right-angle
+#' distance sources exist. `platform` sets both at once. Setting one without
+#' the other gives a vessel's records an aircraft's criteria, and so a survey
+#' with no effort at all. See [platform_defaults()].
 #'
 #' @section Reproducibility:
 #' Segmentation makes two random choices: which segment absorbs a track's
@@ -149,8 +151,11 @@ segment_survey <- function(dat,
                            distance_sources = NULL,
                            effort_args = list(),
                            sighting_args = list()) {
+  # 0. Check and resolve the arguments.
   dist_method <- dist_method_canonical(match.arg(dist_method))
   circling <- match.arg(circling)
+  # Runs before match.arg(), so a caller passing the removed "inherit" option
+  # gets an explanation instead of a generic match.arg() error.
   reject_removed_inherit(circling_distance, "circling_distance")
   circling_distance <- match.arg(circling_distance)
   if (!is.null(circling_max_gap_km)) {
@@ -162,19 +167,18 @@ segment_survey <- function(dat,
   stopifnot(is.list(effort_args))
   stopifnot(is.numeric(seg_length), length(seg_length) == 1L, seg_length > 0)
 
-  # The effort criteria and the distance sources come from the same place, so
-  # they cannot be set to two different platforms' answers. Anything the caller
-  # named wins over both.
+  # Take the effort criteria and the distance sources from the same platform,
+  # so they cannot disagree. Arguments the caller named override the defaults.
   defaults <- platform_defaults(platform)
   if (is.null(distance_sources)) {
     distance_sources <- defaults$distance_sources
   } else {
     check_distance_sources(distance_sources, platform)
   }
-  # A circling record's distance is set when it is attached, not here: it is
-  # off effort, so cut_segments() drops it and attach_circling_sightings()
-  # brings it back with the distance `circling_distance` names. Asking for the
-  # source would compute a number that never reaches the output.
+  # Drop the "circling" source with a warning. Circling records are off
+  # effort, so cut_segments() drops them; attach_circling_sightings() brings
+  # them back and sets their distance from `circling_distance`. A distance
+  # computed here would never reach the output.
   if ("circling" %in% distance_sources) {
     rlang::warn(paste0(
       "`distance_sources` includes \"circling\", which has no effect in ",
@@ -185,9 +189,13 @@ segment_survey <- function(dat,
     ))
     distance_sources <- setdiff(distance_sources, "circling")
   }
+  # Merge the caller's effort arguments over the platform defaults, name by
+  # name. modifyList() is not used: it deletes elements set to NULL, and a
+  # vessel's defaults need `max_alt_m = NULL`.
   keep_names <- setdiff(names(defaults$effort_args), names(effort_args))
   effort_args <- c(effort_args, defaults$effort_args[keep_names])
 
+  # Record the resolved arguments; they are returned with the result.
   settings <- list(
     seg_length = seg_length, species = species, seed = seed,
     seg_tol_frac = seg_tol_frac, min_track_km = min_track_km,
@@ -199,26 +207,25 @@ segment_survey <- function(dat,
     distance_sources = distance_sources
   )
 
-  # 1. line occupations
+  # 1. Line occupations: separate repeat flights of the same line (LEGNO3).
+  #    Skipped when the input already has LEGNO3.
   if (!"LEGNO3" %in% names(dat)) {
     dat <- make_leg_id(dat)
   }
 
-  # The line state, where the file records it only when it changes. Distances
-  # are measured only on records in state 2 (handbook 8.A.31), so a mid-line
-  # sighting with no LEGSTAGE of its own would get none. prepare_survey() does
-  # this too, and marks it with LEGSTAGE_FILLED, which is how it is not done
-  # twice.
+  # 1a. Line state. Files often record LEGSTAGE only when it changes; fill
+  #     the continuing state (2) between those records. Distances are measured
+  #     only on records in state 2 (handbook 8.A.31), so without this a
+  #     mid-line sighting gets no distance. Skipped when prepare_survey() has
+  #     already done it, which it marks with LEGSTAGE_FILLED.
   if ("LEGSTAGE" %in% names(dat) && !"LEGSTAGE_FILLED" %in% names(dat)) {
     dat <- narwcr::fill_legstage(dat, quiet = TRUE)
   }
 
-  # The effort criteria and the distance sources are now this platform's, so
-  # a record from a different one is being measured with the wrong ruler. A
-  # NARWC extract can hold a shipboard survey alongside an aerial one with
-  # nothing to say so, and it segments without complaint into numbers that
-  # look entirely reasonable. Checked after the occupations are built, because
-  # that is what a platform is judged over.
+  # 1b. Platform check. Warn, but do not filter, when records move at another
+  #     platform's speed: they would be measured with this platform's effort
+  #     criteria and distance sources. Runs after step 1 because a platform is
+  #     judged over line occupations. Filtering is prepare_survey()'s job.
   if (all(c("LATITUDE", "LONGITUDE", "TIME") %in% names(dat))) {
     kind <- narwcr::classify_platform(dat)
     other <- !is.na(kind) & kind != defaults$kind
@@ -239,32 +246,40 @@ segment_survey <- function(dat,
       ))
     }
   }
+
+  # 1c. Circling flag (CIRCLE). Set before cutting, because circling records
+  #     cannot be identified once off-effort rows are dropped.
   if (!"CIRCLE" %in% names(dat)) {
     dat <- flag_circling(dat)
   }
 
-  # 2. effort
+  # 2. Effort flag (OnOff.Effort). Skipped when the input already has one.
+  #    Off-effort records are kept; step 7a needs them.
   if (!"OnOff.Effort" %in% names(dat)) {
     dat <- flag_effort_for_platform(dat, effort_args)
   }
 
-  # 3. along-track distance
+  # 3. Along-track distance (km) from each record to the next, within each
+  #    line occupation (pt2pt.effort).
   dat <- point_to_point_effort(dat, method = dist_method)
 
-  # Right-angle distances from whichever source the survey recorded. Computed
-  # here so they travel with the point data through cutting and end up on each
-  # detection, carrying `distance_source` with them.
+  # 3a. Perpendicular sighting distances from the preferred sources. Computed
+  #     before cutting so each sighting carries its distance, and its
+  #     distance_source, into its segment.
   if (!"distance" %in% names(dat)) {
     dat <- sighting_distances(dat, sources = distance_sources,
                               units = distance_units, platform = platform)
   }
 
-  # 4-5. continuous tracks and their totals
+  # 4. Split each occupation into tracks of constant effort state.
+  # 5. Total effort per track; drop tracks of min_track_km or less.
   dat <- split_tracks(dat)
   tracks <- track_effort(dat, min_track_km = min_track_km)
 
-  # 6-7. plan and cut. Both draw from the RNG; running them under one seeded
-  # block keeps the whole segmentation reproducible from a single seed.
+  # 6. Plan the segment lengths of each track.
+  # 7. Cut each track's on-effort records into those segments (`chopped`).
+  #    Both steps draw random numbers. They run in one seeded block, so a
+  #    single `seed` reproduces the whole segmentation.
   chopped <- with_optional_seed(seed, {
     plan <- plan_segments(
       tracks, seg_length = seg_length, seg_tol_frac = seg_tol_frac, seed = NULL
@@ -272,21 +287,23 @@ segment_survey <- function(dat,
     cut_segments(plan, dat, min_segment_km = min_segment_km, seed = NULL)
   })
 
-  # Bring back sightings made while circling off the census track, attributing
-  # them to the segment that was in progress at the break-off.
+  # 7a. Add back sightings made while circling off the line. Each joins the
+  #     segment that contains its break-off, with zero effort.
   chopped <- attach_circling_sightings(chopped, dat, mode = circling,
                                        distance = circling_distance,
                                        units = distance_units,
                                        max_gap_km = settings$circling_max_gap_km)
 
-  # 8-9. per-segment products
+  # 8. Segment midpoints.
+  # 9. Sighting counts, conditions and detections per segment.
   mids <- segment_midpoints(chopped)
   summaries <- do.call(
     segment_sightings,
     c(list(chopped, species = species), sighting_args)
   )
 
-  segments <- assemble_segments(chopped, mids, summaries$conditions, tracks)
+  # 10. One row per segment, joined to its midpoint and conditions.
+  segments <- assemble_segments(chopped, mids, summaries$conditions)
 
   structure(
     list(
@@ -302,7 +319,11 @@ segment_survey <- function(dat,
   )
 }
 
-assemble_segments <- function(chopped, mids, conditions, tracks) {
+# Build the segments table: one row per seg_id, from the segment fields that
+# cut_segments() repeated on every record of the segment, joined to the
+# midpoints and the conditions. `tracks` is accepted but not used.
+assemble_segments <- function(chopped, mids, conditions) {
+  # No segments: return an empty table with the key columns.
   if (is_empty_df(chopped)) {
     return(tibble::tibble(
       seg_id = character(0), DATE = as.Date(character(0)),
@@ -311,7 +332,11 @@ assemble_segments <- function(chopped, mids, conditions, tracks) {
     ))
   }
 
+  # Line identifiers present in the data are carried through.
   carry <- intersect(c("FILEID", "LEGNO", "LEGNO2", "LEGNO3"), names(chopped))
+
+  # Collapse to one row per segment. start_time is the earliest TIME; a
+  # segment with no valid TIME gives -Inf, which is set to NA below.
 
   segs <- dplyr::summarise(
     dplyr::group_by(chopped, .data$seg_id),
@@ -327,9 +352,11 @@ assemble_segments <- function(chopped, mids, conditions, tracks) {
   )
   segs$start_time[!is.finite(segs$start_time)] <- NA_real_
 
+  # Add midpoints and conditions.
   segs <- dplyr::left_join(segs, mids, by = "seg_id")
   segs <- dplyr::left_join(segs, conditions, by = "seg_id")
 
+  # Put the main columns first, in a fixed order; any others follow.
   front <- c(
     "seg_id", "DATE", carry, "new_trackno", "seg_no", "seg_eff",
     "mid_lat", "mid_lon", "mean_beaufort", "wt_beaufort", "n_records",
@@ -338,7 +365,8 @@ assemble_segments <- function(chopped, mids, conditions, tracks) {
   front <- intersect(front, names(segs))
   segs <- segs[, c(front, setdiff(names(segs), front)), drop = FALSE]
 
-  dplyr::arrange(segs, .data$DATE, .data$new_trackno, .data$seg_no)
+  # Sort in survey order.
+  dplyr::arrange(segs, .data$DATE, as.numeric(.data$new_trackno), .data$seg_no)
 }
 
 
@@ -404,11 +432,13 @@ segments_wide <- function(x, value = c("animals", "sightings"), prefix = "n_") {
   value <- match.arg(value)
   col <- if (value == "animals") "n_animals" else "n_sightings"
 
+  # No sightings: nothing to spread.
   out <- x$segments
   if (is_empty_df(x$sightings)) {
     return(out)
   }
 
+  # One column per species, named prefix + SPECCODE.
   wide <- tidyr::pivot_wider(
     x$sightings[, c("seg_id", "SPECCODE", col)],
     names_from = "SPECCODE",
@@ -417,6 +447,8 @@ segments_wide <- function(x, value = c("animals", "sightings"), prefix = "n_") {
     values_fill = 0
   )
 
+  # Join to every segment. Segments with no sightings at all get NA from the
+  # join; set those counts to 0.
   out <- dplyr::left_join(out, wide, by = "seg_id")
   count_cols <- setdiff(names(wide), "seg_id")
   for (nm in count_cols) {

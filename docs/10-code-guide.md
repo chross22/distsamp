@@ -34,25 +34,50 @@ Terms:
 
 ## 2. Pipeline summary
 
+The pipeline scripts are numbered in the order they are used:
+
+| Script | Contents |
+|---|---|
+| `R/00-reexports.R` | `read_narwc()`, `make_leg_id()`, `flag_effort()` and other `narwcr` functions |
+| `R/01-prepare.R` | `prepare_survey()` |
+| `R/02-platform.R` | platform defaults; effort flags for a platform |
+| `R/03-geodist.R` | great-circle distance; along-track effort |
+| `R/04-distances.R` | perpendicular distances from every source |
+| `R/05-exact.R` | distances from recorded sighting positions, including circling |
+| `R/06-strip.R` | `STRIP` code intervals |
+| `R/07-tracks.R` | continuous-effort tracks |
+| `R/08-segments.R` | planning and cutting segments |
+| `R/09-circling.R` | flagging and attaching circling sightings |
+| `R/10-midpoints.R` | segment midpoints |
+| `R/11-sightings.R` | sightings, conditions and detections per segment |
+| `R/12-segment-survey.R` | `segment_survey()`: runs 01 to 11 in order |
+| `R/13-detection-data.R` | `detection_data()`: the `Distance` flatfile |
+
+Unnumbered files support the pipeline: checks (`validate.R`, `diagnose.R`),
+per-line effort (`line-effort.R`), date filters (`days.R`), spatial export
+(`spatial.R`), plotting (`plot*.R`, `scales.R`) and helpers (`utils.R`).
+
+The steps, in the order `segment_survey()` runs them:
+
 | Step | Function | File | Adds |
 |---|---|---|---|
 | 0 | `read_narwc()` (narwcr) | re-exported | standard column names and types |
 | 1 | `make_leg_id()` (narwcr) | re-exported | `LEGNO2`, `LEGNO3` |
 | 1a | `fill_legstage()` (narwcr) | called internally | filled `LEGSTAGE`, `LEGSTAGE_FILLED` |
 | 1b | `classify_platform()` (narwcr) | called internally | `PLATFORM_KIND`; rows filtered |
-| 1c | `flag_circling()` | `R/circling.R:35` | `CIRCLE` |
-| 2 | `flag_effort()` (narwcr) | `R/platform.R:165` | `OnOff.Effort` |
-| 3 | `point_to_point_effort()` | `R/geodist.R:312` | `pt2pt.effort`, `Effort` |
-| 3a | `sighting_distances()` | `R/distances.R:201` | `distance`, `distbegin`, `distend`, `side`, `distance_source` |
-| 4 | `split_tracks()` | `R/tracks.R:56` | `new_trackno` |
-| 5 | `track_effort()` | `R/tracks.R:125` | one row per track |
-| 6 | `plan_segments()` | `R/segments.R:87` | one row per planned segment |
-| 7 | `cut_segments()` | `R/segments.R:219` | `seg_no`, `seg_id`, `seg_eff`, `events`, `case` |
-| 7a | `attach_circling_sightings()` | `R/circling.R:233` | circling sightings added to `chopped` |
-| 8 | `segment_midpoints()` | `R/midpoints.R:115` | `mid_lat`, `mid_lon` |
-| 9 | `segment_sightings()` | `R/sightings.R:97` | sightings, conditions and detections tables |
-| 10 | `assemble_segments()` | `R/segment-survey.R:305` | the `segments` table |
-| 11 | `detection_data()` | `R/detection-data.R:135` | the `Distance` flatfile |
+| 1c | `flag_circling()` | `R/09-circling.R:35` | `CIRCLE` |
+| 2 | `flag_effort()` (narwcr) | `R/02-platform.R:160` | `OnOff.Effort` |
+| 3 | `point_to_point_effort()` | `R/03-geodist.R:334` | `pt2pt.effort`, `Effort` |
+| 3a | `sighting_distances()` | `R/04-distances.R:203` | `distance`, `distbegin`, `distend`, `side`, `distance_source` |
+| 4 | `split_tracks()` | `R/07-tracks.R:52` | `new_trackno` |
+| 5 | `track_effort()` | `R/07-tracks.R:130` | one row per track |
+| 6 | `plan_segments()` | `R/08-segments.R:85` | one row per planned segment |
+| 7 | `cut_segments()` | `R/08-segments.R:225` | `seg_no`, `seg_id`, `seg_eff`, `events`, `case` |
+| 7a | `attach_circling_sightings()` | `R/09-circling.R:228` | circling sightings added to `chopped` |
+| 8 | `segment_midpoints()` | `R/10-midpoints.R:122` | `mid_lat`, `mid_lon` |
+| 9 | `segment_sightings()` | `R/11-sightings.R:97` | sightings, conditions and detections tables |
+| 10 | `assemble_segments()` | `R/12-segment-survey.R:325` | the `segments` table |
+| 11 | `detection_data()` | `R/13-detection-data.R:132` | the `Distance` flatfile |
 
 There are two entry points. `prepare_survey()` runs steps 1, 1a, 1b and 2.
 `segment_survey()` runs steps 1, 1a, 1c and 2 onwards. It skips step 1, 1a or
@@ -66,7 +91,7 @@ segs <- segment_survey(dat, seg_length = 5, seed = 1)
 flat <- detection_data(segs, area = 5811)
 ```
 
-## 3. `prepare_survey()` — `R/prepare.R:101`
+## 3. `prepare_survey()` — `R/01-prepare.R:100`
 
 ### 3.1 Platform defaults
 
@@ -79,8 +104,8 @@ if (platform != "all") {
 }
 ```
 
-`resolve_platform()` (`R/platform.R:108`) treats `"ship"` as `"vessel"`.
-`platform_defaults()` (`R/platform.R:85`) gives each platform's effort
+`resolve_platform()` (`R/02-platform.R:106`) treats `"ship"` as `"vessel"`.
+`platform_defaults()` (`R/02-platform.R:80`) gives each platform's effort
 arguments and distance sources:
 
 | Platform | `effort_args` | `distance_sources` |
@@ -141,13 +166,13 @@ if (!"OnOff.Effort" %in% names(dat)) {
 before the effort flags, so a corrected column (for example `ALT` recorded in
 feet) is what the effort criteria see. It must return the same number of rows.
 
-`flag_effort_for_platform()` (`R/platform.R:165`) calls
+`flag_effort_for_platform()` (`R/02-platform.R:160`) calls
 `narwcr::flag_effort()`. A record is on effort when `LEGTYPE == 2`,
 `BEAUFORT <= 3`, `ALT < 366` m, and visibility is at least 2 nmi. A missing
 value fails its criterion. The wrapper first checks that the installed narwcr
 accepts `NULL` to drop a criterion, and stops with an explanation if not.
 
-## 4. `segment_survey()` — `R/segment-survey.R:135`
+## 4. `segment_survey()` — `R/12-segment-survey.R:137`
 
 The function body is a fixed sequence of steps. Each subsection is one step.
 
@@ -168,10 +193,10 @@ if ("circling" %in% distance_sources) {
 }
 ```
 
-`reject_removed_inherit()` (`R/circling.R:417`) stops with an explanation when
+`reject_removed_inherit()` (`R/09-circling.R:449`) stops with an explanation when
 the removed option `"inherit"` is passed. It runs before `match.arg()`, which
 would otherwise give a generic error. `check_distance_sources()`
-(`R/platform.R:128`) stops when an aircraft-only source (`angle`, `strip`) is
+(`R/02-platform.R:127`) stops when an aircraft-only source (`angle`, `strip`) is
 requested for a vessel.
 
 The `"circling"` distance source is dropped with a warning. Circling records
@@ -203,7 +228,7 @@ wrong speed for the platform, a warning gives their number and the
 `prepare_survey()` call that would remove them. `segment_survey()` never
 removes rows.
 
-`flag_circling()` (`R/circling.R:35`) sets `CIRCLE = 1` on a record when
+`flag_circling()` (`R/09-circling.R:35`) sets `CIRCLE = 1` on a record when
 `LEGTYPE == 4`, or when it lies between a break-off and the next resume in the
 same occupation. The break-off and resume records themselves get `0`.
 
@@ -217,7 +242,7 @@ if (!"OnOff.Effort" %in% names(dat)) {
 
 As in Section 3.4. Off-effort records are kept; the circling step needs them.
 
-### 4.4 Step 3: along-track distance — `R/geodist.R:312`
+### 4.4 Step 3: along-track distance — `R/03-geodist.R:334`
 
 ```r
 out <- dplyr::group_by(dat, DATE, FILEID, LEGNO3)
@@ -236,7 +261,7 @@ between occupations.
 `source = "recorded"` uses the logged `TRKDIST` instead, and falls back to the
 great-circle distance, with a warning, where `TRKDIST` is missing.
 
-### 4.5 Step 3a: perpendicular distances — `R/distances.R:201`
+### 4.5 Step 3a: perpendicular distances — `R/04-distances.R:203`
 
 ```r
 eligible <- on_effort_census_rows(dat)
@@ -253,20 +278,20 @@ into its segment. A record is eligible only if it is on effort, on a census
 line, and has `LEGSTAGE == 2` (handbook 8.A.31).
 
 `sources` is an order of preference. Each source fills only the records that
-no earlier source filled. `distance_from_source()` (`R/distances.R:283`)
+no earlier source filled. `distance_from_source()` (`R/04-distances.R:290`)
 computes one source:
 
 | Source | Computation | Result |
 |---|----------|--------|
 | `angle` | `ALT / tan(angle)` from `ANGLEL` or `ANGLER` | point distance. If both angles are recorded, `side = "both"` and no distance. |
-| `exact` | `S_LAT`/`S_LONG` projected onto the track (`exact_distance()`, `R/exact.R:318`) | point distance |
+| `exact` | `S_LAT`/`S_LONG` projected onto the track (`exact_distance()`, `R/05-exact.R:339`) | point distance |
 | `strip` | `STRIP` code looked up in the CETAP or NLPSC code book, chosen by date | interval, `distbegin` to `distend` |
-| `circling` | `S_LAT`/`S_LONG` projected onto the line at the break-off (`circling_distance()`, `R/exact.R:439`) | point distance; not restricted to eligible records |
+| `circling` | `S_LAT`/`S_LONG` projected onto the line at the break-off (`circling_distance()`, `R/05-exact.R:463`) | point distance; not restricted to eligible records |
 
 When a source gives only the side of the track, the side is recorded and the
 record is left open for a later source.
 
-### 4.6 Steps 4–5: tracks — `R/tracks.R`
+### 4.6 Steps 4–5: tracks — `R/07-tracks.R`
 
 ```r
 track_index <- function(leg, on_effort) {
@@ -287,12 +312,12 @@ fix does not split a track. That record still has `pt2pt.effort = 0`.
 `min_track_km` (default 1 km) or less. Off-effort tracks have zero effort, so
 they are dropped here.
 
-### 4.7 Steps 6–7: planning and cutting segments — `R/segments.R`
+### 4.7 Steps 6–7: planning and cutting segments — `R/08-segments.R`
 
 Both steps use random numbers. They run inside one `with_optional_seed()`
 block, so one `seed` reproduces the whole segmentation.
 
-**Planning.** `plan_one_track()` (`R/segments.R:119`) sets target lengths for
+**Planning.** `plan_one_track()` (`R/08-segments.R:122`) sets target lengths for
 one track of length `total`:
 
 ```r
@@ -310,7 +335,7 @@ lengthened to include it. The segment that gets the odd length is chosen at
 random. A track shorter than `seg_length` is one segment. This is the method
 of Becker et al. (2010), kept unchanged (`docs/02-implementation.md`).
 
-**Cutting.** `cut_one_track()` (`R/segments.R:248`) assigns the track's
+**Cutting.** `cut_one_track()` (`R/08-segments.R:262`) assigns the track's
 records to the planned segments in order:
 
 ```r
@@ -334,7 +359,7 @@ Each segment gets `seg_id` (`DATE_track_segno`), `seg_eff` (sum of
 `pt2pt.effort`, km), `events` (first and last `EVENTNO`) and `case`. Segments
 of `min_segment_km` or less are dropped.
 
-### 4.8 Step 7a: circling sightings — `R/circling.R:233`
+### 4.8 Step 7a: circling sightings — `R/09-circling.R:228`
 
 Sightings made while circling are off effort and are not in `chopped`.
 `attach_circling_sightings()` adds them back.
@@ -387,7 +412,7 @@ counted there: `segment_sightings()` counts on-effort sightings only.
 
 ### 4.9 Steps 8–9: segment summaries
 
-**Midpoints** (`R/midpoints.R:115`). Records are first put in survey order
+**Midpoints** (`R/10-midpoints.R:122`). Records are first put in survey order
 within each track. The midpoint is the position half-way
 along the segment's effort. It is interpolated on the great circle between the
 record where the half-way point falls and the next record in the track. The
@@ -395,7 +420,7 @@ next record is taken from the track, not the segment, because a segment's last
 record measures its effort to the next segment's first record. A segment of
 zero length uses its first position.
 
-**Sightings, conditions and detections** (`R/sightings.R:97`).
+**Sightings, conditions and detections** (`R/11-sightings.R:97`).
 
 ```r
 sight <- filter(chopped, SPECCODE != "")
@@ -415,7 +440,7 @@ definite (`IDREL` 2 or 3). `species` restricts further. Two tables result:
 - `detections`: one row per sighting, with `distance`, `distbegin`, `distend`,
   `side`, `distance_source`, `size`, `circling` and `break_off_distance`.
 
-### 4.10 Step 10: segments table — `R/segment-survey.R:305`
+### 4.10 Step 10: segments table — `R/12-segment-survey.R:325`
 
 One row per segment: date, line identifiers, `seg_no`, `seg_eff`, start time,
 `events` and `case`, joined to the midpoints and conditions.
@@ -424,7 +449,7 @@ One row per segment: date, line identifiers, `seg_no`, `seg_eff`, start time,
 `segments`, `sightings`, `detections`, `tracks`, `points` (`chopped`), the
 call, and `settings`.
 
-## 5. `detection_data()` — `R/detection-data.R:135`
+## 5. `detection_data()` — `R/13-detection-data.R:132`
 
 ```r
 base <- tibble(Region.Label, Area = area, Sample.Label = seg_id, Effort = seg_eff)
@@ -513,6 +538,16 @@ On 2026-11-12:
 | `circling_max_gap_km` was checked only after segmenting, under another name. | Checked first. |
 | Lookups compared the whole table once per occupation. | Split once; 0.2 s instead of 1.5 s on 194,000 records. |
 | `segment_midpoints()` built one table per segment: 9 s of 18 s on 194,000 records. | All midpoints in one pass: 0.12 s, same results within 1.5e-14 degrees. |
+| `detection_data(area = )` recycled several areas across segments in row order. | Matched to regions by name; unnamed vectors refused. |
+| `STRIP` records with no date got the CETAP code book. | No interval, with a warning. |
+| `source = "recorded"`: an interval with no reading and no position made the line's `Effort` `NA`. | Counted as 0 km, with a warning. |
+| `flag_circling()` could carry an open circle into another file sharing a `LEGNO3`. | Reset per `DATE`, `FILEID` and `LEGNO3`. |
+| `diagnose_pipeline()` aborted without `FILEID`, returned `NULL` data after a failed step, and counted blank species codes as sightings. | Corrected. |
+| Segments, detections and the flatfile were sorted with `seg_id` as text. | Survey order (`seg_sort_key()`). |
+| `line_effort()` numbered re-flights by text order and returned the wrong columns for empty input with `combine = "line"`. | Flight order; correct columns. |
+| `crop_to_bbox()` left detections and tracks of removed segments. | Cropped together. |
+| `validate_narwc()` compared a text `ALT` as text. | Compared as a number. |
+| The tracks plot counted and coloured track numbers across days; the thinning note estimated the step. | Per day; the step used. |
 
 ## 9. Limitations
 
@@ -536,7 +571,7 @@ On 2026-11-12:
 |-------|--------------|
 | `R CMD check --no-manual`, before corrections | 0 errors, 2 warnings, 0 notes. 756 tests pass; 3 test warnings. |
 | `R CMD check --no-manual`, after the 2026-11-05 corrections | 0 errors, 0 warnings, 0 notes. 794 tests pass. |
-| `R CMD check --no-manual`, after the 2026-11-12 corrections | 0 errors, 0 warnings, 0 notes. 809 tests pass; 0 skipped; 0 test warnings. |
+| `R CMD check --no-manual`, after the 2026-11-12 corrections | 0 errors, 0 warnings, 0 notes. 838 tests pass; 0 skipped; 0 test warnings. |
 | Effort on the fixture (`seg_length = 5`, `seed = 1`) | 113 records, 2 days, 6 occupations, 101 on effort, 5 circling. 92.23 km of effort; 20 segments totalling 92.23 km. 8 detections, all from `angle`. |
 | `"break_off"` on the fixture | Circling sighting at 250.0 m, right side, `distance_source = "circling"`. With `S_LAT` removed, falls back to the straight-line distance. |
 | Group search, test scenario, `max_gap_km = 5` | Groups up to 4.5 km before the break-off are joined; groups 5.6 km or more before are not, whether or not a segment boundary lies between. A group 22 km back is not joined. A group circled before the last resume gets no further animals. |

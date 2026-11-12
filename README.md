@@ -104,6 +104,13 @@ filter_days(dat, years = 2024)    # subset by date
 dist_methods()                    # along-track distance formulas
 ```
 
+## Code layout
+
+Pipeline scripts in `R/` are numbered in the order they are used, from
+`00-reexports.R` (reading) to `13-detection-data.R` (the `Distance` table).
+`12-segment-survey.R` runs steps 01 to 11. Unnumbered files are checks,
+plotting and helpers. See [docs/10-code-guide.md](docs/10-code-guide.md).
+
 ## Documentation
 
 | Topic | File |
@@ -129,3 +136,8 @@ citation("distsamp")
 
 Returns the package, the segmentation method (Becker et al. 2010) and the data
 format (Kenney 2023). Report the `seed` used.
+
+## References
+
+All sources, and what each is relied on for:
+[docs/06-references.md](docs/06-references.md).

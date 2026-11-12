@@ -1,23 +1,21 @@
-## Colour and legend, in one place.
+## Colour and legend helpers shared by every map in the package.
 ##
-## Every map in this package colours points by some identifier, and every one of
-## them met the same two problems on the real archive: a legend with more
-## entries than a legend can hold, and a palette nobody could read. Both are
-## solved here so they are solved the same way everywhere.
+## Two problems recur on the real archive: legends with more entries than a
+## legend can hold, and palettes that cannot be read. Both are handled here so
+## every plot handles them the same way.
 
-# Okabe-Ito: eight qualitative colours chosen to stay distinguishable under the
-# common forms of colour blindness. ggplot2's default hue wheel is not, and
-# Brewer's "Dark2" runs out at eight - past which ggplot2 hands back `NA` and
-# draws a legend of colourless labels.
+# Okabe-Ito: eight qualitative colours that stay distinguishable under the
+# common forms of colour blindness. ggplot2's default hue wheel does not.
+# Brewer's "Dark2" stops at eight, past which ggplot2 returns NA colours.
 okabe_ito <- c(
   "#E69F00", "#56B4E9", "#009E73", "#F0E442",
   "#0072B2", "#D55E00", "#CC79A7", "#000000"
 )
 
-# Levels in an order a reader can follow. `unique()` gives order of appearance,
-# which is what produced a LEGSTAGE legend reading 1, 2, 4, 3, 5, 6, 7 - the
-# order the aircraft happened to fly them. Numbers sort as numbers, so that
-# occupation 10 does not land between 1 and 2.
+# Sorted unique non-missing levels of `x`, as character. If every level looks
+# like a number, they sort numerically (so 10 comes after 2, not between 1 and
+# 2); otherwise alphabetically. Order of appearance is not used because it
+# follows the order flown, which is meaningless in a legend.
 sort_levels <- function(x) {
   u <- unique(stats::na.omit(as.character(x)))
   if (length(u) && all(grepl("^-?[0-9]+(\\.[0-9]+)?$", u))) {
@@ -27,26 +25,26 @@ sort_levels <- function(x) {
   }
 }
 
-# Colour by the identifier itself where there are few enough to tell apart, so
-# the legend says which line is which. Beyond `max_legend` a legend is a wall of
-# labels and the colours cannot be distinguished anyway, so a small palette is
-# recycled: what has to be visible then is only that neighbours differ.
+# Colour grouping for identifiers such as track or occupation numbers.
+# Returns a list: `named` (TRUE if the legend lists each identifier), `n`
+# (number of distinct identifiers), and `col` (the factor to map to colour).
 #
-# An identifier is never named past the qualitative palette, whatever
-# `max_legend` says. The two bound different things - `max_legend` is how long
-# a legend may get, the palette is how many colours can be told apart - and the
-# smaller one governs. Between them, at 9 to 12 tracks, a named legend was
-# drawn over `scale_colour_viridis_d()`: a day's tracks ran dark purple to
-# yellow and read as an order, track 1 early and track 10 late, with 5
-# somewhere between. A track number is a label. Nothing about it is ordered,
-# and a ramp says otherwise in the one channel the reader trusts most.
+# With few enough identifiers, each gets its own colour and legend entry.
+# Beyond that, colours are recycled from the palette in order of appearance,
+# so only neighbours need to differ, and no legend is drawn.
 #
-# `Inf` means the caller is colouring a meaning rather than an identifier - a
-# LEGSTAGE, a platform - where the levels have to keep their names and the
-# viridis fallback is the deliberate choice. That case is left alone.
+# The limit is the smaller of `max_legend` (how long a legend may be) and the
+# palette size (how many colours can be told apart). Without the palette
+# limit, 9 to 12 identifiers would be drawn on the viridis ramp, which reads
+# as an order that a track number does not have.
+#
+# `max_legend = Inf` means the caller is colouring a meaning (a LEGSTAGE, a
+# platform), not an identifier. The levels then always keep their names, and
+# the viridis fallback is intended.
 capped_groups <- function(values, max_legend = 12) {
   ids <- as.character(values)
   levs <- sort_levels(ids)
+  # Effective limit on named levels.
   cap <- if (is.finite(max_legend)) {
     min(max_legend, length(okabe_ito))
   } else {
@@ -54,6 +52,7 @@ capped_groups <- function(values, max_legend = 12) {
   }
   named <- length(levs) <= cap
 
+  # Recycled colours: the identifier's order of appearance modulo 8.
   list(
     named = named,
     n = length(levs),
@@ -65,33 +64,34 @@ capped_groups <- function(values, max_legend = 12) {
   )
 }
 
-# Reduce to at most `max_levels` levels, gathering the rest under one label.
+# Reduce a factor to at most `max_levels` levels, gathering the rest under
+# one label.
 #
-# For an identifier - a track, an occupation - recycling colours is right,
-# because the only question is whether neighbours differ. For a *meaning* like
-# a species code it is not: RIWH has to stay findable. So the common levels keep
-# their own colour and their own legend entry, the tail becomes one labelled
-# group, and every sighting stays on the map. 36 species is not a legend; eight
-# and "29 more" is.
+# Used for meanings such as species codes, where colours cannot be recycled:
+# RIWH must stay identifiable. The most frequent levels keep their own colour
+# and legend entry, the rest become one labelled group (e.g. "other (29
+# more)"), and every sighting stays on the map.
 #
-# `max_levels` counts the "other" entry, because the thing the caller cares
-# about is how many colours the scale ends up needing. Keeping 8 *and* adding
-# "other" makes 9, which tips a palette of exactly 8 over to the fallback.
+# `max_levels` includes the "other" entry, because the caller cares about how
+# many colours the scale needs. Keeping 8 and adding "other" would make 9 and
+# push a palette of 8 over to the fallback.
 lump_levels <- function(x, max_levels = 8L, other = "other") {
+  # Count levels, most frequent first. Few enough: keep them all, sorted.
   ids <- as.character(x)
   tab <- sort(table(ids, useNA = "no"), decreasing = TRUE)
   if (length(tab) <= max_levels) {
     return(factor(ids, levels = sort_levels(ids)))
   }
+  # Keep the max_levels - 1 most frequent; relabel the rest.
   top <- names(tab)[seq_len(max_levels - 1L)]
   lab <- paste0(other, " (", length(tab) - length(top), " more)")
   ids[!ids %in% top] <- lab
   factor(ids, levels = c(top, lab))
 }
 
-# Okabe-Ito while its eight last, viridis after. There is no qualitative set
-# past eight that stays colourblind-safe, and a continuous scale read as
-# categories is the better failure - it is at least ordered and at least legible.
+# Colour scale for `n` levels: Okabe-Ito up to eight, viridis beyond. No
+# qualitative set past eight stays colourblind-safe; viridis at least stays
+# legible. Missing values are grey.
 scale_colour_safe <- function(n, ...) {
   if (n <= length(okabe_ito)) {
     ggplot2::scale_colour_manual(values = unname(okabe_ito),
@@ -101,10 +101,9 @@ scale_colour_safe <- function(n, ...) {
   }
 }
 
-# The same palette through the `fill` channel. Sightings drawn over a coloured
-# effort layer need a scale of their own, and ggplot2 allows one scale per
-# aesthetic - so the effort keeps `colour` and the sightings take `fill`, drawn
-# as outlined markers that read as points on top rather than more of the track.
+# The same palette for the `fill` aesthetic. ggplot2 allows one scale per
+# aesthetic, so when sightings are drawn over a coloured effort layer, effort
+# uses `colour` and sightings use `fill` (as outlined markers).
 scale_fill_safe <- function(n, ...) {
   if (n <= length(okabe_ito)) {
     ggplot2::scale_fill_manual(values = unname(okabe_ito),
@@ -114,7 +113,9 @@ scale_fill_safe <- function(n, ...) {
   }
 }
 
-# Sighting rows in a point-level survey frame: the ones naming a species.
+# Sighting rows of a point-level survey frame: rows with a non-blank
+# SPECCODE, optionally restricted to the codes in `species`. Returns NULL when
+# there are none or SPECCODE is absent.
 survey_sightings <- function(dat, species = NULL) {
   if (!"SPECCODE" %in% names(dat)) {
     return(NULL)
@@ -127,8 +128,8 @@ survey_sightings <- function(dat, species = NULL) {
   if (!nrow(out)) NULL else out
 }
 
-# A legend that does not squeeze the map: keys big enough to read a colour off,
-# and a second column before a single one runs the height of the plot.
+# Colour legend layout for `n` entries: keys large enough to read a colour
+# from, and two columns once there are more than 12 entries.
 legend_guide <- function(n) {
   ggplot2::guides(colour = ggplot2::guide_legend(
     override.aes = list(size = 2.8, alpha = 1, linewidth = 0),
@@ -137,8 +138,8 @@ legend_guide <- function(n) {
   ))
 }
 
-# Enough points and they stop being points and become a black mass: 19,774
-# segment midpoints at the default size covered the survey area entirely.
+# Point size for a plot of `n` points. Larger counts get smaller points, so
+# that tens of thousands of points do not merge into a solid mass.
 point_size_for <- function(n) {
   if (n <= 500L) 1.6 else if (n <= 5000L) 0.8 else 0.4
 }

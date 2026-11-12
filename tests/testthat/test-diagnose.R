@@ -252,3 +252,37 @@ test_that("platforms that differ in kind are still warned about", {
   out <- capture.output(suppressWarnings(diagnose_pipeline(d, seg_length = 1)))
   expect_true(any(grepl("WARN.*not moving at aerial speed", out)))
 })
+
+test_that("a text ALT is compared as a number", {
+  d <- example_data()
+  d$ALT <- as.character(d$ALT)
+  d$ALT[which(!is.na(d$ANGLEL))[1]] <- "0.0"   # as text, "0.0" > "0"
+  f <- validate_narwc(d)
+  expect_true("angle_without_altitude" %in% f$check)
+})
+
+test_that("diagnosis without FILEID reports rather than aborting", {
+  d <- example_data()
+  d$FILEID <- NULL
+  out <- capture.output(res <- suppressWarnings(diagnose_pipeline(d, seg_length = 5)))
+  expect_false(any(grepl("Error", out)))
+  expect_true(any(grepl("grouping without DATE", out)))
+})
+
+test_that("a failed step returns the last good data, not NULL", {
+  d <- example_data()
+  d$LEGNO <- NULL
+  out <- capture.output(res <- suppressWarnings(diagnose_pipeline(d, seg_length = 5)))
+  expect_true(is.data.frame(res$dat))
+})
+
+test_that("blank species codes are not sightings; a missing column is reported", {
+  d <- example_data()
+  n <- sum(!is.na(d$SPECCODE) & d$SPECCODE != "")
+  d$SPECCODE[is.na(d$SPECCODE)][1:3] <- ""
+  out <- capture.output(diagnose_pipeline(d, seg_length = 5))
+  expect_true(any(grepl(paste0(n, " sighting record"), out)))
+  d$SPECCODE <- NULL
+  out <- capture.output(suppressWarnings(diagnose_pipeline(d, seg_length = 5)))
+  expect_true(any(grepl("no SPECCODE column", out)))
+})

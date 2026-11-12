@@ -9,8 +9,8 @@ filter_days(dat, dates = NULL, years = NULL, months = NULL)
 \arguments{
 \item{dat}{A survey data frame with a \code{DATE} column.}
 
-\item{dates}{Days to keep: \code{Date} objects, or strings \code{as.Date()} accepts —
-\code{"2019-08-14"}. \code{NULL} (default) keeps every day.}
+\item{dates}{Days to keep: \code{Date} objects, or strings \code{as.Date()} accepts,
+such as \code{"2019-08-14"}. \code{NULL} (default) keeps every day.}
 
 \item{years}{Years to keep, as numbers: \code{2019}, or \code{2015:2019}.}
 
@@ -22,29 +22,28 @@ abbreviations (\code{"Aug"}). Names are matched without regard to case.}
 }
 \description{
 Subsets a survey to particular days, years, or months. The plotting functions
-take the same three arguments and pass them straight here, so this is mostly
-useful on its own when the subset is wanted for something other than a plot.
+take the same three arguments and pass them here, so this is mainly useful
+when the subset is wanted for something other than a plot.
 }
 \section{Why this exists}{
 
-A NARWC extract is decades long, and nothing useful is drawn from it whole.
-The question that sends you to a plot is almost always about a stretch of it:
-the day an occupation looked wrong, the August the survey pattern changed,
-the year an era boundary falls in. Naming that stretch is the difference
-between a figure you can read and 187 you will not open.
+A NARWC extract spans decades, and little is learned by drawing it whole. A
+plot usually answers a question about one stretch: the day an occupation
+looked wrong, the August the survey pattern changed, the year an era
+boundary falls in. Naming that stretch gives one readable figure instead of
+hundreds.
 }
 
 \section{How the three combine}{
 
-Given together they narrow, they do not accumulate: \verb{years = 2019, months = 8}
-keeps August 2019 — not all of 2019 and every August of every year. \code{dates}
-names days outright and is checked the same way, so \code{dates} plus a \code{years}
-that excludes them keeps nothing, and says so rather than drawing an empty
-map.
+Given together they narrow; they do not accumulate. \verb{years = 2019, months = 8}
+keeps August 2019, not all of 2019 plus every August. \code{dates} is combined the
+same way, so \code{dates} plus a \code{years} that excludes them keeps nothing, and
+raises an error rather than drawing an empty map.
 
 Records with no \code{DATE} are dropped whenever any of the three is given: a
-record with no date is in no month. With all three \code{NULL} the data comes back
-untouched, undated records included.
+record with no date is in no month. With all three \code{NULL} the data is
+returned unchanged, undated records included.
 }
 
 \examples{

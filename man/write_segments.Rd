@@ -18,15 +18,14 @@ write_segments(
 
 \item{prefix}{Filename prefix. Default \code{"segments"}.}
 
-\item{tables}{Which tables to write. Default all four.}
+\item{tables}{Which tables to write. Default all five.}
 }
 \value{
 The paths written, invisibly.
 }
 \description{
 Writes the tables from a \code{\link[=segment_survey]{segment_survey()}} result to a directory. Nothing
-else in the package writes to disk, so output is always something you asked
-for.
+else in the package writes to disk.
 }
 \examples{
 path <- system.file("extdata", "narwc-example.csv", package = "distsamp")

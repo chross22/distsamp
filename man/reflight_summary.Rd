@@ -16,25 +16,23 @@ A one-row tibble: \code{n_lines}, \code{n_occupations}, \code{n_lines_reflown},
 \code{effort_km_repeat}.
 }
 \description{
-Counts lines that took more than one attempt, and reports the rate two ways
-because they are different numbers and the distinction matters.
+Counts lines that took more than one attempt, and reports the rate in two
+ways because the two numbers differ.
 }
 \section{Two rates, deliberately both}{
 
 Suppose ten occupations covered eight lines, because two lines were flown
 twice.
 \itemize{
-\item \code{prop_lines_reflown} is 2/8 = 0.25 — a quarter of the lines needed a second
-attempt. This is what "what fraction of lines were re-flown" asks.
-\item \code{prop_occupations_repeat} is 2/10 = 0.20 — a fifth of the flying was a
-repeat of something already attempted. This is the one that bears on
-effort.
+\item \code{prop_lines_reflown} is 2/8 = 0.25: a quarter of the lines needed a second
+attempt. This answers "what fraction of lines were re-flown".
+\item \code{prop_occupations_repeat} is 2/10 = 0.20: a fifth of the flying repeated a
+line already attempted. This is the one that bears on effort.
 }
 
-The scripts this package was rewritten from computed the second and labelled
-it the first (\code{ds_data_dmr.R:229}, carrying the comment "ask dan about this").
-Both are reported here, named for what they measure, so neither can stand in
-for the other by accident.
+The original processing scripts computed the second and labelled it the
+first (\code{ds_data_dmr.R:229}). Both are reported here, each named for what it
+measures.
 }
 
 \examples{

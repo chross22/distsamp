@@ -16,19 +16,18 @@ The checks in this package, for use alongside the handbook-general set that
 }
 \section{Why these are separate}{
 
-Everything here is a problem \emph{only if you are computing a right-angle
-distance}. A declination angle above the horizon and an exact sighting
-position 200 km from the aircraft that logged it are both perfectly ordinary
-columns to carry around; they become defects at the point where a detection
-function is fitted to them. So they live with the package that fits one,
-rather than in the reader that every analysis shares.
+Everything here is a problem \emph{only when a right-angle distance is computed}.
+A declination angle above the horizon, or an exact sighting position 200 km
+from the aircraft that logged it, is harmless until a detection function is
+fitted to it. These checks therefore live with the package that fits one,
+not in the reader that every analysis shares.
 
 \describe{
 \item{\code{exact_position_far_from_event}}{An exact sighting position more than
 20 km from the event position that recorded it. A
-sighting is made from the aircraft, so this is a coordinate problem —
-usually a dropped minus sign, or degrees and decimal minutes read as
-decimal degrees — rather than a distant animal.}
+sighting is made from the aircraft, so this is a coordinate problem
+(usually a dropped minus sign, or degrees and decimal minutes read as
+decimal degrees) rather than a distant animal.}
 \item{\code{angle_out_of_range}}{\code{ANGLEL} or \code{ANGLER} outside \verb{(0, 90]}.
 Handbook 8.A.2 defines these as declination angles below the horizon, so
 a value at or below zero is at or above the horizon and one above 90 is

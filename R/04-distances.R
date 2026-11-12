@@ -24,9 +24,9 @@
 #'
 #' @section Units:
 #' `ALT` is in metres (8.A.1), so distances are returned in metres by default.
-#' Note that segment effort in this package is in **kilometres** — if you pass
-#' both to `Distance::ds()` you must either use `units = "km"` here or supply
-#' `convert_units`. Getting this wrong scales density estimates by 1000.
+#' Segment effort in this package is in **kilometres**. When both are passed to
+#' `Distance::ds()`, either use `units = "km"` here or supply `convert_units`.
+#' Otherwise density estimates are wrong by a factor of 1000.
 #'
 #' @param angle Declination angle below the horizon, in degrees. Values outside
 #'   `(0, 90]` cannot describe a sighting below the horizon and return `NA`.
@@ -62,12 +62,15 @@
 perp_distance <- function(angle, altitude, units = c("m", "km")) {
   units <- match.arg(units)
 
+  # Recycle both inputs to a common length.
   angle <- as.numeric(angle)
   altitude <- as.numeric(altitude)
   n <- max(length(angle), length(altitude))
   angle <- rep_len(angle, n)
   altitude <- rep_len(altitude, n)
 
+  # x = h / tan(theta), only where the angle is in (0, 90] degrees and the
+  # altitude is positive. Other rows stay NA.
   out <- rep(NA_real_, n)
 
   usable <- !is.na(angle) & !is.na(altitude) &
@@ -116,12 +119,11 @@ perp_distance <- function(angle, altitude, units = c("m", "km")) {
 #' overrides the platform, within what the platform can supply.
 #'
 #' @section Why the provenance column is not optional:
-#' Mixing sources in one detection function is a decision, and it should be a
-#' conscious one rather than something discovered afterwards. Point and interval
-#' distances cannot share a likelihood — `STRIP` rows must be fitted binned —
-#' and circling distances are estimated minutes after the detection they
-#' describe. Without `distance_source` none of that is visible in the table a
-#' model gets fitted to, and a reviewer will ask.
+#' Mixing sources in one detection function should be a deliberate choice.
+#' Point and interval distances cannot share a likelihood (`STRIP` rows must be
+#' fitted binned), and circling distances are estimated minutes after the
+#' detection they describe. `distance_source` makes this visible in the table
+#' a model is fitted to.
 #'
 #' Where a record carries both an angle and an exact position, the two are
 #' independent measurements of the same quantity. The default order prefers the
@@ -133,9 +135,9 @@ perp_distance <- function(angle, altitude, units = c("m", "km")) {
 #'
 #' @section Circling is opt-in:
 #' `"circling"` is not in the default order. Those sightings are usually real
-#' on-effort detections and dropping them thins the near-zero end of the distance
-#' distribution — but the position is fixed after the animal has moved, so they
-#' are a weaker source. Ask for them deliberately, and see
+#' on-effort detections, and dropping them thins the near-zero end of the
+#' distance distribution. But the position is fixed after the animal has moved,
+#' so they are a weaker source. Ask for them deliberately, and see
 #' [circling_distance()]. [segment_survey()] does not take this source from
 #' `distance_sources`, and warns if it is asked for: a circling record's
 #' distance is set when it is attached, and
@@ -207,6 +209,7 @@ sighting_distances <- function(dat,
                                strip_platform = "skymaster",
                                strip_left_truncation = FALSE,
                                by = NULL) {
+  # 1. Resolve the sources: the platform's order unless named, all known.
   units <- match.arg(units)
   platform <- resolve_platform(platform)
   if (is.null(sources)) sources <- platform_defaults(platform)$distance_sources
@@ -215,11 +218,11 @@ sighting_distances <- function(dat,
   if (length(bad)) {
     cli_abort_bad_arg("sources", bad[1], known)
   }
-  # An aircraft source named for a vessel is a measurement that does not
-  # exist, not a preference to be honoured partway. Silently dropping it would
-  # leave the column NA and report nothing about why.
+  # Stop if an aircraft-only source is named for a vessel. Dropping it silently
+  # would leave the column NA with no reason given.
   check_distance_sources(sources, platform)
 
+  # Empty input: add the empty output columns and return.
   if (is_empty_df(dat)) {
     dat$distance <- numeric(0)
     dat$distbegin <- numeric(0)
@@ -229,6 +232,8 @@ sighting_distances <- function(dat,
     return(dat)
   }
 
+  # 2. Eligible rows: on effort, on a census line, LEGSTAGE == 2 (handbook
+  #    8.A.31), unless on_effort_only = FALSE. Output vectors start as NA.
   n <- nrow(dat)
   eligible <- if (on_effort_only) on_effort_census_rows(dat) else rep(TRUE, n)
 
@@ -238,8 +243,9 @@ sighting_distances <- function(dat,
   side <- rep(NA_character_, n)
   source <- rep(NA_character_, n)
 
-  # A row is claimed by the first source in `sources` that yields something for
-  # it, so later sources only ever fill gaps.
+  # 3. Try each source in order. A row is claimed by the first source that
+  #    gives it a distance or an interval; later sources fill only open rows.
+  #    A source that does not apply to this data returns NULL and is skipped.
   for (src in sources) {
     open <- is.na(source)
     if (!any(open)) break
@@ -250,8 +256,8 @@ sighting_distances <- function(dat,
     )
     if (is.null(got)) next
 
-    # Circling records are off effort by definition, so the census restriction
-    # cannot apply to them.
+    # The census restriction does not apply to "circling": those records are
+    # off effort by definition.
     allowed <- if (src == "circling") rep(TRUE, n) else eligible
     take <- open & allowed &
       (!is.na(got$distance) | !is.na(got$distbegin))
@@ -262,14 +268,14 @@ sighting_distances <- function(dat,
     side[take] <- got$side[take]
     source[take] <- src
 
-    # A source can establish which side of the track a sighting was on without
-    # yielding a distance - most importantly `side = "both"`, where both angle
-    # columns are populated and the record is ambiguous. Record that, but leave
-    # the row unclaimed so a later source can still supply a distance for it.
+    # A source may give the side without a distance (for example
+    # side = "both", when both angle columns are filled). Record the side but
+    # leave the row open, so a later source can still supply a distance.
     side_only <- open & allowed & is.na(side) & !is.na(got$side)
     side[side_only] <- got$side[side_only]
   }
 
+  # 4. Add the columns to `dat`.
   dat$distance <- distance
   dat$distbegin <- distbegin
   dat$distend <- distend
@@ -278,8 +284,9 @@ sighting_distances <- function(dat,
   dat
 }
 
-# One source's contribution, in a common shape: distance / distbegin / distend /
-# side, one row per row of `dat`. NULL when the source cannot apply at all.
+# One source's contribution, in a common shape: a list of distance,
+# distbegin, distend and side, each one element per row of `dat`. NULL when the
+# source cannot apply (its columns are missing).
 distance_from_source <- function(dat, src, units, strip_scheme, strip_platform,
                                  strip_left_truncation, by) {
   n <- nrow(dat)
@@ -288,6 +295,8 @@ distance_from_source <- function(dat, src, units, strip_scheme, strip_platform,
          distend = rep(NA_real_, n), side = rep(NA_character_, n))
   }
 
+  # angle: ALT / tan(angle), from ANGLEL or ANGLER. A missing angle column is
+  # treated as all NA.
   if (src == "angle") {
     if (!any(c("ANGLEL", "ANGLER") %in% names(dat))) return(NULL)
     left <- if ("ANGLEL" %in% names(dat)) as.numeric(dat$ANGLEL) else rep(NA_real_, n)
@@ -299,10 +308,12 @@ distance_from_source <- function(dat, src, units, strip_scheme, strip_platform,
     out <- blank()
     out$side[has_l & !has_r] <- "left"
     out$side[has_r & !has_l] <- "right"
-    # A sighting is on one side of the track, so both is ambiguous and yields
-    # no distance - reported by validate_narwc() as `angle_both_sides`.
+    # Both angles recorded is ambiguous: side "both" and no distance.
+    # validate_narwc() reports these as `angle_both_sides`.
     out$side[has_l & has_r] <- "both"
 
+    # Use the one recorded angle. perp_distance() has no "nmi" option, so
+    # compute in metres and convert (1 nmi = 1852 m).
     angle <- rep(NA_real_, n)
     angle[has_l & !has_r] <- left[has_l & !has_r]
     angle[has_r & !has_l] <- right[has_r & !has_l]
@@ -313,6 +324,8 @@ distance_from_source <- function(dat, src, units, strip_scheme, strip_platform,
     return(out)
   }
 
+  # exact: the recorded sighting position projected onto the track. Every row
+  # is computed here; the eligibility restriction is applied by the caller.
   if (src == "exact") {
     if (!all(c("S_LAT", "S_LONG") %in% names(dat))) return(NULL)
     ex <- exact_distance(dat, by = by, units = units, on_effort_only = FALSE)
@@ -322,6 +335,8 @@ distance_from_source <- function(dat, src, units, strip_scheme, strip_platform,
     return(out)
   }
 
+  # strip: the STRIP code looked up in a code book, giving an interval. The
+  # "auto" scheme picks the code book by DATE, so it needs a DATE column.
   if (src == "strip") {
     if (!"STRIP" %in% names(dat)) return(NULL)
     date <- if ("DATE" %in% names(dat)) dat$DATE else NULL
@@ -337,6 +352,7 @@ distance_from_source <- function(dat, src, units, strip_scheme, strip_platform,
     return(out)
   }
 
+  # circling: the sighting position projected onto the line at the break-off.
   if (src == "circling") {
     circ <- circling_distance(dat, by = by, units = units)
     out <- blank()
